@@ -1,0 +1,179 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Meme Generator | Secret Society of Whales</title>
+    <link rel="icon" type="image/png" sizes="32x32" href="images/favicon-32.png">
+    <link rel="apple-touch-icon" sizes="180x180" href="images/favicon-180.png">
+    <link rel="stylesheet" href="base.css">
+    <link rel="stylesheet" href="meme.css">
+    <script>
+        /* Runs before <body> paints: if the boot screen already played
+           this session, mark the document so CSS skips it outright.
+           Deferring this to a file would flash the intro on every page. */
+        try {
+            if (sessionStorage.getItem('ssow-booted')) {
+                document.documentElement.classList.add('booted');
+            }
+            sessionStorage.setItem('ssow-booted', '1');
+        } catch (e) { /* private mode - the intro just plays again */ }
+    </script>
+</head>
+<body>
+<div class="Boot" aria-hidden="true">
+    <div class="Boot-inner">
+        <p class="Boot-mark">Secret Society of Whales</p>
+        <div class="Boot-bar"><span></span></div>
+    </div>
+</div>
+<div class="Watercolor" data-watercolor data-cursor="true" data-color1="#0e3a63" data-color2="#5ba3c9" data-opacity="0.26" aria-hidden="true"></div>
+
+<header>
+
+    <nav>
+        <a href="index.html">Home</a>
+        <a href="history.html">Whalestory</a>
+        <a href="meme.html" aria-current="page">Meme</a>
+        <a href="idcard.html">ID Generator</a>
+        <a class="Nav-logo" href="index.html">
+            <img src="images/OG_logo.png" alt="Secret Society of Whales &mdash; home">
+        </a>
+    </nav>
+
+</header>
+
+<main>
+    <section class="Intro">
+        <h1 data-stroke-text>Meme Generator</h1>
+        <p class="Tagline">
+            Pick a whale, let Claude write the caption, take it with you.
+        </p>
+    </section>
+
+    <div class="Studio">
+
+        <!-- ============ LEFT: controls ============ -->
+        <section class="Controls" aria-label="Meme controls">
+
+            <fieldset class="Control-group">
+                <legend><span class="Step">1</span> Pick your whale</legend>
+
+                <div class="Field Field--inline">
+                    <label for="whaleId">Token number</label>
+                    <input type="number" id="whaleId" name="whaleId"
+                           min="1" max="10000" step="1" placeholder="3955"
+                           inputmode="numeric">
+                    <button type="button" id="loadWhale" class="Btn">Load</button>
+                </div>
+
+                <p class="Field-status" id="whaleStatus" role="status"></p>
+            </fieldset>
+
+            <fieldset class="Control-group">
+                <legend><span class="Step">2</span> Captions</legend>
+
+                <p class="Field-status" id="captionStatus" role="status">load a whale and captions appear here</p>
+
+                <ul class="Captions" id="captionList"></ul>
+
+                <div class="Field">
+                    <label for="topText">Top text</label>
+                    <input type="text" id="topText" name="topText"
+                           maxlength="60" placeholder="when the floor dips">
+                </div>
+
+                <div class="Field">
+                    <label for="bottomText">Bottom text</label>
+                    <input type="text" id="bottomText" name="bottomText"
+                           maxlength="60" placeholder="buy more whales">
+                </div>
+            </fieldset>
+
+            <fieldset class="Control-group">
+                <legend><span class="Step">3</span> Style</legend>
+
+                <div class="Field">
+                    <label for="fontFamily">Font</label>
+                    <select id="fontFamily" name="fontFamily">
+                        <option value="impact">Impact (classic meme)</option>
+                        <option value="display">Syne (on brand)</option>
+                        <option value="mono">JetBrains Mono</option>
+                    </select>
+                </div>
+
+                <div class="Field">
+                    <label for="fontSize">Text size <output id="fontSizeOut">64</output></label>
+                    <input type="range" id="fontSize" name="fontSize"
+                           min="24" max="120" step="2" value="64">
+                </div>
+
+                <div class="Field Field--split">
+                    <div>
+                        <label for="fillColor">Text</label>
+                        <input type="color" id="fillColor" name="fillColor" value="#ffffff">
+                    </div>
+                    <div>
+                        <label for="strokeColor">Outline</label>
+                        <input type="color" id="strokeColor" name="strokeColor" value="#000000">
+                    </div>
+                </div>
+
+                <div class="Field">
+                    <label for="strokeWidth">Outline weight <output id="strokeWidthOut">8</output></label>
+                    <input type="range" id="strokeWidth" name="strokeWidth"
+                           min="0" max="20" step="1" value="8">
+                </div>
+
+                <div class="Field Field--check">
+                    <input type="checkbox" id="uppercase" name="uppercase" checked>
+                    <label for="uppercase">Force UPPERCASE</label>
+                </div>
+            </fieldset>
+
+        </section>
+
+        <!-- ============ RIGHT: canvas ============ -->
+        <section class="Stage" aria-label="Meme preview">
+
+            <div class="Stage-frame">
+                <canvas id="memeCanvas" width="1000" height="1000"
+                        aria-label="Meme preview canvas"></canvas>
+                <p class="Stage-empty" id="stageEmpty">load a whale to begin</p>
+            </div>
+
+            <div class="Stage-actions">
+                <button type="button" id="downloadMeme" class="Btn Btn--primary" disabled>
+                    Download PNG
+                </button>
+                <button type="button" id="resetMeme" class="Btn Btn--ghost">
+                    Reset
+                </button>
+            </div>
+
+            <p class="Stage-note" id="stageNote">
+                Drag either caption on the canvas to reposition it.
+            </p>
+
+        </section>
+
+    </div>
+</main>
+
+<footer class="Footer" data-footer></footer>
+
+<!-- Optional: create config.js with your Anthropic key to enable AI captions.
+     Without it the page falls back to a built-in caption writer. -->
+<script src="config.js" onerror="void 0"></script>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/gsap.min.js"></script>
+<script src="strokeText.js"></script>
+<script src="whale.js"></script>
+<script src="captions.js"></script>
+<script src="meme.js"></script>
+<script src="watercolor.js"></script>
+<script src="footer.js"></script>
+<script src="data/gold.js"></script>
+<script src="easteregg.js"></script>
+</body>
+</html>

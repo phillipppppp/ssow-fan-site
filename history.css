@@ -1,0 +1,337 @@
+/* ============================================================
+   Whalestory — loads after base.css
+
+   A long document, so this sheet is mostly typography and a
+   left-hand time rule. Chapters are plain blocks divided by
+   hairlines, not cards.
+   ============================================================ */
+
+main { max-width: 1100px; }
+
+/* ------------------------------------------------------------
+   Intro
+   ------------------------------------------------------------ */
+
+.Intro {
+    padding: clamp(4rem, 10vw, 8rem) 0 clamp(2.5rem, 5vw, 4rem);
+    text-align: left;
+}
+
+.Intro h1 {
+    font-family: var(--font-display);
+    font-size: clamp(2.75rem, 12vw, 8rem);
+    font-weight: 800;
+    line-height: 0.88;
+    letter-spacing: -0.035em;
+    color: var(--ink);
+}
+
+.Intro h1 .stroke-text { display: block; width: 100%; margin: 0; line-height: 0; }
+.Intro h1 .stroke-text__svg { display: block; width: 100%; height: auto; overflow: visible; }
+
+.Intro > p {
+    max-width: 40rem;
+    margin: clamp(1.5rem, 3vw, 2.5rem) 0 0 auto;
+    padding: 0;
+    text-align: left;
+    font-size: clamp(0.95rem, 1.3vw, 1.08rem);
+    line-height: 1.75;
+    color: var(--ink-2);
+    background: none;
+    border: 0;
+}
+
+/* year jump links */
+.Chapters {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.4rem;
+    justify-content: flex-start;
+    margin-top: 2.5rem;
+    padding-top: 2.5rem;
+    border-top: 1px solid var(--rule);
+}
+
+.Chapters a {
+    padding: 0.45rem 1rem;
+    font-family: var(--font-mono);
+    font-size: 0.72rem;
+    letter-spacing: 0.12em;
+    color: var(--ink-3);
+    text-decoration: none;
+    background: none;
+    border: 1px solid var(--rule);
+    transition: all 0.18s ease;
+}
+
+.Chapters a:hover,
+.Chapters a:focus-visible {
+    color: var(--bg);
+    background: var(--ink);
+    border-color: var(--ink);
+}
+
+/* ------------------------------------------------------------
+   Year — a big mono numeral with the time rule running past it
+   ------------------------------------------------------------ */
+
+.Year {
+    position: relative;
+    margin: clamp(3rem, 7vw, 6rem) 0 0;
+    padding-left: clamp(0px, 4vw, 3.5rem);
+}
+
+.Year::before {
+    content: "";
+    position: absolute;
+    top: 9rem;
+    bottom: 0;
+    left: 0;
+    width: 1px;
+    background: var(--rule);
+}
+
+.Year > h2 {
+    margin: 0 0 clamp(2rem, 4vw, 3rem) calc(-1 * clamp(0px, 4vw, 3.5rem));
+    padding-bottom: 1.25rem;
+    font-family: var(--font-mono);
+    font-size: clamp(3rem, 11vw, 7rem);
+    font-weight: 600;
+    line-height: 0.9;
+    letter-spacing: -0.02em;
+    color: var(--ink);
+    text-align: left;
+    border-bottom: 1px solid var(--rule);
+}
+
+.Year > h2::after { content: none; }
+
+/* ------------------------------------------------------------
+   Chapter — a block, not a card
+   ------------------------------------------------------------ */
+
+.Chapter {
+    position: relative;
+    margin: 0 0 clamp(2.5rem, 5vw, 4rem);
+    padding: 0 0 clamp(2.5rem, 5vw, 4rem);
+    background: none;
+    border: 0;
+    border-bottom: 1px solid var(--rule-soft);
+}
+
+/* the tick on the time rule */
+.Chapter::before {
+    content: "";
+    position: absolute;
+    top: 0.85rem;
+    left: calc(-1 * clamp(0px, 4vw, 3.5rem));
+    width: 9px;
+    height: 1px;
+    background: var(--accent);
+}
+
+.Chapter:hover { background: none; box-shadow: none; }
+
+.Chapter > h3 {
+    margin-bottom: 1.75rem;
+    padding-bottom: 0;
+    font-family: var(--font-display);
+    font-size: clamp(1.15rem, 2.4vw, 1.75rem);
+    font-weight: 800;
+    line-height: 1.25;
+    letter-spacing: -0.02em;
+    color: var(--ink);
+    border: 0;
+}
+
+.Chapter > h3 time {
+    display: block;
+    margin-bottom: 0.5rem;
+    font-family: var(--font-mono);
+    font-size: 0.66rem;
+    font-weight: 400;
+    letter-spacing: 0.22em;
+    text-transform: uppercase;
+    color: var(--ink-4);
+}
+
+/* ------------------------------------------------------------
+   Topic — a labelled section inside a chapter
+   ------------------------------------------------------------ */
+
+.Topic { margin-bottom: 2rem; }
+
+.Topic > h4 {
+    margin-bottom: 0.75rem;
+    padding-left: 0;
+    font-family: var(--font-mono);
+    font-size: 0.66rem;
+    font-weight: 400;
+    letter-spacing: 0.2em;
+    text-transform: uppercase;
+    color: var(--accent);
+    border: 0;
+}
+
+.Topic p { margin-bottom: 0.8rem; color: var(--ink-2); line-height: 1.75; }
+
+.Topic ul { margin-top: 0.6rem; padding-left: 1.4rem; list-style: none; }
+
+.Topic li {
+    position: relative;
+    margin-bottom: 0.55rem;
+    color: var(--ink-2);
+    line-height: 1.75;
+}
+
+.Topic li::before {
+    content: "";
+    position: absolute;
+    left: -1.4rem;
+    top: 0.75em;
+    width: 6px;
+    height: 1px;
+    background: var(--ink-4);
+    opacity: 1;
+    font-size: inherit;
+    line-height: normal;
+}
+
+.Topic strong { font-weight: 700; color: var(--ink); }
+
+.Topic a {
+    color: var(--ink);
+    font-weight: 500;
+    text-decoration: none;
+    border-bottom: 1px solid var(--accent-line);
+    transition: all 0.18s ease;
+}
+.Topic a:hover { color: var(--accent); border-bottom-color: var(--accent); }
+
+/* ------------------------------------------------------------
+   Gallery
+   ------------------------------------------------------------ */
+
+.Gallery { display: flex; flex-wrap: wrap; gap: 1px; margin: 1.75rem 0; }
+
+.Gallery:empty::before {
+    content: "photos to be added";
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 100%;
+    height: 80px;
+    font-family: var(--font-mono);
+    font-size: 0.62rem;
+    letter-spacing: 0.16em;
+    text-transform: uppercase;
+    color: var(--ink-4);
+    background: var(--surface);
+    border: 1px solid var(--rule-soft);
+}
+
+.Gallery img {
+    width: 168px;
+    height: 168px;
+    object-fit: cover;
+    border: 0;
+    filter: grayscale(1) contrast(1.05);
+    transition: filter 0.3s ease;
+}
+
+.Gallery img:hover { filter: none; transform: none; box-shadow: none; }
+
+/* ------------------------------------------------------------
+   Closing note
+   ------------------------------------------------------------ */
+
+.Closing {
+    margin-top: 1.75rem;
+    padding: 1.1rem 0 1.1rem 1.25rem;
+    font-size: 0.95rem;
+    font-style: normal;
+    line-height: 1.75;
+    color: var(--ink-3);
+    background: none;
+    border-left: 1px solid var(--accent);
+}
+
+/* ------------------------------------------------------------
+   Sources — the log tail
+   ------------------------------------------------------------ */
+
+.Sources { margin-top: 1.75rem; padding-top: 1.25rem; border-top: 1px solid var(--rule-soft); }
+
+.Sources ul {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+    gap: 0.2rem 1.5rem;
+    list-style: none;
+    font-family: var(--font-mono);
+    font-size: 0.68rem;
+    line-height: 1.8;
+    color: var(--ink-4);
+}
+
+/* ------------------------------------------------------------
+   Where we are now
+   ------------------------------------------------------------ */
+
+.Today {
+    margin-top: clamp(3rem, 7vw, 6rem);
+    padding: clamp(2.5rem, 5vw, 4rem) 0 0;
+    text-align: left;
+    background: none;
+    border: 0;
+    border-top: 1px solid var(--rule);
+}
+
+.Today h2 {
+    margin-bottom: 1rem;
+    font-family: var(--font-display);
+    font-size: clamp(1.75rem, 5vw, 3rem);
+    font-weight: 800;
+    letter-spacing: -0.03em;
+    color: var(--ink);
+}
+
+.Today p { max-width: 40rem; color: var(--ink-2); }
+
+.Today a {
+    display: inline-block;
+    margin-top: 1.75rem;
+    padding: 0.7rem 1.5rem;
+    font-family: var(--font-mono);
+    font-size: 0.66rem;
+    letter-spacing: 0.16em;
+    text-transform: uppercase;
+    color: var(--bg);
+    text-decoration: none;
+    background: var(--accent);
+    border: 1px solid var(--accent);
+    transition: all 0.18s ease;
+}
+
+.Today a:hover,
+.Today a:focus-visible { background: var(--accent-bright); border-color: var(--accent-bright); }
+
+/* ------------------------------------------------------------
+   Small screens
+   ------------------------------------------------------------ */
+
+@media (max-width: 600px) {
+    .Sources ul { grid-template-columns: 1fr; }
+    .Gallery img { width: 132px; height: 132px; }
+}
+
+/* ------------------------------------------------------------
+   Print
+   ------------------------------------------------------------ */
+
+@media print {
+    body { background: #fff; color: #000; }
+    nav, .Chapters, .Watercolor, .Boot, .Golden { display: none; }
+    .Chapter { break-inside: avoid; border-bottom: 1px solid #999; }
+    .Chapter > h3, .Year > h2, .Today h2 { color: #000; }
+    .Topic p, .Topic li, .Sources ul { color: #333; }
+}

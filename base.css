@@ -1,0 +1,468 @@
+@import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;600&family=Plus+Jakarta+Sans:ital,wght@0,400;0,500;0,700;1,400&family=Syne:wght@700;800&display=swap');
+
+/* ============================================================
+   Secret Society of Whales — shared base
+
+   Everything every page has in common: tokens, reset, nav,
+   footer, the watercolor wash, the boot screen and the golden
+   whale. Page sheets load AFTER this one and only carry what is
+   unique to that page.
+
+   This file exists because the same nav and footer rules used to
+   live in four stylesheets, and edits kept landing in three of
+   them. That is how the Download buttons ended up unstyled for
+   several rounds — a class rename reached the markup and only
+   part of the CSS.
+
+   Style: big type, high contrast, hard edges. No border-radius
+   anywhere, no glass panels, no glows. Blocks are separated by
+   hairlines; one accent, used sparingly.
+   ============================================================ */
+
+:root {
+    /* ink ramp */
+    --ink:           #f2f5f8;
+    --ink-2:         #b9c3ce;
+    --ink-3:         #76828f;
+    --ink-4:         #4a5560;
+
+    /* surfaces */
+    --bg:            #070d16;
+    --surface:       rgba(255, 255, 255, 0.028);
+    --surface-2:     rgba(255, 255, 255, 0.055);
+    --rule:          rgba(255, 255, 255, 0.13);
+    --rule-soft:     rgba(255, 255, 255, 0.07);
+
+    /* accent — rationed: numbers, labels, hover, and nothing else */
+    --accent:        #4ce0c4;
+    --accent-bright: #7ef4dc;
+    --accent-line:   rgba(76, 224, 196, 0.35);
+    --accent-glow:   rgba(76, 224, 196, 0.18);
+    --accent-wash:   rgba(76, 224, 196, 0.08);
+
+    /* secondary — marks the featured / selected thing */
+    --amethyst:      #9b7ff0;
+    --amethyst-line: rgba(155, 127, 240, 0.4);
+    --amethyst-wash: rgba(155, 127, 240, 0.1);
+
+    /* status */
+    --surf:          #8fc7d8;
+    --warn:          #e0a84a;
+    --error:         #e0664a;
+
+    /* aliases kept so components written against the old names
+       keep working without a second rename pass */
+    --abyss:         #070d16;
+    --deep:          #0d1624;
+    --midnight:      #0d1624;
+    --panel:         rgba(255, 255, 255, 0.04);
+    --panel-soft:    rgba(255, 255, 255, 0.028);
+    --text:          #f2f5f8;
+    --text-soft:     #b9c3ce;
+    --text-muted:    #76828f;
+    --text-faint:    #4a5560;
+
+    --font-display:  'Syne', 'Trebuchet MS', sans-serif;
+    --font-body:     'Plus Jakarta Sans', 'Segoe UI', system-ui, sans-serif;
+    --font-mono:     'JetBrains Mono', ui-monospace, 'Cascadia Mono', monospace;
+
+    --gutter: clamp(1.25rem, 5vw, 5rem);
+}
+
+* { margin: 0; padding: 0; box-sizing: border-box; }
+
+html { scroll-behavior: smooth; }
+
+body {
+    min-height: 100vh;
+    font-family: var(--font-body);
+    font-size: 1rem;
+    line-height: 1.6;
+    color: var(--ink);
+    background: var(--bg);
+    -webkit-font-smoothing: antialiased;
+}
+
+::selection { background: var(--accent); color: var(--bg); }
+
+main {
+    max-width: 1500px;
+    margin: 0 auto;
+    padding: 0 var(--gutter) 8rem;
+}
+
+/* ------------------------------------------------------------
+   Watercolor — texture, not a feature
+   ------------------------------------------------------------ */
+
+.Watercolor {
+    position: fixed;
+    inset: 0;
+    z-index: -1;
+    pointer-events: none;
+    overflow: hidden;
+    opacity: 0.45;
+}
+
+.Watercolor-canvas { display: block; width: 100%; height: 100%; }
+
+/* ------------------------------------------------------------
+   Nav — a rule with words on it
+   ------------------------------------------------------------ */
+
+nav {
+    position: -webkit-sticky;
+    position: sticky;
+    top: 0;
+    z-index: 1000;
+    display: flex;
+    align-items: center;
+    gap: 0.25rem;
+    height: 68px;
+    padding: 0 var(--gutter);
+    background: rgba(7, 13, 22, 0.88);
+    -webkit-backdrop-filter: blur(12px);
+    backdrop-filter: blur(12px);
+    border-bottom: 1px solid var(--rule);
+}
+
+nav a {
+    padding: 0.5rem 0.9rem;
+    font-family: var(--font-mono);
+    font-size: 0.7rem;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: var(--ink-3);
+    text-decoration: none;
+    transition: color 0.18s ease;
+}
+
+nav a:hover,
+nav a:focus-visible { color: var(--ink); }
+
+/* one rule for every page, driven by the markup rather than by a
+   per-page href selector */
+nav a[aria-current="page"] { color: var(--accent); }
+
+.Nav-logo { margin-left: auto; padding: 0; line-height: 0; }
+
+.Nav-logo img {
+    display: block;
+    width: 34px;
+    height: auto;
+    filter: grayscale(1) contrast(1.2);
+    opacity: 0.75;
+    transition: opacity 0.18s ease, filter 0.18s ease;
+}
+
+.Nav-logo:hover img,
+.Nav-logo:focus-visible img { opacity: 1; filter: none; }
+
+/* ------------------------------------------------------------
+   Shared controls
+   ------------------------------------------------------------ */
+
+.Btn {
+    padding: 0.7rem 1.4rem;
+    font-family: var(--font-mono);
+    font-size: 0.66rem;
+    letter-spacing: 0.16em;
+    text-transform: uppercase;
+    color: var(--ink);
+    background: none;
+    border: 1px solid var(--rule);
+    border-radius: 0;
+    cursor: pointer;
+    transition: all 0.18s ease;
+}
+
+.Btn:hover:not(:disabled),
+.Btn:focus-visible:not(:disabled) {
+    color: var(--bg);
+    background: var(--ink);
+    border-color: var(--ink);
+}
+
+.Btn:disabled { opacity: 0.35; cursor: not-allowed; }
+
+.Btn--primary {
+    width: 100%;
+    color: var(--bg);
+    background: var(--accent);
+    border-color: var(--accent);
+}
+
+.Btn--primary:hover:not(:disabled),
+.Btn--primary:focus-visible:not(:disabled) {
+    background: var(--accent-bright);
+    border-color: var(--accent-bright);
+    color: var(--bg);
+}
+
+.Btn--ghost { width: 100%; color: var(--ink-3); }
+
+/* ------------------------------------------------------------
+   Section label — the small mono caps used on every page
+   ------------------------------------------------------------ */
+
+.Label,
+.Floor-label,
+.Daily-heading,
+.Spotlight h2 {
+    font-family: var(--font-mono);
+    font-size: 0.66rem;
+    letter-spacing: 0.24em;
+    text-transform: uppercase;
+    color: var(--ink-3);
+    text-align: left;
+    margin: 0 0 1.75rem;
+}
+
+/* ------------------------------------------------------------
+   Footer
+   ------------------------------------------------------------ */
+
+.Footer {
+    padding: clamp(3rem, 6vw, 5rem) var(--gutter) 2.5rem;
+    border-top: 1px solid var(--rule);
+}
+
+.Footer-inner {
+    display: grid;
+    grid-template-columns: 1fr auto 1fr;
+    gap: 3rem;
+    align-items: start;
+    max-width: 1500px;
+    margin: 0 auto;
+}
+
+.Footer-heading {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    margin-bottom: 1.25rem;
+    font-family: var(--font-mono);
+    font-size: 0.62rem;
+    letter-spacing: 0.2em;
+    text-transform: uppercase;
+    color: var(--ink-4);
+}
+
+.Footer-col--end .Footer-heading { justify-content: flex-end; }
+.Footer-heading svg { width: 13px; height: 13px; flex-shrink: 0; }
+
+.Footer-links { display: flex; flex-wrap: wrap; gap: 0.4rem; list-style: none; }
+
+.Footer-links a {
+    display: inline-block;
+    padding: 0.35rem 0.75rem;
+    font-size: 0.76rem;
+    color: var(--ink-2);
+    text-decoration: none;
+    border: 1px solid var(--rule);
+    transition: all 0.18s ease;
+}
+
+.Footer-links a:hover,
+.Footer-links a:focus-visible {
+    color: var(--bg);
+    background: var(--ink);
+    border-color: var(--ink);
+}
+
+.Footer-col--center { text-align: center; }
+.Footer-col--end { text-align: right; }
+
+.Footer-mark { width: 40px; height: auto; margin: 0 auto 0.75rem;
+               filter: grayscale(1); opacity: 0.6; }
+
+.Footer-motto {
+    font-family: var(--font-display);
+    font-size: 0.95rem;
+    font-weight: 800;
+    color: var(--accent);
+}
+
+.Footer-blurb { margin-top: 0.35rem; font-size: 0.76rem; color: var(--ink-4); }
+
+.Footer-socials { display: flex; gap: 0.4rem; justify-content: flex-end; }
+
+.Footer-social {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 38px;
+    height: 38px;
+    color: var(--ink-3);
+    border: 1px solid var(--rule);
+    transition: all 0.18s ease;
+}
+
+.Footer-social svg { width: 16px; height: 16px; }
+
+.Footer-social:hover,
+.Footer-social:focus-visible {
+    color: var(--bg);
+    background: var(--ink);
+    border-color: var(--ink);
+}
+
+.Footer-site {
+    display: inline-block;
+    margin-top: 1rem;
+    font-family: var(--font-mono);
+    font-size: 0.7rem;
+    color: var(--ink-4);
+    text-decoration: none;
+}
+
+.Footer-site:hover { color: var(--accent); }
+
+.Footer-legal {
+    max-width: 1500px;
+    margin: 3rem auto 0;
+    padding-top: 1.5rem;
+    font-size: 0.7rem;
+    line-height: 1.7;
+    color: var(--ink-4);
+    border-top: 1px solid var(--rule-soft);
+}
+
+/* ------------------------------------------------------------
+   Golden whale easter egg
+   ------------------------------------------------------------ */
+
+.Golden {
+    position: fixed;
+    z-index: 900;
+    pointer-events: none;
+    opacity: 0;
+    transform: translateY(14px) scale(0.9);
+    transition: opacity 0.6s ease, transform 0.6s ease;
+}
+
+.Golden.is-visible { opacity: 1; transform: translateY(0) scale(1); }
+
+.Golden-whale {
+    display: block;
+    width: 64px;
+    padding: 0;
+    background: none;
+    border: 0;
+    cursor: pointer;
+    pointer-events: auto;
+    filter: drop-shadow(0 0 10px rgba(232, 200, 90, 0.32))
+            drop-shadow(0 4px 9px rgba(0, 0, 0, 0.45));
+    animation: goldenBob 4s ease-in-out infinite;
+    transition: transform 0.25s ease;
+}
+
+.Golden-whale:hover,
+.Golden-whale:focus-visible { transform: scale(1.12) rotate(-3deg); }
+
+.Golden-img { display: block; width: 100%; height: auto; }
+
+@keyframes goldenBob {
+    0%, 100% { transform: translateY(0); }
+    50%      { transform: translateY(-9px); }
+}
+
+.Golden.is-popped .Golden-whale {
+    animation: goldenPop 0.42s cubic-bezier(0.3, 1.4, 0.5, 1) forwards;
+    pointer-events: none;
+}
+
+@keyframes goldenPop {
+    0%   { transform: scale(1);    opacity: 1; }
+    35%  { transform: scale(1.38); opacity: 1; }
+    100% { transform: scale(0.15); opacity: 0; }
+}
+
+.Golden-ring {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    width: 22px;
+    height: 22px;
+    margin: -11px 0 0 -11px;
+    border: 2px solid rgba(232, 200, 90, 0.9);
+    border-radius: 50%;
+    pointer-events: none;
+    animation: goldenRing 0.5s ease-out forwards;
+}
+
+@keyframes goldenRing {
+    from { transform: scale(0.35); opacity: 0.9; }
+    to   { transform: scale(5.5);  opacity: 0; }
+}
+
+/* ------------------------------------------------------------
+   Boot screen
+
+   Pure CSS: it wipes itself away on a timer, so if JS never runs
+   the site is still reachable. Script only skips it on later
+   pages in the session, via the inline snippet in each <head>.
+   ------------------------------------------------------------ */
+
+.Boot {
+    position: fixed;
+    inset: 0;
+    z-index: 5000;
+    display: grid;
+    place-items: center;
+    background: var(--bg);
+    animation: bootOut 0.75s cubic-bezier(0.7, 0, 0.3, 1) 1.9s forwards;
+}
+
+html.booted .Boot { display: none; }
+
+@keyframes bootOut { to { transform: translateY(-101%); visibility: hidden; } }
+
+.Boot-inner { width: min(560px, 78vw); text-align: left; }
+
+.Boot-mark {
+    font-family: var(--font-mono);
+    font-size: clamp(0.6rem, 1.6vw, 0.78rem);
+    letter-spacing: 0.34em;
+    text-transform: uppercase;
+    color: var(--ink);
+    opacity: 0;
+    animation: bootIn 0.6s ease 0.15s forwards;
+}
+
+.Boot-bar { height: 1px; margin-top: 1.4rem; background: rgba(255, 255, 255, 0.14); }
+
+.Boot-bar span {
+    display: block;
+    height: 100%;
+    width: 0;
+    background: var(--accent);
+    animation: bootFill 1.7s cubic-bezier(0.4, 0, 0.2, 1) 0.15s forwards;
+}
+
+@keyframes bootIn   { to { opacity: 1; } }
+@keyframes bootFill { to { width: 100%; } }
+
+/* ------------------------------------------------------------
+   Small screens
+   ------------------------------------------------------------ */
+
+@media (max-width: 820px) {
+    .Footer-inner { grid-template-columns: 1fr; gap: 2.25rem; }
+    .Footer-col--center, .Footer-col--end { text-align: left; }
+    .Footer-col--end .Footer-heading { justify-content: flex-start; }
+    .Footer-socials { justify-content: flex-start; }
+    .Footer-mark { margin: 0 0 0.75rem; }
+}
+
+@media (max-width: 620px) {
+    nav { height: auto; flex-wrap: wrap; padding: 0.6rem var(--gutter); }
+    nav a { font-size: 0.62rem; padding: 0.4rem 0.5rem; }
+    .Golden-whale { width: 46px; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    html { scroll-behavior: auto; }
+    .Boot { display: none; }
+    *, *::before, *::after { animation: none !important; transition: none !important; }
+}

@@ -1,0 +1,11 @@
+# Local secrets - never commit. Copy config.example.js to config.js instead.
+config.js
+.env
+
+node_modules/
+.vercel/
+
+# OS / OneDrive clutter
+Thumbs.db
+desktop.ini
+.DS_Store

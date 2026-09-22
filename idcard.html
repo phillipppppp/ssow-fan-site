@@ -1,0 +1,171 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ID Generator | Secret Society of Whales</title>
+    <link rel="icon" type="image/png" sizes="32x32" href="images/favicon-32.png">
+    <link rel="apple-touch-icon" sizes="180x180" href="images/favicon-180.png">
+    <link rel="stylesheet" href="base.css">
+    <link rel="stylesheet" href="idcard.css">
+    <script>
+        /* Runs before <body> paints: if the boot screen already played
+           this session, mark the document so CSS skips it outright.
+           Deferring this to a file would flash the intro on every page. */
+        try {
+            if (sessionStorage.getItem('ssow-booted')) {
+                document.documentElement.classList.add('booted');
+            }
+            sessionStorage.setItem('ssow-booted', '1');
+        } catch (e) { /* private mode - the intro just plays again */ }
+    </script>
+</head>
+<body>
+<div class="Boot" aria-hidden="true">
+    <div class="Boot-inner">
+        <p class="Boot-mark">Secret Society of Whales</p>
+        <div class="Boot-bar"><span></span></div>
+    </div>
+</div>
+<div class="Watercolor" data-watercolor data-cursor="true" data-color1="#0e3a63" data-color2="#5ba3c9" data-opacity="0.26" aria-hidden="true"></div>
+
+<header>
+
+    <nav>
+        <a href="index.html">Home</a>
+        <a href="history.html">Whalestory</a>
+        <a href="meme.html">Meme</a>
+        <a href="idcard.html" aria-current="page">ID Generator</a>
+        <a class="Nav-logo" href="index.html">
+            <img src="images/OG_logo.png" alt="Secret Society of Whales &mdash; home">
+        </a>
+    </nav>
+
+</header>
+
+<main>
+    <section class="Intro">
+        <h1 data-stroke-text>Member ID</h1>
+        <p class="Tagline">
+            Every whale is a membership. Print yours.
+        </p>
+    </section>
+
+    <div class="Studio">
+
+        <!-- ============ LEFT: controls ============ -->
+        <section class="Controls" aria-label="Card controls">
+
+            <fieldset class="Control-group">
+                <legend><span class="Step">1</span> Your wallet</legend>
+
+                <div class="Field">
+                    <label for="walletAddress">Wallet address</label>
+                    <input type="text" id="walletAddress" name="walletAddress"
+                           placeholder="0x0000…" spellcheck="false"
+                           autocomplete="off">
+                </div>
+
+                <button type="button" id="checkWallet" class="Btn Btn--ghost">
+                    Find my whales
+                </button>
+
+                <p class="Field-status" id="walletStatus" role="status"></p>
+
+                <ul class="Holdings" id="holdings"></ul>
+
+                <div class="Divider"><span>or preview any whale</span></div>
+
+                <div class="Field Field--inline">
+                    <label for="whaleId">Token number</label>
+                    <input type="number" id="whaleId" name="whaleId"
+                           min="1" max="10000" step="1" placeholder="3955"
+                           inputmode="numeric">
+                    <button type="button" id="loadWhale" class="Btn">Load</button>
+                </div>
+
+                <p class="Field-status" id="whaleStatus" role="status"></p>
+            </fieldset>
+
+            <fieldset class="Control-group">
+                <legend><span class="Step">2</span> Details</legend>
+
+                <div class="Field">
+                    <label for="memberName">Display name <span class="Hint">optional</span></label>
+                    <input type="text" id="memberName" name="memberName"
+                           maxlength="24" placeholder="Champ">
+                </div>
+
+                <div class="Field">
+                    <label for="memberSince">Member since <span class="Hint">optional</span></label>
+                    <input type="text" id="memberSince" name="memberSince"
+                           maxlength="24" placeholder="APRIL 2025">
+                </div>
+
+                <div class="Field">
+                    <span class="Field-label" id="themeLabel">Card finish</span>
+                    <div class="Swatches" id="cardThemes" role="radiogroup" aria-labelledby="themeLabel">
+                        <button type="button" class="Swatch Swatch--navy"  data-theme="navy"
+                                role="radio" aria-checked="true"  title="Navy">Navy</button>
+                        <button type="button" class="Swatch Swatch--ice"   data-theme="ice"
+                                role="radio" aria-checked="false" title="Light blue">Light blue</button>
+                        <button type="button" class="Swatch Swatch--black" data-theme="black"
+                                role="radio" aria-checked="false" title="Black">Black</button>
+                        <button type="button" class="Swatch Swatch--white" data-theme="white"
+                                role="radio" aria-checked="false" title="White">White</button>
+                    </div>
+                </div>
+
+                <div class="Field Field--check">
+                    <input type="checkbox" id="showTraits" name="showTraits" checked>
+                    <label for="showTraits">Show traits on card</label>
+                </div>
+
+                <div class="Field Field--check">
+                    <input type="checkbox" id="showAddress" name="showAddress" checked>
+                    <label for="showAddress">Show wallet address</label>
+                </div>
+            </fieldset>
+
+        </section>
+
+        <!-- ============ RIGHT: the card ============ -->
+        <section class="Stage" aria-label="Membership card preview">
+
+            <div class="Stage-frame">
+                <canvas id="cardCanvas" width="1000" height="630"
+                        aria-label="Membership card preview"></canvas>
+                <p class="Stage-empty" id="stageEmpty">load a whale to build your card</p>
+            </div>
+
+            <div class="Stage-actions">
+                <button type="button" id="downloadCard" class="Btn Btn--primary" disabled>
+                    Download PNG
+                </button>
+                <button type="button" id="resetCard" class="Btn Btn--ghost">
+                    Reset
+                </button>
+            </div>
+
+            <p class="Stage-note" id="stageNote">
+                This is a community keepsake, not proof of ownership &mdash; the chain is the record.
+            </p>
+
+        </section>
+
+    </div>
+</main>
+
+<footer class="Footer" data-footer></footer>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/gsap.min.js"></script>
+<script src="strokeText.js"></script>
+<script src="whale.js"></script>
+<script src="logo.js"></script>
+<script src="idcard.js"></script>
+<script src="watercolor.js"></script>
+<script src="footer.js"></script>
+<script src="data/gold.js"></script>
+<script src="easteregg.js"></script>
+</body>
+</html>

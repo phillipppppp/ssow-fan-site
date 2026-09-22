@@ -1,0 +1,2027 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Whalestory | Secret Society of Whales</title>
+    <link rel="icon" type="image/png" sizes="32x32" href="images/favicon-32.png">
+    <link rel="apple-touch-icon" sizes="180x180" href="images/favicon-180.png">
+    <link rel="stylesheet" href="base.css">
+    <link rel="stylesheet" href="history.css">
+    <script>
+        /* Runs before <body> paints: if the boot screen already played
+           this session, mark the document so CSS skips it outright.
+           Deferring this to a file would flash the intro on every page. */
+        try {
+            if (sessionStorage.getItem('ssow-booted')) {
+                document.documentElement.classList.add('booted');
+            }
+            sessionStorage.setItem('ssow-booted', '1');
+        } catch (e) { /* private mode - the intro just plays again */ }
+    </script>
+</head>
+<body>
+<div class="Boot" aria-hidden="true">
+    <div class="Boot-inner">
+        <p class="Boot-mark">Secret Society of Whales</p>
+        <div class="Boot-bar"><span></span></div>
+    </div>
+</div>
+<div class="Watercolor" data-watercolor data-cursor="true" data-color1="#0e3a63" data-color2="#5ba3c9" data-opacity="0.26" aria-hidden="true"></div>
+
+<header>
+
+    <nav>
+        <a href="index.html">Home</a>
+        <a href="history.html" aria-current="page">Whalestory</a>
+        <a href="meme.html">Meme</a>
+        <a href="idcard.html">ID Generator</a>
+        <a class="Nav-logo" href="index.html">
+            <img src="images/OG_logo.png" alt="Secret Society of Whales &mdash; home">
+        </a>
+    </nav>
+
+</header>
+
+<main>
+    <section class="Intro">
+        <h1 data-stroke-text>Whalestory</h1>
+        <p>
+            The Secret Society of Whales launched in August 2021 as a collection of 10,000 ERC-721 whales
+            minted at 0.05 ETH. What began as a mint with a roadmap of charity milestones grew into a
+            community-governed vault, a token economy, a gaming guild, and a run of collections spanning
+            Orcas, Wealthy Whales, Pixel Whales, and Collabs. This is the record of how it happened,
+            month by month, drawn from the community's own announcements.
+        </p>
+
+        <nav class="Chapters">
+            <a href="#y2021">2021</a>
+            <a href="#y2022">2022</a>
+            <a href="#y2023">2023</a>
+            <a href="#y2024">2024</a>
+            <a href="#y2025">2025</a>
+        </nav>
+    </section>
+
+    <!-- ============================== 2021 ============================== -->
+    <section class="Year" id="y2021">
+        <h2>2021</h2>
+
+        <article class="Chapter" id="m2021-08">
+            <h3><time datetime="2021-08">August 2021</time>Launch, Mint, and Community Foundations</h3>
+
+            <section class="Topic">
+                <h4>Founding Team</h4>
+                <ul>
+                    <li>Founder / Project Manager: Big Jon</li>
+                    <li>Developers: Squilliam and Charbo</li>
+                    <li>Consultant: WestCoastNFT group, led by Richerd</li>
+                    <li>Community Managers &amp; Mods: sourced from the NFT community</li>
+                </ul>
+                <p>The team emphasized transparency, community-first values, and a strong focus on education and utility.</p>
+            </section>
+
+            <section class="Topic">
+                <h4>Mint &amp; Launch</h4>
+                <ul>
+                    <li>10,000 ERC-721 whale NFTs, 0.05 ETH each, max 10 per mint</li>
+                    <li>Launch announced for August 15, 2021; surprise window for fairness</li>
+                    <li>Tutorials for website and smart contract minting provided</li>
+                    <li>Sold out in days: 70% in 24 hours, 100% shortly after</li>
+                </ul>
+            </section>
+
+            <section class="Topic">
+                <h4>Mint Milestones</h4>
+                <ul>
+                    <li>10% &mdash; 20 whales airdropped</li>
+                    <li>20% &mdash; BAYC NFT raffle</li>
+                    <li>40% &mdash; NFT education campaign</li>
+                    <li>60% &mdash; $25k each to Save the Whales &amp; Mental Health America</li>
+                    <li>80% &mdash; members-only merch store</li>
+                    <li>90% &mdash; #TogetherWeWhale, 25 ETH community wallet</li>
+                    <li>100% &mdash; LA mural commission</li>
+                </ul>
+            </section>
+
+            <section class="Topic">
+                <h4>BAYC Raffle</h4>
+                <ul>
+                    <li>BAYC NFT secured for raffle</li>
+                    <li>Raffle open to all whale holders, including secondary</li>
+                    <li>Winner selected via community event stream</li>
+                </ul>
+            </section>
+
+            <section class="Topic">
+                <h4>Community</h4>
+                <ul>
+                    <li>1,000+ Twitter followers, 700+ Discord members by early August</li>
+                    <li>Invite contests, meme contests, and Twitter raffles for engagement</li>
+                    <li>#TogetherWeWhale: 2% of secondary sales to the community wallet, with monthly votes to sweep or vote on projects</li>
+                    <li>Community roles sourced from within</li>
+                </ul>
+            </section>
+
+            <section class="Topic">
+                <h4>Charity</h4>
+                <ul>
+                    <li>At 60% sales, donations to Save the Whales &amp; Mental Health America completed</li>
+                    <li>Receipts shared with the community</li>
+                </ul>
+            </section>
+
+            <section class="Topic">
+                <h4>Security Orcas &amp; Next Steps</h4>
+                <ul>
+                    <li>Security Orcas: free mint for whale holders</li>
+                    <li>Members-only merch and NFT education campaign in planning</li>
+                    <li>First #TogetherWeWhale vote and giveaway event held</li>
+                </ul>
+            </section>
+
+            <div class="Gallery">
+                <img src="images/history/2021-08/2021-08-16_09-08-15_bayc_image0.png" alt="August 2021 - bayc image0" loading="lazy">
+                <img src="images/history/2021-08/2021-08-20_22-25-41_charity_MHA.png" alt="August 2021 - charity MHA" loading="lazy">
+                <img src="images/history/2021-08/2021-08-26_16-23-43_charity_stw2.png" alt="August 2021 - charity stw2" loading="lazy">
+                <img src="images/history/2021-08/2021-08-26_16-24-12_charity_stw1.png" alt="August 2021 - charity stw1" loading="lazy">
+            </div>
+
+            <footer class="Sources">
+                <ul>
+                    <li>FAQ Team, July 31, 2021</li>
+                    <li>Supporting Growth, Aug 8, 2021</li>
+                    <li>Devs &amp; Consultant, Aug 10, 2021</li>
+                    <li>Mint Launch, Aug 14, 2021</li>
+                    <li>Mint Launch Tutorials, Aug 15, 2021</li>
+                    <li>BAYC Secured, Aug 16, 2021</li>
+                    <li>BAYC Mint Launch, Aug 16, 2021</li>
+                    <li>BAYC, Aug 16, 2021</li>
+                    <li>Mint Launch Sold Out, Aug 17, 2021</li>
+                    <li>BAYC Raffle Details, Aug 17, 2021</li>
+                    <li>FAQ Team, July 31, 2021</li>
+                    <li>Roadmap Charity, Aug 16, 2021</li>
+                    <li>Charity MHA, Aug 20, 2021</li>
+                    <li>Charity Save the Whales, Aug 26, 2021</li>
+                    <li>Charity Receipts Images, Aug 26, 2021</li>
+                    <li>Charity Roadmap Orcas, Aug 26, 2021</li>
+                    <li>TogetherWeWhale Orcas, Aug 24, 2021</li>
+                    <li>TogetherWeWhale BAYC University Roadmap, Aug 19, 2021</li>
+                </ul>
+            </footer>
+        </article>
+
+        <article class="Chapter" id="m2021-09">
+            <h3><time datetime="2021-09">September 2021</time>Community, Leadership, and New Initiatives</h3>
+
+            <section class="Topic">
+                <h4>BAYC Raffle</h4>
+                <p>The winner of the Bored Ape Yacht Club raffle was announced: Whale #6707.</p>
+            </section>
+
+            <section class="Topic">
+                <h4>Orcas</h4>
+                <p>
+                    Project Orca details released: free mint for whale holders (1 per whale), not SSoW membership,
+                    only gas required. Minting available for one week via the website.
+                </p>
+            </section>
+
+            <section class="Topic">
+                <h4>Community &amp; Leadership</h4>
+                <ul>
+                    <li>@nigel.networks joined the SSoW team as Announcements Manager, running socials and
+                        building collaborations.
+                    </li>
+                    <li>Community elections held for key roles: Chief of Operations, Head of Content Creation,
+                        Head Mod, Marketing Lead, Community Events, Community Relations, Marketing Team,
+                        Announcements, Mods, and Content Creators.
+                    </li>
+                    <li>Emphasis on community-driven leadership and sourcing roles from within the community.</li>
+                </ul>
+            </section>
+
+            <section class="Topic">
+                <h4>TogetherWeWhale</h4>
+                <ul>
+                    <li>Project nominations and voting continued. Top nominees included Gambling Apes, CryptoDads, Rogue Society, and Gauntlets.</li>
+                    <li>Website voting integrations completed: each whale equals one vote.</li>
+                    <li>Second #TogetherWeWhale vote held; Gambling Apes selected for a floor sweep. 25 Gambling Apes swept, to be given away at a community event.</li>
+                </ul>
+            </section>
+
+            <section class="Topic">
+                <h4>Community Events &amp; Media</h4>
+                <p>
+                    A whale holder appeared on Benzinga's YouTube show, bringing more eyes to the project and
+                    showcasing community strength.
+                </p>
+            </section>
+
+            <div class="Gallery">
+                <img src="images/history/2021-09/2021-09-15_03-21-45_community_communityteam_whalecity01_1.jpg" alt="September 2021 - community communityteam whalecity01 1" loading="lazy">
+            </div>
+
+            <footer class="Sources">
+                <ul>
+                    <li>BAYC Winner, Sep 2, 2021</li>
+                    <li>Orcas, Sep 14, 2021</li>
+                    <li>Community Team, Sep 15, 2021</li>
+                    <li>Community Team Roles, Sep 23, 2021</li>
+                    <li>TogetherWeWhale, Sep 23, 2021</li>
+                    <li>Community Media, Sep 23, 2021</li>
+                    <li>TogetherWeWhale Event, Sep 28, 2021</li>
+                    <li>Nigel brought on to SSoW Team, Sep 26, 2021</li>
+                </ul>
+            </footer>
+        </article>
+
+        <article class="Chapter" id="m2021-10">
+            <h3><time datetime="2021-10">October 2021</time>Collabs, Roadmap, and Community Events</h3>
+
+            <section class="Topic">
+                <h4>Collabs</h4>
+                <ul>
+                    <li>SSoW Collab Collection launched on OpenSea.</li>
+                    <li>Pieces were auctioned and given away.</li>
+                </ul>
+                <p><a href="https://opensea.io/collection/ssow-collabs">Collab Collection on OpenSea</a></p>
+            </section>
+
+            <section class="Topic">
+                <h4>Roadmap &amp; Mural</h4>
+                <ul>
+                    <li>Community voting began to select NFT projects for the LA mural.</li>
+                    <li>After voting, a digital illustration would be commissioned, followed by mural creation in LA.</li>
+                </ul>
+            </section>
+
+            <section class="Topic">
+                <h4>TogetherWeWhale &amp; Events</h4>
+                <ul>
+                    <li>Voting for #TogetherWeWhale 3 took place; top 4 projects moved to the final round.</li>
+                    <li>SSoW hosted its first Trivia Night, with POAPs distributed to participants.</li>
+                </ul>
+            </section>
+
+            <footer class="Sources">
+                <ul>
+                    <li>Collabs, Oct 3, 2021</li>
+                    <li>Roadmap Mural, Oct 4, 2021</li>
+                    <li>TogetherWeWhale &amp; Trivia, Oct 26, 2021</li>
+                </ul>
+            </footer>
+        </article>
+
+        <article class="Chapter" id="m2021-11">
+            <h3><time datetime="2021-11">November 2021</time>Community, DAO Vision, Poker, Collabs, and Orcas</h3>
+
+            <section class="Topic">
+                <h4>TogetherWeWhale &amp; Community</h4>
+                <ul>
+                    <li>#TogetherWeWhale 3 voting concluded; Goons of Balatroon won the sweep (8 ETH spent, 50 Goons acquired).</li>
+                    <li>Community events included the SSoW Survivor Pool and NBA Fantasy Pick 'Em Pool, with unique whale prizes.</li>
+                    <li>First in-person Whale Event held at Dave &amp; Busters, Times Square.</li>
+                    <li>Plans announced to transition the community wallet to a DAO, with the $CIGAR token and a multisig vault for community proposals and votes.</li>
+                    <li>25 Goons to be raffled, 25 held in the vault for future community decisions.</li>
+                </ul>
+            </section>
+
+            <section class="Topic">
+                <h4>Poker Tournament</h4>
+                <p>First SSoW Poker Tournament held, with 25 players and a prize pool split among the top 5.</p>
+            </section>
+
+            <section class="Topic">
+                <h4>Collabs</h4>
+                <p>Two SSoW Collab pieces, including "Cthulhu," auctioned on OpenSea.</p>
+            </section>
+
+            <section class="Topic">
+                <h4>Orcas &amp; Staking</h4>
+                <ul>
+                    <li>Orca minting Q&amp;A and launch: free for whale holders, mint by token or range, with utility in the upcoming staking ecosystem with $CIGAR.</li>
+                    <li>Orca mint went live Nov 26, with reveal after the mint window closed.</li>
+                </ul>
+            </section>
+
+            <div class="Gallery">
+                <img src="images/history/2021-11/2021-11-24_02-00-51_collabs_cthulhu.jpg" alt="November 2021 - collabs cthulhu" loading="lazy">
+            </div>
+
+            <footer class="Sources">
+                <ul>
+                    <li>TogetherWeWhale Meetup, Nov 4, 2021</li>
+                    <li>TogetherWeWhale Results, Nov 4, 2021</li>
+                    <li>TogetherWeWhale Vault, Nov 8, 2021</li>
+                    <li>DAO Vision, Nov 10, 2021</li>
+                    <li>Poker Announcement, Nov 17, 2021</li>
+                    <li>Poker Format, Nov 17, 2021</li>
+                    <li>Poker Prize Pool, Nov 19, 2021</li>
+                    <li>Poker Results, Nov 19, 2021</li>
+                    <li>Collabs Auction, Nov 24, 2021</li>
+                    <li>Orcas Q&amp;A, Nov 25, 2021</li>
+                    <li>Orcas Mint &amp; $CIGAR, Nov 26, 2021</li>
+                    <li>Orcas Mint Live, Nov 27, 2021</li>
+                </ul>
+            </footer>
+        </article>
+
+        <article class="Chapter" id="m2021-12">
+            <h3><time datetime="2021-12">December 2021</time>Orcas, Community, Charity, and Year-End Initiatives</h3>
+
+            <section class="Topic">
+                <h4>Orcas Mint &amp; Reveal</h4>
+                <ul>
+                    <li>Security Orcas mint open until Dec 3; free for whale holders, just pay gas.</li>
+                    <li>Orca minting closed and reveal occurred Dec 7.</li>
+                    <li>Orcas play a key role in the upcoming staking ecosystem with $CIGAR.</li>
+                </ul>
+            </section>
+
+            <section class="Topic">
+                <h4>Community Events &amp; Winter Wonderland</h4>
+                <p>
+                    SSoW Winter Wonderland Extravaganza: daily competitions and events &mdash; chess, poker, trivia,
+                    movie night, Squid Games / Crab Game &mdash; with prizes including 1/1 Christmas Whales, floor whales,
+                    orcas, and ETH.
+                </p>
+            </section>
+
+            <section class="Topic">
+                <h4>Roadmap &amp; Staking</h4>
+                <ul>
+                    <li>Roadmap 2.0 introduced: new tiers, exclusivity, and gamified DAO governance.</li>
+                    <li>Staking ecosystem: pairing Whales and Orcas to earn $CIGAR, redeemable for gems and NFTs from the Wealthy Whale Collection. Wealthy Whales get extra privileges and DAO access.</li>
+                </ul>
+            </section>
+
+            <section class="Topic">
+                <h4>OG Role &amp; Community</h4>
+                <ul>
+                    <li>OG Whales inducted and given access to the Executive Lounge and DAO document.</li>
+                    <li>Community engagement: Instagram management, holiday dressing room, and merch updates.</li>
+                </ul>
+            </section>
+
+            <section class="Topic">
+                <h4>Charity</h4>
+                <p>$1,000 donation to Toys for Tots from the community wallet.</p>
+            </section>
+
+            <section class="Topic">
+                <h4>End-of-Year Initiatives</h4>
+                <ul>
+                    <li>North Star Initiative: community votes to sweep project floors, with NFTs raffled or held in the vault. DAO implementation planned for 2022.</li>
+                    <li>New moderators and launch of Pod Squads for marketing, project research, vault management, social events, and collaborations.</li>
+                </ul>
+            </section>
+
+            <div class="Gallery">
+                <img src="images/history/2021-12/2021-12-24_19-00-00_charity_image.png" alt="December 2021 - charity image" loading="lazy">
+            </div>
+
+            <footer class="Sources">
+                <ul>
+                    <li>Orcas Mint Reminder, Dec 1, 2021</li>
+                    <li>Orcas Mint Reveal, Dec 7, 2021</li>
+                    <li>Community Events, Dec 7, 2021</li>
+                    <li>Orcas Mint Closed, Dec 7, 2021</li>
+                    <li>Roadmap &amp; Staking, Dec 7, 2021</li>
+                    <li>OG Role, Charity, Merch, Dec 16, 2021</li>
+                    <li>Charity Announcement, Dec 24, 2021</li>
+                    <li>Charity Discord, Dec 24, 2021</li>
+                    <li>End-of-Year Community Pod, Dec 31, 2021</li>
+                </ul>
+            </footer>
+        </article>
+    </section>
+
+    <!-- ============================== 2022 ============================== -->
+    <section class="Year" id="y2022">
+        <h2>2022</h2>
+
+        <article class="Chapter" id="m2022-01">
+            <h3><time datetime="2022-01">January 2022</time>Gaming, Partnerships, Staking, and the LA NFT Mural</h3>
+
+            <section class="Topic">
+                <h4>Rumble Kong League &amp; Coastal Kong Club</h4>
+                <p>
+                    SSoW OGs proposed and approved putting community-owned Rumble Kongs into the
+                    "Coastal Kong Club" (CKC), a top RKL club.
+                </p>
+            </section>
+
+            <section class="Topic">
+                <h4>Goons of Balatroon Partnership</h4>
+                <ul>
+                    <li>Goons of Balatroon honored SSoW by adding a whale to their Goon Card Game, recognizing the partnership after SSoW swept their floor in 2021.</li>
+                    <li>Community encouraged to support Goons on social media.</li>
+                </ul>
+            </section>
+
+            <section class="Topic">
+                <h4>Staking &amp; Orcas</h4>
+                <ul>
+                    <li>Staking rewards now available for every whale-orca and whale-whale pairing.</li>
+                    <li>Orcas gain value in the ecosystem without diminishing whale value.</li>
+                </ul>
+            </section>
+
+            <section class="Topic">
+                <h4>LA NFT Mural</h4>
+                <ul>
+                    <li>All NFT tokens for the LA mural selected, featuring SSoW and major NFT projects:
+                        Art Blocks, Axie Infinity, BAYC, CryptoPunks, Cool Cats, Gambling Apes,
+                        Goons of Balatroon, Lazy Lions, ON1 Force, Rumble Kong League (CKC), CryptoDads,
+                        VeeFriends, and World of Women.
+                    </li>
+                    <li>Community helped identify and source tokens for the mural.</li>
+                </ul>
+            </section>
+
+            <section class="Topic">
+                <h4>Community Engagement</h4>
+                <ul>
+                    <li>OG whales and pod squads kept the community active and onboarded new members.</li>
+                    <li>SSoW continued to build partnerships and strengthen its brand through collaborative initiatives.</li>
+                </ul>
+            </section>
+
+            <div class="Gallery">
+                <img src="images/history/2022-01/2022-01-10_00-23-23_togetherwewhale_game_mural_Screen_Shot_2022-01-09_at_7.23.05_PM.png" alt="January 2022 - togetherwewhale game mural Screen Shot 2022-01-09 at 7.23.05 PM" loading="lazy">
+                <img src="images/history/2022-01/2022-01-15_16-40-13_roadmap_mural_NFT_mural.png" alt="January 2022 - roadmap mural NFT mural" loading="lazy">
+            </div>
+
+            <footer class="Sources">
+                <ul>
+                    <li>TogetherWeWhale Game, Jan 7, 2022</li>
+                    <li>Orcas Staking, Jan 11, 2022</li>
+                    <li>Goons Partnership &amp; Community, Jan 10, 2022</li>
+                    <li>TogetherWeWhale Game Mural, Jan 10, 2022</li>
+                    <li>Roadmap Mural, Jan 15, 2022</li>
+                </ul>
+            </footer>
+        </article>
+
+        <article class="Chapter" id="m2022-02">
+            <h3><time datetime="2022-02">February 2022</time>Staking, Merch, Charity, Alpha Bay, and Whale Adoption</h3>
+
+            <section class="Topic">
+                <h4>Staking &amp; Wealthy Whales</h4>
+                <ul>
+                    <li>Staking system for Whales and Orcas launched, allowing users to earn $CIGAR and redeem for gems, sand dollars, and Wealthy Whales.</li>
+                    <li>Wealthy Whales act as DAO tokens and grant membership to the DAO. Only 1,000 available to stake for.</li>
+                    <li>Community voted for 6 gnosis wallet holders to manage the vault.</li>
+                    <li>Staking UI and rewards system showcased.</li>
+                </ul>
+            </section>
+
+            <section class="Topic">
+                <h4>Merch Launch</h4>
+                <ul>
+                    <li>SSoW Merch Store launched with high-quality, limited edition items.</li>
+                    <li>Free international shipping provided after initial issues resolved.</li>
+                </ul>
+            </section>
+
+            <section class="Topic">
+                <h4>Alpha Bay</h4>
+                <p>
+                    The alpha room closed for remodeling and reopened as "Alpha Bay" with new features and
+                    channels for alpha proposals and links.
+                </p>
+            </section>
+
+            <section class="Topic">
+                <h4>Whale Adoption</h4>
+                <p>SSoW adopted a humpback whale named Lily through the Oceanic Society.</p>
+            </section>
+
+            <div class="Gallery">
+                <img src="images/history/2022-02/2022-02-04_18-57-50_staking_wealthywhales_staking.png" alt="February 2022 - staking wealthywhales staking" loading="lazy">
+                <img src="images/history/2022-02/2022-02-04_18-57-50_staking_wealthywhales_website.png" alt="February 2022 - staking wealthywhales website" loading="lazy">
+                <img src="images/history/2022-02/2022-02-20_00-46-00_alphabay_Alpha_Bay.jpeg" alt="February 2022 - alphabay Alpha Bay" loading="lazy">
+                <img src="images/history/2022-02/2022-02-25_22-00-00_charity_lily_adopt_image.png" alt="February 2022 - charity lily adopt image" loading="lazy">
+            </div>
+
+            <footer class="Sources">
+                <ul>
+                    <li>Staking Announcement, Feb 4, 2022</li>
+                    <li>Staking Launch, Feb 5, 2022</li>
+                    <li>Staking Live, Feb 6, 2022</li>
+                    <li>Merch Launch, Feb 16, 2022</li>
+                    <li>Merch Store Live, Feb 16, 2022</li>
+                    <li>Charity Collab Auction, Feb 16, 2022</li>
+                    <li>Merch Shipping Update, Feb 16, 2022</li>
+                    <li>Charity Collab Auction, Feb 16, 2022</li>
+                    <li>Alpha Room Closed, Feb 19, 2022</li>
+                    <li>Alpha Bay Open, Feb 20, 2022</li>
+                    <li>Lily Adoption Twitter, Feb 25, 2022</li>
+                    <li>Lily Adoption Discord, Feb 25, 2022</li>
+                </ul>
+            </footer>
+        </article>
+
+        <article class="Chapter" id="m2022-03">
+            <h3><time datetime="2022-03">March 2022</time>DAO, Gaming, Partnerships, and Community Growth</h3>
+
+            <section class="Topic">
+                <h4>Wealthy Whales DAO &amp; Mint</h4>
+                <ul>
+                    <li>Wealthy Whales launched as DAO tokens, each representing 1/3000th of the SSoW Vault and DAO voting rights.</li>
+                    <li>Pre-sale and public mint held, with community engagement and giveaways.</li>
+                    <li>Gen 1 Wealthy Whales earned via staking, Gen 2 available for public mint; both have equal DAO rights.</li>
+                </ul>
+            </section>
+
+            <section class="Topic">
+                <h4>Goons of Balatroon Partnership</h4>
+                <ul>
+                    <li>Official partnership: whale holders can play the Goons F2P trading card game and earn $GOB token rewards.</li>
+                    <li>Partnership highlighted as a model for inter-community collaboration.</li>
+                </ul>
+            </section>
+
+            <section class="Topic">
+                <h4>NFT Worlds &amp; Pixel Whales</h4>
+                <ul>
+                    <li>SSoW acquired NFT Worlds #2036 as a metaverse home for the whales.</li>
+                    <li>Pixel Whales prepared for integration into World Wide Webb and Pixels Online; airdropped to active holders, with the rest available via $CIGAR auction.</li>
+                </ul>
+            </section>
+
+            <section class="Topic">
+                <h4>Staking &amp; $CIGAR</h4>
+                <ul>
+                    <li>Staking opened for Gen 2 Wealthy Whales, earning a 20% cut of all farmed $CIGAR.</li>
+                    <li>Wealthy Whale public mint opened for 24 hours, with $WRLD as a payment option.</li>
+                </ul>
+            </section>
+
+            <section class="Topic">
+                <h4>Whale University</h4>
+                <p>
+                    Whale University launched as a free educational resource for all SSoW Discord members,
+                    covering NFT and Web3 topics for all experience levels.
+                </p>
+            </section>
+
+            <section class="Topic">
+                <h4>Community &amp; TogetherWeWhale</h4>
+                <ul>
+                    <li>Community sweep nominations and voting continued, focused on building the vault and returning value to the community.</li>
+                    <li>New Community Manager: stumpyman69.</li>
+                    <li>Emphasis on the #TogetherWeWhale initiative: collective action to make an impact in the NFT space.</li>
+                </ul>
+            </section>
+
+            <div class="Gallery">
+                <img src="images/history/2022-03/2022-03-24_22-00-05_wealthywhales_mint_wrld_pink.png" alt="March 2022 - wealthywhales mint wrld pink" loading="lazy">
+                <img src="images/history/2022-03/2022-03-29_01-49-38_togetherwewhale_nftworlds_game_pixel_pixelada.png" alt="March 2022 - togetherwewhale nftworlds game pixel pixelada" loading="lazy">
+            </div>
+
+            <footer class="Sources">
+                <ul>
+                    <li>WealthyWhales DAO, Mar 10, 2022</li>
+                    <li>WealthyWhales Mint, Mar 11, 2022</li>
+                    <li>Goons Partnership, Mar 12, 2022</li>
+                    <li>WealthyWhales Game Partner Mint, Mar 12, 2022</li>
+                    <li>NFT Worlds &amp; Pixel Whales, Mar 14, 2022</li>
+                    <li>WealthyWhales Staking, Mar 21, 2022</li>
+                    <li>WealthyWhales Mint $WRLD, Mar 24, 2022</li>
+                    <li>Whale University Launch, Mar 25, 2022</li>
+                    <li>TogetherWeWhale NFT Worlds Game Pixel, Mar 29, 2022</li>
+                    <li>TogetherWeWhale Community, Mar 29, 2022</li>
+                    <li>Community Manager Announcement, Mar 29, 2022</li>
+                </ul>
+            </footer>
+        </article>
+
+        <article class="Chapter" id="m2022-04">
+            <h3><time datetime="2022-04">April 2022</time>Project Sweeps, Nifty Island, and Community Engagement</h3>
+
+            <section class="Topic">
+                <h4>TogetherWeWhale Project Sweep</h4>
+                <ul>
+                    <li>Community nominated and voted on top projects for a 4 ETH floor sweep.</li>
+                    <li>Finalists included Skvllpvnkz Hideout, Metasaurs, Barefoot Parrots Island, Sad Girls Bar, Rug Radio, The Cryptomoms, Buttheads, Gutter Juice, Huephoria, National Parks NFT, and Quiller Labs.</li>
+                    <li>Barefoot Parrot Island won the vote and was swept.</li>
+                </ul>
+            </section>
+
+            <section class="Topic">
+                <h4>Nifty Island Collaboration</h4>
+                <ul>
+                    <li>SSoW partnered with Nifty Island, an open, social gaming platform and virtual world.</li>
+                    <li>20 Alpha Passes raffled to the community for a building competition; Wealthy Whales and active Whale Raiders had priority.</li>
+                    <li>Winners could showcase their island builds, with the best potentially becoming the official SSoW island.</li>
+                </ul>
+            </section>
+
+            <section class="Topic">
+                <h4>Community Engagement</h4>
+                <p>Continued focus on community-driven initiatives, project nominations, and collaborative events.</p>
+            </section>
+
+            <div class="Gallery">
+                <img src="images/history/2022-04/2022-04-12_01-32-42_game_niftyisland_unknown.png" alt="April 2022 - game niftyisland unknown" loading="lazy">
+            </div>
+
+            <footer class="Sources">
+                <ul>
+                    <li>TogetherWeWhale Nominations, Apr 1, 2022</li>
+                    <li>TogetherWeWhale Results, Apr 7, 2022</li>
+                    <li>Nifty Island Announcement, Apr 12, 2022</li>
+                </ul>
+            </footer>
+        </article>
+
+        <article class="Chapter" id="m2022-05">
+            <h3><time datetime="2022-05">May 2022</time>Merch, Pixel Whales, Miss Metaverse, and Community Events</h3>
+
+            <section class="Topic">
+                <h4>Merch &amp; IRL Prints</h4>
+                <ul>
+                    <li>Offer from ghedoicy.eth to create high-quality glass prints of OG Whales, Orcas, Wealthy Whales, or Pixel Whales.</li>
+                    <li>Prints available in 5x5, 11x11, and 23x23 sizes; 15% of sales go back to the SSoW wallet for future sweeps.</li>
+                    <li>Community giveaways for free prints.</li>
+                </ul>
+            </section>
+
+            <section class="Topic">
+                <h4>Pixel Whale $CIGAR Auction</h4>
+                <ul>
+                    <li>Pixel Whale Dutch Auction announced and launched, using the $CIGAR token.</li>
+                    <li>Auction started at 100k $CIGAR per pixel whale, decreasing to 20k over 48 hours.</li>
+                    <li>Gas-optimized minting, instant reveal, and a 10 per transaction limit.</li>
+                </ul>
+            </section>
+
+            <section class="Topic">
+                <h4>Alpha Bay &amp; Community</h4>
+                <ul>
+                    <li>Alpha Bay Twitter Space hosted for NFT discussion and sharing alpha.</li>
+                    <li>Community encouraged to participate and share project insights.</li>
+                </ul>
+            </section>
+
+            <section class="Topic">
+                <h4>Miss Metaverse Acquisition</h4>
+                <ul>
+                    <li>SSoW acquired the Miss Metaverse NFT brand, vault, and assets after a community vote.</li>
+                    <li>Miss Metaverse holders integrated into the SSoW Discord with their own role and room.</li>
+                </ul>
+            </section>
+
+            <section class="Topic">
+                <h4>IRL Events &amp; Sweep Week</h4>
+                <ul>
+                    <li>Plans for an IRL Cigar Lounge meetup at NFTNYC in June.</li>
+                    <li>Sweep Week ambassadors introduced to connect nominated projects with the SSoW community.</li>
+                </ul>
+            </section>
+
+            <div class="Gallery">
+                <img src="images/history/2022-05/2022-05-06_02-08-37_pixel_cigar_unknown.png" alt="May 2022 - pixel cigar unknown" loading="lazy">
+                <img src="images/history/2022-05/2022-05-17_21-21-23_missmetaverse_mm.png" alt="May 2022 - missmetaverse mm" loading="lazy">
+            </div>
+
+            <footer class="Sources">
+                <ul>
+                    <li>Merch Announcement, May 1, 2022</li>
+                    <li>Pixel Whale Auction Announcement, May 6, 2022</li>
+                    <li>Pixel Whale Dutch Auction Details, May 10, 2022</li>
+                    <li>Pixel Whale Mint, May 13, 2022</li>
+                    <li>Alpha Bay Twitter Space, May 6, 2022</li>
+                    <li>Miss Metaverse Acquisition, May 17, 2022</li>
+                    <li>IRL Cigar Meetup &amp; Sweep Week, May 27, 2022</li>
+                </ul>
+            </footer>
+        </article>
+
+        <article class="Chapter" id="m2022-06">
+            <h3><time datetime="2022-06">June 2022</time>NFT Worlds, Sweep Week, Pixel Whales, and IRL Events</h3>
+
+            <section class="Topic">
+                <h4>NFT Worlds Metaverse Buildout</h4>
+                <ul>
+                    <li>SSoW completed the buildout of their NFT Worlds city, featuring the Metaverse Cigar Club as the epicenter.</li>
+                    <li>The city includes a variety of buildings, houses, apartments, and condos for whales to explore and own.</li>
+                    <li>Real estate in the metaverse will be purchasable with $CIGAR and ETH, attached to separate NFTs.</li>
+                </ul>
+            </section>
+
+            <section class="Topic">
+                <h4>Sweep Week &amp; Community Voting</h4>
+                <ul>
+                    <li>Sweep Week voting engaged the community and nominated projects, culminating in a sweep of the winning project.</li>
+                    <li>June's sweep winner: The CryptoDads.</li>
+                </ul>
+            </section>
+
+            <section class="Topic">
+                <h4>Pixel Whale Animations &amp; Integration</h4>
+                <ul>
+                    <li>Pixel Whale animations completed, enabling them to walk and interact in metaverse environments.</li>
+                    <li>Integration talks underway for interoperable metaverses.</li>
+                </ul>
+            </section>
+
+            <section class="Topic">
+                <h4>IRL Events</h4>
+                <p>
+                    SSoW hosted an NFT NYC meetup at Petrarca Cucina e Vino, NYC, with cigars, food, and drinks
+                    for whale holders.
+                </p>
+            </section>
+
+            <div class="Gallery">
+                <img src="images/history/2022-06/2022-06-17_23-15-56_nftworlds_pixel_game_meetup_unknown.png" alt="June 2022 - nftworlds pixel game meetup unknown" loading="lazy">
+            </div>
+
+            <footer class="Sources">
+                <ul>
+                    <li>NFT Worlds Buildout &amp; Sweep Week Voting, Jun 3, 2022</li>
+                    <li>Sweep Week Results, Jun 4, 2022</li>
+                    <li>NFT Worlds Pixel Game Meetup &amp; Pixel Whale Animations, Jun 17, 2022</li>
+                    <li>NFT NYC Meetup, Jun 22, 2022</li>
+                </ul>
+            </footer>
+        </article>
+
+        <article class="Chapter" id="m2022-07">
+            <h3><time datetime="2022-07">July 2022</time>DAO Proposals, NFT Worlds, and Community Events</h3>
+
+            <section class="Topic">
+                <h4>DAO Proposals &amp; Voting</h4>
+                <ul>
+                    <li>Wealthy Whale holders can create DAO proposals for actions with the community wallet; all whale holders can vote.</li>
+                    <li>Proposal: trade of Barefoot Parrot #1175 for 1 Barefoot Pirate passed via community vote.</li>
+                    <li>DAO backend systems being built out for more streamlined proposal creation and voting.</li>
+                    <li>Live DAO vote held on buying land in the Goons of Balatroon's upcoming land sale.</li>
+                </ul>
+            </section>
+
+            <section class="Topic">
+                <h4>NFT Worlds &amp; Metaverse Update</h4>
+                <ul>
+                    <li>Minecraft announced a ban on blockchain/NFT integrations, impacting NFT Worlds and the SSoW Whaleverse.</li>
+                    <li>SSoW paused work on NFT Worlds metaverse real estate and functionality, shifting focus to integrating Pixel Whales into other metaverses (WorldWideWebb, Pixels Online).</li>
+                    <li>Continued commitment to community strength and adaptability in the face of Web3 challenges.</li>
+                </ul>
+            </section>
+
+            <section class="Topic">
+                <h4>Poker Tournament &amp; Community Events</h4>
+                <ul>
+                    <li>Poker tournament hosted for whale holders with cash prizes.</li>
+                    <li>Ongoing encouragement for community participation in proposals, events, and discussions in the Cigar Club.</li>
+                </ul>
+            </section>
+
+            <footer class="Sources">
+                <ul>
+                    <li>DAO Proposal Announcement, Jul 8, 2022</li>
+                    <li>DAO Proposal Result, Jul 8, 2022</li>
+                    <li>NFT Worlds &amp; Metaverse Update, Jul 20, 2022</li>
+                    <li>Poker Tournament &amp; DAO Vote, Jul 27, 2022</li>
+                </ul>
+            </footer>
+        </article>
+
+        <article class="Chapter" id="m2022-08">
+            <h3><time datetime="2022-08">August 2022</time>Anniversary, IP Rights, Roadmap, and Community</h3>
+
+            <section class="Topic">
+                <h4>Anniversary &amp; Art Stream</h4>
+                <ul>
+                    <li>SSoW celebrated its 1-year anniversary with a week of events and activities.</li>
+                    <li>An interactive art stream with Jared Jestr kicked off the celebrations, with community participation and prizes.</li>
+                </ul>
+            </section>
+
+            <section class="Topic">
+                <h4>IP Rights &amp; Community Empowerment</h4>
+                <ul>
+                    <li>SSoW reaffirmed that holders have full IP rights to their whales, enabling derivatives, merch, album covers, brand logos, and more.</li>
+                    <li>Use of the SSoW logo requires approval; otherwise, holders are encouraged to create with their IP.</li>
+                </ul>
+            </section>
+
+            <section class="Topic">
+                <h4>Roadmap &amp; Vault Proposals</h4>
+                <ul>
+                    <li>Roadmap release and Discord AMA scheduled, with a focus on new opportunities in the bear market.</li>
+                    <li>Metaverse Sweep Week planned to add metaverse land assets to the vault for future value and community use.</li>
+                    <li>Active vault proposal to obtain more funds for future sweeps, with community voting and discussion in the Cigar Club.</li>
+                </ul>
+            </section>
+
+            <section class="Topic">
+                <h4>Pixel Whale Integrations</h4>
+                <p>
+                    Pixel Whale integration into metaverses such as Worldwide Webb progressed, with updates
+                    expected as platforms completed their V2 updates.
+                </p>
+            </section>
+
+            <div class="Gallery">
+                <img src="images/history/2022-08/2022-08-15_19-41-14_anniversary_event_20220815_153646.jpg" alt="August 2022 - anniversary event 20220815 153646" loading="lazy">
+            </div>
+
+            <footer class="Sources">
+                <ul>
+                    <li>IP Rights &amp; Pixel Whale Integration, Aug 5, 2022</li>
+                    <li>Anniversary Event Announcement, Aug 15, 2022</li>
+                    <li>Anniversary Event Reminder, Aug 15, 2022</li>
+                    <li>Roadmap &amp; Vault Proposal, Aug 31, 2022</li>
+                </ul>
+            </footer>
+        </article>
+
+        <article class="Chapter" id="m2022-09">
+            <h3><time datetime="2022-09">September 2022</time>Roadmap 2.0, The Mad Knight, and Metaverse Expansion</h3>
+
+            <section class="Topic">
+                <h4>Roadmap 2.0 Launch</h4>
+                <ul>
+                    <li>SSoW unveiled Roadmap 2.0, focused on three core areas: Pixel Whale integrations, a new story-based NFT series ("The Tale of the Secret Society"), and expanded long-term utility for $CIGAR, including an auction house and gamified mechanisms.</li>
+                    <li>The roadmap was detailed in a Medium article and discussed in a Twitter Spaces AMA.</li>
+                </ul>
+            </section>
+
+            <section class="Topic">
+                <h4>Tales of the Secret Society: The Mad Knight</h4>
+                <p>
+                    The first story in the new lore series was released as a Twitter thread, introducing
+                    narrative-driven content to the SSoW ecosystem.
+                </p>
+            </section>
+
+            <section class="Topic">
+                <h4>Metaverse Sweep &amp; DAO Activity</h4>
+                <ul>
+                    <li>The community voted in the monthly Metaverse Sweep, resulting in the acquisition of Otherdeed and Worldwide Webb Apartments for the whale vault.</li>
+                    <li>DAO motions were planned for the following week to determine the use of these new assets.</li>
+                </ul>
+            </section>
+
+            <div class="Gallery">
+                <img src="images/history/2022-09/2022-09-16_22-30-00_story_themadknight_image.png" alt="September 2022 - story themadknight image" loading="lazy">
+            </div>
+
+            <footer class="Sources">
+                <ul>
+                    <li>Roadmap 2.0 Announcement, Sep 2, 2022</li>
+                    <li>Tales of the Secret Society: The Mad Knight, Sep 16, 2022</li>
+                    <li>Metaverse Sweep Results, Sep 17, 2022</li>
+                </ul>
+            </footer>
+        </article>
+
+        <article class="Chapter" id="m2022-10">
+            <h3><time datetime="2022-10">October 2022</time>DAO Proposals, Partnerships, and $CIGAR Utility</h3>
+
+            <section class="Topic">
+                <h4>Wealthy Whale DAO Proposal &amp; Community Voting</h4>
+                <ul>
+                    <li>A new Wealthy Whale DAO proposal allowed whale holders to vote on using the Doubleweb3 capsule system to raffle a vault item, with proceeds returning to the vault.</li>
+                    <li>Community discussion and voting took place in the Cigar Club, emphasizing the importance of diverse opinions in DAO decisions.</li>
+                    <li>The DAO voted to raffle a Barefoot Parrott using Doubleweb3 capsules, with details shared in a Medium update.</li>
+                </ul>
+            </section>
+
+            <section class="Topic">
+                <h4>Quix Partnership &amp; $OP Quest</h4>
+                <ul>
+                    <li>SSoW became a pre-approved collection for earning trading rewards in the ongoing $OP quest on Quix.</li>
+                    <li>The partnership was highlighted during Whale Wednesday and Alpha Bay events, and new users from Optimism were welcomed into the community.</li>
+                </ul>
+            </section>
+
+            <section class="Topic">
+                <h4>First $CIGAR Auction &amp; New Partnership</h4>
+                <ul>
+                    <li>SSoW announced its first $CIGAR auction, set to open in early November as a silent auction.</li>
+                    <li>The top three bids would win boxes of top-tier IRL cigars, courtesy of a new sponsored partner.</li>
+                </ul>
+            </section>
+
+            <footer class="Sources">
+                <ul>
+                    <li>Wealthy Whale DAO Proposal, Oct 25, 2022</li>
+                    <li>Quix Partnership &amp; DAO Raffle Decision, Oct 28, 2022</li>
+                    <li>$CIGAR Auction &amp; Partnership, Oct 31, 2022</li>
+                </ul>
+            </footer>
+        </article>
+
+        <article class="Chapter" id="m2022-11">
+            <h3><time datetime="2022-11">November 2022</time>$CIGAR Auction, El Septimo Partnership, and Community Engagement</h3>
+
+            <section class="Topic">
+                <h4>First $CIGAR Auction &amp; El Septimo Partnership</h4>
+                <ul>
+                    <li>SSoW launched its first $CIGAR auction in partnership with El Septimo Cigars, offering three boxes of premium cigars (valued at $400-$500 each) as prizes.</li>
+                    <li>Conducted as a silent auction, open for 48 hours, with the top three bids winning a box each. International winners could opt for an ETH equivalent if shipping was not possible.</li>
+                </ul>
+            </section>
+
+            <section class="Topic">
+                <h4>Auction Results &amp; Community Participation</h4>
+                <ul>
+                    <li>The auction concluded with over 135 million $CIGAR bid in total.</li>
+                    <li>This event marked the beginning of Roadmap 2.0 $CIGAR rewards, with more auctions and rewards planned.</li>
+                </ul>
+            </section>
+
+            <div class="Gallery">
+                <img src="images/history/2022-11/2022-11-07_19-02-28_cigar_cigar_unknown.png" alt="November 2022 - cigar cigar unknown" loading="lazy">
+            </div>
+
+            <footer class="Sources">
+                <ul>
+                    <li>$CIGAR Auction &amp; El Septimo Partnership Announcement, Nov 3, 2022</li>
+                    <li>$CIGAR Auction Results, Nov 7, 2022</li>
+                </ul>
+            </footer>
+        </article>
+
+        <article class="Chapter" id="m2022-12">
+            <h3><time datetime="2022-12">December 2022</time>Pixels Online Integration and Metaverse Expansion</h3>
+
+            <section class="Topic">
+                <h4>Pixels Online Integration Goes Live</h4>
+                <ul>
+                    <li>SSoW announced a live integration with Pixels Online, an MMORPG metaverse game where players can quest, build, farm, and adventure together.</li>
+                    <li>OG Whale holders can use their whales as avatars in Pixels Online by connecting their wallet and selecting their whale in-game.</li>
+                    <li>The integration supports ETH NFTs, so OG Whales are used as keys for metaverse avatars. Staked whales are not yet supported, but a solution is in development.</li>
+                </ul>
+            </section>
+
+            <div class="Gallery">
+                <img src="images/history/2022-12/2022-12-01_01-00-40_pixel_game_Pixelwhale_online4.png" alt="December 2022 - pixel game Pixelwhale online4" loading="lazy">
+            </div>
+
+            <footer class="Sources">
+                <ul>
+                    <li>Pixels Online Integration Announcement, Dec 1, 2022</li>
+                </ul>
+            </footer>
+        </article>
+    </section>
+
+    <!-- ============================== 2023 ============================== -->
+    <section class="Year" id="y2023">
+        <h2>2023</h2>
+
+        <article class="Chapter" id="m2023-02">
+            <h3><time datetime="2023-02">February 2023</time>$CIGAR Auction, Alpha Bay Challenge, and Community Initiatives</h3>
+
+            <section class="Topic">
+                <h4>Second $CIGAR Auction Launch</h4>
+                <ul>
+                    <li>SSoW announced the second $CIGAR auction, featuring individual El Septimo cigars up for silent auction via the SSoW website.</li>
+                    <li>The auction opened February 10th, with 10 cigars available to the 10 highest bidders over a 48-hour period.</li>
+                </ul>
+            </section>
+
+            <section class="Topic">
+                <h4>Auction Results &amp; Community Engagement</h4>
+                <p>Winners were announced, with several community members winning multiple cigars.</p>
+            </section>
+
+            <section class="Topic">
+                <h4>DAO Proposal 11: Alpha Bay .5 to 5 ETH Challenge</h4>
+                <ul>
+                    <li>DAO Proposal 11 passed, launching the Alpha Bay .5 to 5 ETH Challenge.</li>
+                    <li>0.5 ETH was moved from the vault to a new proxy "Alpha Bay" wallet, with the goal of growing it to 5 ETH through community-guided NFT trading.</li>
+                    <li>All actions and moves are discussed in the token-gated Alpha Bay Discord section, with no formal DAO votes, for flexibility.</li>
+                    <li>The Alpha Bay space was opened for community discussion and strategy planning.</li>
+                </ul>
+            </section>
+
+            <div class="Gallery">
+                <img src="images/history/2023-02/2023-02-10_22-00-36_cigar_cigar_Cigar_GIF.gif" alt="February 2023 - cigar cigar Cigar GIF" loading="lazy">
+            </div>
+
+            <footer class="Sources">
+                <ul>
+                    <li>$CIGAR Auction Announcement, Feb 7, 2023</li>
+                    <li>$CIGAR Auction Launch, Feb 10, 2023</li>
+                    <li>$CIGAR Auction Results, Feb 13, 2023</li>
+                    <li>Alpha Bay .5 to 5 Eth Challenge, Feb 27, 2023</li>
+                </ul>
+            </footer>
+        </article>
+
+        <article class="Chapter" id="m2023-03">
+            <h3><time datetime="2023-03">March 2023</time>Vault Spring Cleaning, Bantam Giveaway, and Community Events</h3>
+
+            <section class="Topic">
+                <h4>Vault Spring Cleaning Proposal</h4>
+                <ul>
+                    <li>Launched to give the community more flexibility with vault liquidity for initiatives like Wealthy Whale DAO proposals, future sweeps, and community events.</li>
+                    <li>All Whalified members were encouraged to participate in the discussion and voting, with a focus on respectful and inclusive dialogue.</li>
+                </ul>
+            </section>
+
+            <section class="Topic">
+                <h4>SSoW Bantam Giveaway Week</h4>
+                <ul>
+                    <li>Bantam Giveaway Week kicked off, funded by Vault Proposal 14.</li>
+                    <li>All original SSoW whales purchased between the announcement and Friday at 6pm EST were eligible for the raffle, with each whale purchased counting as one entry.</li>
+                    <li>A Bantam pack opening stream was held in the SSoW Discord, followed by a raffle for 4 Standard Bantam Packs and 1 Chaos Bantam Pack.</li>
+                    <li>A mystery prize was available for those who tweeted their favorite whale with #SSoWBantamRaffle and tagged @SSofWhales.</li>
+                </ul>
+            </section>
+
+            <div class="Gallery">
+                <img src="images/history/2023-03/2023-03-27_15-05-19_togetherwewhale_event_1679926942680.png" alt="March 2023 - togetherwewhale event 1679926942680" loading="lazy">
+            </div>
+
+            <footer class="Sources">
+                <ul>
+                    <li>Vault Spring Cleaning Proposal, Mar 14, 2023</li>
+                    <li>Bantam Giveaway Week Announcement, Mar 27, 2023</li>
+                </ul>
+            </footer>
+        </article>
+
+        <article class="Chapter" id="m2023-07">
+            <h3><time datetime="2023-07">July 2023</time>Vault Coordinator Nomination and Community Revitalization</h3>
+
+            <section class="Topic">
+                <h4>Nomination of SSoW Vault Coordinator</h4>
+                <p>
+                    A proposal was made to nominate @champ for the volunteer position of SSoW Vault Coordinator.
+                    The role is designed to help facilitate, organize, and move forward action plans related to
+                    the vault, including organizing proposals, holding votes, and coordinating with leadership.
+                    The goal is to leverage vault assets to bring renewed activity and organization to the
+                    community.
+                </p>
+            </section>
+
+            <section class="Topic">
+                <h4>Community Confirmation and Moving Forward</h4>
+                <p>
+                    The community unanimously supported the nomination, and @champ was confirmed as the SSoW
+                    Vault Coordinator with leadership's approval.
+                </p>
+            </section>
+
+            <footer class="Sources">
+                <ul>
+                    <li>Vault Coordinator Nomination Proposal, Jul 14, 2023</li>
+                    <li>Community Confirmation &amp; Thanks, Jul 19, 2023</li>
+                </ul>
+            </footer>
+        </article>
+
+        <article class="Chapter" id="m2023-09">
+            <h3><time datetime="2023-09">September 2023</time>Parrot Sale Proposal and WOTF Partnership</h3>
+
+            <section class="Topic">
+                <h4>Barefoot Parrot Sale Proposal</h4>
+                <ul>
+                    <li>A proposal was made to sell a portion of the community's Barefoot Parrots in response to increased interest from the BPX Wonders of the First (WOTF) collection.</li>
+                    <li>Options included selling 0, 3, 5, or 7 parrots at a listing price of 0.2 ETH each, with a 30-day listing duration.</li>
+                    <li>Community members voted on the number of parrots to sell, with the vote running for 48 hours.</li>
+                </ul>
+            </section>
+
+            <section class="Topic">
+                <h4>WOTF Partnership with Mojaveo</h4>
+                <ul>
+                    <li>SSoW partnered with Mojaveo to maximize WOTF claims by pairing surplus parrots and miners.</li>
+                    <li>The partnership allowed the community wallet to receive an extra 8 WOTF NFTs, while Mojaveo received an extra 5 WOTF compared to pairing miners only.</li>
+                    <li>A snapshot for the WOTF drop was scheduled for October 1st, with parrots sent to Mojaveo's wallet and held until the drop in November.</li>
+                </ul>
+            </section>
+
+            <footer class="Sources">
+                <ul>
+                    <li>Barefoot Parrot Sale Proposal, Sep 4, 2023</li>
+                    <li>WOTF Partnership Announcement, Sep 26, 2023</li>
+                </ul>
+            </footer>
+        </article>
+
+        <article class="Chapter" id="m2023-11">
+            <h3><time datetime="2023-11">November 2023</time>Pixels Farm Land, WoTF NFTs, and Vault Activity</h3>
+
+            <section class="Topic">
+                <h4>Pixels Farm Land Proposal and Purchase</h4>
+                <ul>
+                    <li>A proposal was made to buy a Large Pixels Farm Land plot for the SSoW vault, aiming to provide a space for community events and in-game activity.</li>
+                    <li>The community voted overwhelmingly in favor, and the land was purchased for the vault.</li>
+                    <li>The floor price for Pixels Farm Land increased significantly during the proposal period, highlighting strong community timing.</li>
+                </ul>
+            </section>
+
+            <section class="Topic">
+                <h4>Proposal to Sell Unrevealed WoTF NFTs</h4>
+                <ul>
+                    <li>A proposal was introduced to sell five unrevealed Wonders of the First NFTs during the initial launch hype, with options based on floor price.</li>
+                    <li>The community voted to sell five WoTF NFTs if the floor price was over 0.25 ETH. The claim period started at the end of November, with reveal scheduled for December 7th.</li>
+                </ul>
+            </section>
+
+            <section class="Topic">
+                <h4>Parrot and WoTF Returns to the Vault</h4>
+                <ul>
+                    <li>Mojaveo returned 25 parrots and sent 8 additional WoTF NFTs to the vault, maximizing the community's claim potential.</li>
+                    <li>Transaction hashes were provided for transparency and verification.</li>
+                </ul>
+            </section>
+
+            <section class="Topic">
+                <h4>Proposal to Buy $BERRY for Pixels Online</h4>
+                <p>
+                    A proposal was made to use vault funds to buy $BERRY, the in-game currency for Pixels Online,
+                    to support guild creation and purchase in-game assets for the community. The proposal included
+                    options for different funding levels and was open for discussion and voting.
+                </p>
+            </section>
+
+            <footer class="Sources">
+                <ul>
+                    <li>Pixels Farm Land Proposal, Nov 1, 2023</li>
+                    <li>Pixels Farm Land Vote Results, Nov 3, 2023</li>
+                    <li>Pixels Farm Land Purchase Confirmation, Nov 6, 2023</li>
+                    <li>WoTF Sale Proposal, Nov 27, 2023</li>
+                    <li>WoTF Vote Results, Nov 30, 2023</li>
+                    <li>Parrot and WoTF Return Confirmation, Nov 30, 2023</li>
+                    <li>$BERRY Proposal for Pixels Online, Nov 30, 2023</li>
+                </ul>
+            </footer>
+        </article>
+
+        <article class="Chapter" id="m2023-12">
+            <h3><time datetime="2023-12">December 2023</time>WoTF Reveal, Pixels Guild, and Community Gaming</h3>
+
+            <section class="Topic">
+                <h4>Proposal to Sell Rare WoTF NFTs</h4>
+                <ul>
+                    <li>A proposal was made to sell rare Wonders of the First NFTs from the vault if any revealed as rare, with a minimum price target of ~$10k USD (~4.4 ETH).</li>
+                    <li>The proposal passed with strong community support, and sales would only occur for high-value rares.</li>
+                </ul>
+            </section>
+
+            <section class="Topic">
+                <h4>$BERRY Purchase and Pixels Online Guild Creation</h4>
+                <ul>
+                    <li>The community approved using $500 from the vault to purchase 500,000 $BERRY, enabling creation of the SSoW guild and upgrades to Whale Land 4279.</li>
+                    <li>The purchase included a Silk Slug Hutch kit, golden whale statues, slabs, a pirate flag, and guild registration, with extra berries reserved for future events.</li>
+                </ul>
+            </section>
+
+            <section class="Topic">
+                <h4>SSoW Guild Launch and Whale Pixel Party</h4>
+                <ul>
+                    <li>The SSoW guild launched in Pixels Online, with a roadmap for future guild features and events.</li>
+                    <li>A Whale Pixel Party was held December 21st at Whale Land 4279, featuring whale races, giveaways, and community activities.</li>
+                </ul>
+            </section>
+
+            <section class="Topic">
+                <h4>SubwayRats x SSoW "Off The Rails" Community Event</h4>
+                <ul>
+                    <li>SSoW partnered with SubwayRats for a community gaming night featuring "Off The Rails," a battle royale train game with whale avatars, prizes, and raffles.</li>
+                    <li>Instructions and prize details were provided for participants.</li>
+                </ul>
+            </section>
+
+            <section class="Topic">
+                <h4>Pixels Online Farming Competition</h4>
+                <p>SSoW hosted a Pixels Online farming competition, with an OG whale NFT as the grand prize.</p>
+            </section>
+
+            <div class="Gallery">
+                <img src="images/history/2023-12/2023-12-19_15-57-07_pixel_guild_game_GBk3JpEWoAAv1wb.png" alt="December 2023 - pixel guild game GBk3JpEWoAAv1wb" loading="lazy">
+                <img src="images/history/2023-12/2023-12-26_22-08-56_game_community_event_SubwayRats_8.png" alt="December 2023 - game community event SubwayRats 8" loading="lazy">
+            </div>
+
+            <footer class="Sources">
+                <ul>
+                    <li>WoTF Rare Sale Proposal, Dec 6, 2023</li>
+                    <li>WoTF Rare Sale Vote Results, Dec 7, 2023</li>
+                    <li>WoTF Reveal and Vault Win, Dec 7, 2023</li>
+                    <li>$BERRY Purchase Proposal, Dec 4, 2023</li>
+                    <li>$BERRY Purchase Vote Results, Dec 7, 2023</li>
+                    <li>Pixels Guild Launch Announcement, Dec 18, 2023</li>
+                    <li>Whale Pixel Party Announcement, Dec 19, 2023</li>
+                    <li>SubwayRats x SSoW Event Announcement, Dec 26, 2023</li>
+                    <li>Pixels Online Farming Competition, Dec 31, 2023</li>
+                </ul>
+            </footer>
+        </article>
+    </section>
+
+    <!-- ============================== 2024 ============================== -->
+    <section class="Year" id="y2024">
+        <h2>2024</h2>
+
+        <article class="Chapter" id="m2024-01">
+            <h3><time datetime="2024-01">January 2024</time>Farming Competitions, 3D Whale Models, Nifty Island, and Major Listings</h3>
+
+            <section class="Topic">
+                <h4>SSoW January Farming Competition (Pixels Land #4279)</h4>
+                <ul>
+                    <li>SSoW hosted a January farming competition on Pixels land #4279, with daily crop planting and screenshot submissions in Discord.</li>
+                    <li>Prizes included an SSoW Whale NFT, 5k berries, butterbrews, energy drinks, and bees.</li>
+                </ul>
+            </section>
+
+            <section class="Topic">
+                <h4>Goons of Balatroon x SSoW New Year Poker Collaboration</h4>
+                <p>
+                    SSoW holders were invited to a free-to-play Texas Hold'em poker event with Goons of Balatroon,
+                    POSers, and MBU, featuring a $100 prize pool and Silver Genesis Packs.
+                </p>
+            </section>
+
+            <section class="Topic">
+                <h4>Proposal and Vote: 3D Whale Models for Nifty Island</h4>
+                <ul>
+                    <li>A proposal was made to free up funds for the creation of 3D whale models to enable SSoW integration with 3D games like Nifty Island.</li>
+                    <li>The community voted overwhelmingly in favor of selling select assets to fund at least one vault whale and one or more community whale 3D models.</li>
+                </ul>
+            </section>
+
+            <section class="Topic">
+                <h4>SSoW Whale Avatar Launch on Nifty Island &amp; Community Game Night</h4>
+                <ul>
+                    <li>SSoW whale avatars became available in Nifty Island, allowing holders to use their whales as in-game avatars.</li>
+                    <li>A community game night was announced to celebrate the launch, held on Doc's Whale Island in Nifty Island.</li>
+                </ul>
+            </section>
+
+            <section class="Topic">
+                <h4>Major Listing: "The First" WoTF NFT</h4>
+                <ul>
+                    <li>Following the vault's win of "The First" in the WoTF Bloxpax series, a preliminary vote and final proposal were held to list the NFT for $100,000 USD (43.5 ETH) for two weeks.</li>
+                    <li>The proposal passed and the NFT was listed, with the community encouraged to spread the word to collectors.</li>
+                </ul>
+            </section>
+
+            <div class="Gallery">
+                <img src="images/history/2024-01/2024-01-08_22-01-37_pixel_game_community_event_whale_competition_week_2.png" alt="January 2024 - pixel game community event whale competition week 2" loading="lazy">
+            </div>
+
+            <footer class="Sources">
+                <ul>
+                    <li>January Farming Competition Announcement, Jan 8, 2024</li>
+                    <li>January Farming Competition Rules &amp; Prizes, Jan 8, 2024</li>
+                    <li>Goons Poker Collaboration, Jan 2, 2024</li>
+                    <li>3D Whale Model Proposal, Jan 2, 2024</li>
+                    <li>3D Whale Model Voting Open, Jan 5, 2024</li>
+                    <li>3D Whale Model Vote Results, Jan 7, 2024</li>
+                    <li>Nifty Island Whale Avatar Launch, Jan 26, 2024</li>
+                    <li>Nifty Island Community Game Night, Jan 26, 2024</li>
+                    <li>The First Listing Proposal, Jan 26, 2024</li>
+                    <li>The First Listing Confirmation, Jan 30, 2024</li>
+                </ul>
+            </footer>
+        </article>
+
+        <article class="Chapter" id="m2024-02">
+            <h3><time datetime="2024-02">February 2024</time>Pixels Farming Competition &amp; Multi-Community Gaming</h3>
+
+            <section class="Topic">
+                <h4>Pixels Online February Farming Competition</h4>
+                <ul>
+                    <li>SSoW launched a new Pixels Online farming competition starting February 14th, with 10 prizes including an OG whale NFT.</li>
+                    <li>The competition required participants to farm on whale land, post on Twitter, and refer friends to join.</li>
+                    <li>Details and updates were shared in the SSoW Discord and on Twitter.</li>
+                </ul>
+            </section>
+
+            <section class="Topic">
+                <h4>SubwayRats Multi-Community Off-The-Rails Tournament</h4>
+                <ul>
+                    <li>SSoW participated alongside Dizzy Dragons and Farm Hands.</li>
+                    <li>The event was held February 23rd, streamed on Twitch, and featured prizes for participants.</li>
+                </ul>
+            </section>
+
+            <div class="Gallery">
+                <img src="images/history/2024-02/2024-02-18_01-58-01_game_community_event_Small_Banner_Discord_8.png" alt="February 2024 - game community event Small Banner Discord 8" loading="lazy">
+            </div>
+
+            <footer class="Sources">
+                <ul>
+                    <li>Pixels Online February Farming Competition Announcement, Feb 10, 2024</li>
+                    <li>SubwayRats OTR Tournament Announcement, Feb 18, 2024</li>
+                </ul>
+            </footer>
+        </article>
+
+        <article class="Chapter" id="m2024-03">
+            <h3><time datetime="2024-03">March 2024</time>Pixels Guild Launch &amp; Vault Spring Cleaning</h3>
+
+            <section class="Topic">
+                <h4>Secret Society of Whales Guild in Pixels Online</h4>
+                <ul>
+                    <li>The SSoW Guild launched in Pixels Online, providing members access to two lands: 4279 (regular) and 3141 (water).</li>
+                    <li>25 guild membership shards distributed to whale holders on the watch list and raffled to previous monthly farmers.</li>
+                    <li>Whale holders can join the request list and contribute land or resources to the guild.</li>
+                </ul>
+            </section>
+
+            <section class="Topic">
+                <h4>Vault Spring Cleaning: Community Asset Vote</h4>
+                <ul>
+                    <li>The annual Vault Spring Cleaning event was held, with all items except a few designated ones up for community vote to sell or keep.</li>
+                    <li>Community members voted via a form, with voting open for one week.</li>
+                    <li>Results: WOTF and RKL remain in the vault, Cryptodads fully sold, and all other assets involved in the proposal half sold.</li>
+                </ul>
+            </section>
+
+            <div class="Gallery">
+                <img src="images/history/2024-03/2024-03-17_00-22-19_pixel_game_guild_SSoW_Guild.png" alt="March 2024 - pixel game guild SSoW Guild" loading="lazy">
+            </div>
+
+            <footer class="Sources">
+                <ul>
+                    <li>Pixels Guild Launch Announcement, Mar 17, 2024</li>
+                    <li>Vault Spring Cleaning Announcement, Mar 19, 2024</li>
+                    <li>Vault Spring Cleaning Voting Form, Mar 19, 2024</li>
+                    <li>Vault Spring Cleaning Results, Mar 27, 2024</li>
+                </ul>
+            </footer>
+        </article>
+
+        <article class="Chapter" id="m2024-05">
+            <h3><time datetime="2024-05">May 2024</time>Whale Renting, New Mints, and Vault Proposals</h3>
+
+            <section class="Topic">
+                <h4>Whale Renting Launches on LootRush</h4>
+                <p>
+                    SSoW whales became available for rent on LootRush, allowing users to rent or list their whales
+                    for use in Pixels Online &mdash; opening up more accessibility and utility for whale holders
+                    and players.
+                </p>
+            </section>
+
+            <section class="Topic">
+                <h4>Fishballerz and The Swarm Mint Proposal</h4>
+                <p>
+                    A proposal was made and passed to mint 5 Fishballerz NFTs by Sloppy Studios and up to 10 of
+                    their upcoming collection, The Swarm.
+                </p>
+            </section>
+
+            <section class="Topic">
+                <h4>Proposal to Sell Pixels Farm Land #4279</h4>
+                <ul>
+                    <li>A proposal was introduced to sell Pixels Farm Land #4279, originally purchased for 0.41 ETH in November 2023.</li>
+                    <li>The proposal cited changes in Pixels Online, the evolving utility of land, and the opportunity to sell at a higher price. The plan was to list at 1.5 ETH and lower towards the floor if needed, with an option to repurchase in the future.</li>
+                    <li>Community voting opened and ran until May 31st.</li>
+                </ul>
+            </section>
+
+            <div class="Gallery">
+                <img src="images/history/2024-05/2024-05-10_20-24-15_renting_lootrush_game_IMG_1822.jpg" alt="May 2024 - renting lootrush game IMG 1822" loading="lazy">
+            </div>
+
+            <footer class="Sources">
+                <ul>
+                    <li>Whale Renting on LootRush Announcement, May 10, 2024</li>
+                    <li>Fishballerz &amp; The Swarm Mint Proposal, May 16, 2024</li>
+                    <li>Fishballerz Mint &amp; Transfer Confirmation, May 18, 2024</li>
+                    <li>Pixels Farm Land Sale Proposal, May 26, 2024</li>
+                    <li>Pixels Farm Land Sale Voting, May 28, 2024</li>
+                </ul>
+            </footer>
+        </article>
+
+        <article class="Chapter" id="m2024-06">
+            <h3><time datetime="2024-06">June 2024</time>Vault Profit &amp; The 8102 Game Integration</h3>
+
+            <section class="Topic">
+                <h4>Sale of Pixels Farm Land #4279</h4>
+                <ul>
+                    <li>The proposal passed, and the land was sold for 1.31 WETH &mdash; about $4,000 profit for the vault.</li>
+                    <li>The team planned to monitor land prices and potentially repurchase if prices dropped, as indicated in the original proposal.</li>
+                </ul>
+            </section>
+
+            <section class="Topic">
+                <h4>SSoW Integration in The 8102 Game</h4>
+                <p>
+                    SSoW whales were integrated into The 8102 Game, a browser-based squad-building game by
+                    Ape 8102.
+                </p>
+            </section>
+
+            <div class="Gallery">
+                <img src="images/history/2024-06/2024-06-28_19-14-56_game_the8102_Bildschirmfoto_2024-06-28_um_20.png" alt="June 2024 - game the8102 Bildschirmfoto 2024-06-28 um 20" loading="lazy">
+            </div>
+
+            <footer class="Sources">
+                <ul>
+                    <li>Pixels Farm Land Sale Proposal Passed, Jun 1, 2024</li>
+                    <li>Pixels Farm Land Sale Confirmation, Jun 1, 2024</li>
+                    <li>The 8102 Game Integration Announcement, Jun 28, 2024</li>
+                </ul>
+            </footer>
+        </article>
+
+        <article class="Chapter" id="m2024-07">
+            <h3><time datetime="2024-07">July 2024</time>Vault Acquires Mutant Ape Yacht Club NFT</h3>
+
+            <section class="Topic">
+                <h4>Proposal to Buy a MAYC or Doodles NFT</h4>
+                <ul>
+                    <li>A proposal was made to use up to 1.8 ETH from the vault to purchase either a Mutant Ape Yacht Club or Doodles NFT for a long-term flip, taking advantage of the down NFT market.</li>
+                    <li>Background was provided on both projects: MAYC as part of the BAYC ecosystem, and Doodles with an upcoming TV show.</li>
+                    <li>The proposal was open for discussion and then put to a community vote.</li>
+                </ul>
+            </section>
+
+            <section class="Topic">
+                <h4>Community Vote and Results</h4>
+                <ul>
+                    <li>Voting was held via a Google Form with three options: buy a MAYC, buy a Doodle, or do not buy anything.</li>
+                    <li>The community chose Option 1: buy a MAYC for a long-term flip.</li>
+                    <li>The proposal highlighted the original #TogetherWeWhale Initiative and encouraged ongoing community participation in vault decisions.</li>
+                </ul>
+            </section>
+
+            <section class="Topic">
+                <h4>Purchase of MAYC #2950</h4>
+                <p>MAYC #2950 was purchased for 1.64 ETH and added to the vault.</p>
+            </section>
+
+            <div class="Gallery">
+                <img src="images/history/2024-07/2024-07-22_12-48-29_togetherwewhale_6722535bae7207f623515380999d4844.png" alt="July 2024 - togetherwewhale 6722535bae7207f623515380999d4844" loading="lazy">
+            </div>
+
+            <footer class="Sources">
+                <ul>
+                    <li>Proposal to Buy MAYC or Doodles, Jul 18, 2024</li>
+                    <li>Voting Link Announcement, Jul 19, 2024</li>
+                    <li>Proposal Results &amp; Community Discussion, Jul 21, 2024</li>
+                    <li>MAYC #2950 Purchase Confirmation, Jul 22, 2024</li>
+                </ul>
+            </footer>
+        </article>
+
+        <article class="Chapter" id="m2024-08">
+            <h3><time datetime="2024-08">August 2024</time>Vault Acquires Sandbox Metaverse Land</h3>
+
+            <section class="Topic">
+                <h4>Proposal to Buy Metaverse Land</h4>
+                <ul>
+                    <li>A proposal was made to use up to 0.4 ETH from the vault to sweep metaverse land, with options for Sandbox or Decentraland.</li>
+                    <li>Background highlighted Sandbox's builder tools, avatar creation, and history of airdrops, and Decentraland's event hosting and advertising opportunities.</li>
+                    <li>The proposal was open for discussion and then put to a community vote.</li>
+                </ul>
+            </section>
+
+            <section class="Topic">
+                <h4>Community Vote and Results</h4>
+                <ul>
+                    <li>Voting was held via a Google Form with three options: buy Sandbox land, buy Decentraland land, or do not buy anything.</li>
+                    <li>The community chose Option 1: buy Sandbox lands.</li>
+                </ul>
+            </section>
+
+            <section class="Topic">
+                <h4>Purchase of 4 Sandbox Lands</h4>
+                <p>Four Sandbox lands were purchased and added to the vault. Community members were invited to help build on these lands.</p>
+            </section>
+
+            <div class="Gallery">
+                <img src="images/history/2024-08/2024-08-31_18-09-06_togetherwewhale_image.png" alt="August 2024 - togetherwewhale image" loading="lazy">
+            </div>
+
+            <footer class="Sources">
+                <ul>
+                    <li>Proposal to Buy Metaverse Land, Aug 19, 2024</li>
+                    <li>Voting Link Announcement, Aug 23, 2024</li>
+                    <li>Proposal Results &amp; Community Update, Aug 27, 2024</li>
+                    <li>Sandbox Land Purchase Confirmation, Aug 31, 2024</li>
+                </ul>
+            </footer>
+        </article>
+
+        <article class="Chapter" id="m2024-11">
+            <h3><time datetime="2024-11">November 2024</time>Sale of Wonders of The First Token 0 ('The First')</h3>
+
+            <section class="Topic">
+                <h4>Proposal to Sell 'The First'</h4>
+                <ul>
+                    <li>The SSoW community received an offer from AlphaTrilogy to buy Wonders of The First Token 0 from the vault for $21,500 USDC, or equivalent ETH.</li>
+                    <li>Background was provided on the Wonders of The First project, its historical significance as the first collection minted on Ethereum's Proof-of-Stake, and the lore of 'The First' token.</li>
+                </ul>
+            </section>
+
+            <section class="Topic">
+                <h4>Community Discussion and Voting</h4>
+                <ul>
+                    <li>The proposal was open for discussion, with community members weighing the pros and cons of the sale.</li>
+                    <li>Voting was conducted using the Echo bot for secure, wallet-verified voting, with each OG whale held counting as a vote.</li>
+                </ul>
+            </section>
+
+            <section class="Topic">
+                <h4>Results and Sale Completion</h4>
+                <ul>
+                    <li>The proposal passed, with the community voting to accept the $21,500 USDC offer.</li>
+                    <li>The sale was completed and 'The First' was transferred to AlphaTrilogy.</li>
+                </ul>
+            </section>
+
+            <div class="Gallery">
+                <img src="images/history/2024-11/2024-11-20_03-30-25_togetherwewhale_thefirst_7c910850d3d0e20c2733643c1e72d0f5.png" alt="November 2024 - togetherwewhale thefirst 7c910850d3d0e20c2733643c1e72d0f5" loading="lazy">
+            </div>
+
+            <footer class="Sources">
+                <ul>
+                    <li>Proposal to Sell 'The First', Nov 20, 2024</li>
+                    <li>Voting Open Announcement, Nov 25, 2024</li>
+                    <li>Proposal Results, Nov 27, 2024</li>
+                    <li>Sale Completion, Nov 28, 2024</li>
+                </ul>
+            </footer>
+        </article>
+
+        <article class="Chapter" id="m2024-12">
+            <h3><time datetime="2024-12">December 2024</time>Vault Expands with New NFTs, Tools, and Community Engagement</h3>
+
+            <section class="Topic">
+                <h4>Otherdeed Expanded NFT Buy Proposal</h4>
+                <p>
+                    A proposal was made and passed to buy up to $2,000 worth of Otherdeed Expanded NFTs for the
+                    vault, citing Otherside's OG metaverse status and market momentum.
+                </p>
+            </section>
+
+            <section class="Topic">
+                <h4>Proposal Voting Bot Updates &amp; $PENGU Giveaway</h4>
+                <ul>
+                    <li>The proposal voting bot was updated to support new wallet verification methods, including self-transaction on Ethereum or Base, alongside continued OpenSea bio verification.</li>
+                    <li>A $PENGU giveaway was launched, with entries tied to wallet verification and voting participation.</li>
+                </ul>
+            </section>
+
+            <section class="Topic">
+                <h4>Degen Toonz, DeadFellaz, and Khuga NFT Proposals</h4>
+                <ul>
+                    <li>Proposals were made to buy $2k USD worth of Degen Toonz, DeadFellaz, and Khuga NFTs, each with background on the project, pros/cons, and market context.</li>
+                    <li>All three proposals passed following community discussion and voting.</li>
+                    <li>The Degen Toonz, Khugas, and DeadFellaz were purchased and added to the vault.</li>
+                </ul>
+            </section>
+
+            <section class="Topic">
+                <h4>Bantam Brigade: Origins Packs for Lost Miners Trade Proposal</h4>
+                <p>
+                    A proposal was introduced to trade 41 unopened Bantam Brigade: Origins standard packs for
+                    25 Lost Miners, with background on the Cosmics transition and the future value of unopened
+                    packs.
+                </p>
+            </section>
+
+            <section class="Topic">
+                <h4>Drip Bot Launch for Community Engagement</h4>
+                <p>
+                    The Drip bot was added to the server to reward engagement and activities with points, which
+                    can be redeemed for rewards and used for future raffles.
+                </p>
+            </section>
+
+            <div class="Gallery">
+                <img src="images/history/2024-12/2024-12-28_17-21-55_togetherwewhale_image.png" alt="December 2024 - togetherwewhale image" loading="lazy">
+            </div>
+
+            <footer class="Sources">
+                <ul>
+                    <li>Otherdeed Expanded NFT Buy Proposal, Dec 1, 2024</li>
+                    <li>Otherdeed Expanded Voting Open, Dec 3, 2024</li>
+                    <li>Otherdeed Expanded Proposal Passed, Dec 5, 2024</li>
+                    <li>Voting Bot Update &amp; $PENGU Giveaway, Dec 19, 2024</li>
+                    <li>Degen Toonz Proposal, Dec 19, 2024</li>
+                    <li>DeadFellaz Proposal, Dec 19, 2024</li>
+                    <li>Khuga Proposal, Dec 19, 2024</li>
+                    <li>Voting Reminder, Dec 22, 2024</li>
+                    <li>Proposal Results, Dec 23, 2024</li>
+                    <li>Degen Toonz, Khuga, and DeadFellaz Purchases, Dec 28, 2024</li>
+                    <li>Bantam Packs for Lost Miners Proposal, Dec 29, 2024</li>
+                    <li>Drip Bot Launch, Dec 25, 2024</li>
+                </ul>
+            </footer>
+        </article>
+    </section>
+
+    <!-- ============================== 2025 ============================== -->
+    <section class="Year" id="y2025">
+        <h2>2025</h2>
+
+        <article class="Chapter" id="m2025-01">
+            <h3><time datetime="2025-01">January 2025</time>New Vision, Vault Diversification, and Community Initiatives</h3>
+
+            <section class="Topic">
+                <h4>SSoW 2025 Vision &amp; Roadmap</h4>
+                <p>The team shared a new vision for SSoW in 2025, built on three pillars:</p>
+                <ul>
+                    <li><strong>Community Governance Vault</strong> &mdash; ongoing community voting on purchases and sales to build portfolio value.</li>
+                    <li><strong>Gaming Guild &amp; Metaverse</strong> &mdash; whale IP integrated in Pixels Online, Nifty Island, and Hytopia, with an active Pixels guild and a 3D diamond whale in Nifty Island.</li>
+                    <li><strong>IP &amp; Physical Product</strong> &mdash; launch of the Secret Society of Whales Cigar Collection, featuring branded cigars and limited drops.</li>
+                </ul>
+            </section>
+
+            <section class="Topic">
+                <h4>$CIGAR Staking Ends &amp; Leaderboard Launch</h4>
+                <ul>
+                    <li>$CIGAR staking and the token project officially ended, with a leaderboard created to reward top stakers.</li>
+                    <li>Top leaderboard members receive prizes, custom Discord commands, and a Genesis Cigar Collection NFT and box.</li>
+                </ul>
+            </section>
+
+            <section class="Topic">
+                <h4>Vault Diversification Proposal</h4>
+                <p>
+                    The vault diversification proposal passed. It allows for DCA selling and buying, with 50% of
+                    the blue chip meme allocation requiring a community vote to sell. Taxes are managed by the
+                    team.
+                </p>
+            </section>
+
+            <section class="Topic">
+                <h4>Lost Miners Sale Proposal</h4>
+                <p>The proposal to slowly liquidate Lost Miners NFTs over the following three months passed.</p>
+            </section>
+
+            <section class="Topic">
+                <h4>Little Lemon Friends Sweep</h4>
+                <p>The proposal to sweep $2k worth of Little Lemon Friends NFTs passed, with 16 NFTs purchased for the vault.</p>
+            </section>
+
+            <section class="Topic">
+                <h4>Pixels Online Guild Funding</h4>
+                <p>
+                    The proposal to fund Pixels Online Guild initiatives passed, supporting onboarding,
+                    maintaining the guild's leaderboard position, and rewarding content creators.
+                </p>
+            </section>
+
+            <div class="Gallery">
+                <img src="images/history/2025-01/2025-01-15_01-34-13_cigar_leaderboard_Whale_without_eye_Low_T_1.png" alt="January 2025 - cigar leaderboard Whale without eye Low T 1" loading="lazy">
+                <img src="images/history/2025-01/2025-01-18_01-12-42_togetherwewhale_image.png" alt="January 2025 - togetherwewhale image" loading="lazy">
+            </div>
+
+            <footer class="Sources">
+                <ul>
+                    <li>2025 Roadmap Announcement, Jan 3, 2025</li>
+                    <li>2025 Roadmap &amp; $CIGAR Staking End, Jan 3, 2025</li>
+                    <li>Vault Diversification Proposal, Jan 4, 2025</li>
+                    <li>Diversification Proposal Passed, Jan 5, 2025</li>
+                    <li>Lost Miners Sale Proposal, Jan 4, 2025</li>
+                    <li>Lost Miners Sale Passed, Jan 6, 2025</li>
+                    <li>$CIGAR Leaderboard Submission, Jan 6, 2025</li>
+                    <li>$CIGAR Leaderboard Details, Jan 15, 2025</li>
+                    <li>Little Lemon Friends Sweep Passed, Jan 18, 2025</li>
+                    <li>Pixels Online Guild Funding Proposal, Jan 24, 2025</li>
+                    <li>Pixels Online Guild Funding Passed, Jan 27, 2025</li>
+                </ul>
+            </footer>
+        </article>
+
+        <article class="Chapter" id="m2025-02">
+            <h3><time datetime="2025-02">February 2025</time>Apechain Spotlight, Nifty Island Partnership, and Community Growth</h3>
+
+            <section class="Topic">
+                <h4>Apechain Spotlight Initiative</h4>
+                <ul>
+                    <li>Community voted to participate in Apechain's Spotlight contest, which rewards active communities with $25,000-$100,000 sweeps.</li>
+                    <li>Initial proposal passed to use $500 for a mini-floor sweep of DSNRS assets on Apechain.</li>
+                    <li>DSNRS was chosen for its strong community, 3D avatar integration plans, and position in the top 3 of Apechain Spotlight.</li>
+                    <li>A follow-up proposal passed to list all 17 DSNRS for 250-300 $APE for one month, aiming for 4-5x profit.</li>
+                </ul>
+            </section>
+
+            <section class="Topic">
+                <h4>Nifty Island Partnership</h4>
+                <p>Community approved a 3-month partnership with Nifty Island for $1,500 USD ($500/month), including:</p>
+                <ul>
+                    <li>2x workshops per month, hosted by Nifty Island</li>
+                    <li>1x featured quest per month</li>
+                    <li>1x co-hosted game night per month</li>
+                </ul>
+                <p>The partnership aimed to increase SSoW presence in active web3 games and onboard more players to the gaming guild.</p>
+            </section>
+
+            <section class="Topic">
+                <h4>Community Education &amp; Events</h4>
+                <ul>
+                    <li>SSoW Whale Class announced: learn how to animate Pixel Whales using Aseprite.</li>
+                    <li>Session led by @MonsieurKD on February 15th, focused on pixel art and animation skills.</li>
+                </ul>
+            </section>
+
+            <section class="Topic">
+                <h4>Vault Management</h4>
+                <p>Two major NFT sale proposals passed, both to be executed at best local prices over the following 3 months:</p>
+                <ul>
+                    <li>Sale of all 17 Wonders of the First: Character Proofs NFTs</li>
+                    <li>Sale of the Multiverse of Gregs NFT</li>
+                </ul>
+            </section>
+
+            <footer class="Sources">
+                <ul>
+                    <li>Apechain Spotlight Sweep Proposal, Feb 2, 2025</li>
+                    <li>DSNRS Purchase Decision, Feb 7, 2025</li>
+                    <li>DSNRS Sale Proposal, Feb 17, 2025</li>
+                    <li>Nifty Island Partnership Proposal, Feb 18, 2025</li>
+                    <li>Community Education Announcements, Feb 8, 2025</li>
+                    <li>Wonders of the First Sale Proposal, Feb 22, 2025</li>
+                    <li>Multiverse of Gregs Sale Proposal, Feb 22, 2025</li>
+                </ul>
+            </footer>
+        </article>
+
+        <article class="Chapter" id="m2025-03">
+            <h3><time datetime="2025-03">March 2025</time>Nifty Island Expansion, Project Acquisition, and Community Events</h3>
+
+            <section class="Topic">
+                <h4>Project Acquisition &amp; New Leadership</h4>
+                <ul>
+                    <li>Secret Society of Whales acquired by Champ / Champlify Labs.</li>
+                    <li>Big Jon announced the transfer of ownership, vault, and assets, reflecting on the project's 4-year journey and major milestones.</li>
+                    <li>Champ introduced his vision for community growth, education, web3 gaming expansion, and continued vault engagement.</li>
+                </ul>
+            </section>
+
+            <section class="Topic">
+                <h4>Nifty Island Guild Launch &amp; Events</h4>
+                <ul>
+                    <li>SSoW Guild launched on Nifty Island with an airdrop of SSoW Guild Flags to all holders and Pixels Online Guild members. Flags can be placed on islands and are distributed on the Base network.</li>
+                    <li>First Nifty Island Game Night held March 10th, with prizes including Blooms and SSoW Guild Flags.</li>
+                    <li>Nifty Island SSoW Guild Onboarding AMA held March 17th, with NFT and flag giveaways.</li>
+                    <li>Featured SSoW Quest in Nifty Island from March 17-20, with games on Whale Island and The Whale Games.</li>
+                    <li>Additional Game Night on March 19th, continuing the quest and community engagement.</li>
+                </ul>
+            </section>
+
+            <section class="Topic">
+                <h4>Community Vault &amp; Legal Update</h4>
+                <p>
+                    Wealthy Whales NFT legal clarification: Gen 1 and Gen 2 NFTs are no longer described as
+                    'ownership' of the vault, to avoid securities risk. Instead, holders may be eligible for a
+                    partial refund if the vault is ever liquidated. The community vault continues to operate with
+                    proposal and voting rights as before.
+                </p>
+            </section>
+
+            <section class="Topic">
+                <h4>March Madness Community Event</h4>
+                <p>
+                    SSoW March Madness Challenge: 16 whales compete in a bracket challenge, with voting rounds
+                    and prizes including an OG Whale NFT and Drip bot points.
+                </p>
+            </section>
+
+            <section class="Topic">
+                <h4>$CIGAR Leaderboard &amp; Token Conclusion</h4>
+                <ul>
+                    <li>$CIGAR leaderboard finalized: over 2.3 billion $CIGAR turned in; the top 10 receive custom Discord commands and leaderboard recognition.</li>
+                    <li>$CIGAR officially ended as a reward token; all turned-in $CIGAR was burned.</li>
+                </ul>
+            </section>
+
+            <section class="Topic">
+                <h4>Community Workshops &amp; Education</h4>
+                <p>
+                    Content Creation Workshop hosted by Zombina, an active Ronin ecosystem creator, on
+                    March 31st.
+                </p>
+            </section>
+
+            <footer class="Sources">
+                <ul>
+                    <li>Nifty Island Guild Launch, Mar 4, 2025</li>
+                    <li>Nifty Island Game Night Announcement, Mar 9, 2025</li>
+                    <li>Nifty Island AMA Announcement, Mar 11, 2025</li>
+                    <li>Nifty Island Quest &amp; AMA Reminder, Mar 16, 2025</li>
+                    <li>SSOW Game Night 3-19-25, Mar 18, 2025</li>
+                    <li>Big Jon Acquisition Announcement, Mar 16, 2025</li>
+                    <li>Champ New Ownership Statement, Mar 20, 2025</li>
+                    <li>Wealthy Whales Legal Statement, Mar 21, 2025</li>
+                    <li>March Madness Event Launch, Mar 24, 2025</li>
+                    <li>March Madness Round 2 &amp; Bonus, Mar 28, 2025</li>
+                    <li>$CIGAR Leaderboard Finalized, Mar 27, 2025</li>
+                    <li>$CIGAR Burned, Mar 27, 2025</li>
+                    <li>Content Creation Workshop Announcement, Mar 31, 2025</li>
+                </ul>
+            </footer>
+        </article>
+
+        <article class="Chapter" id="m2025-04">
+            <h3><time datetime="2025-04">April 2025</time>March Madness Finale, Nifty Island Innovations, Whale Shadows, and Vault Activity</h3>
+
+            <section class="Topic">
+                <h4>March Madness Championship &amp; Community Events</h4>
+                <ul>
+                    <li>Round 3 and the championship round took place in early April.</li>
+                    <li>SSoW #3955 was crowned the winner, with prizes awarded to participants and the whale holder.</li>
+                </ul>
+            </section>
+
+            <section class="Topic">
+                <h4>Nifty Island: Workshops, Avatars, and Game Nights</h4>
+                <ul>
+                    <li><strong>Learn From a Legend Workshop</strong> &mdash; SSoW x Nifty Island hosted a streaming workshop with Jay B (ClassicsCrypto), offering tips for creators and in-game prizes.</li>
+                    <li><strong>New 3D Whale Avatars</strong> &mdash; "Rebel Whale" (limited edition of 10) and "Megabot Whale" (free claim for holders) released for Nifty Island.</li>
+                    <li><strong>Fishing Game Night</strong> &mdash; community event with Megabot whale avatars and prizes.</li>
+                </ul>
+            </section>
+
+            <section class="Topic">
+                <h4>Vault Proposals &amp; Activity</h4>
+                <ul>
+                    <li><strong>Moon Ape Lab 3D Mint</strong> &mdash; proposal passed to mint 3 Moon Ape Lab 3D NFTs for the vault.</li>
+                    <li><strong>Active Crypto Trading</strong> &mdash; proposal passed to allocate $1,500 for active trading on a CEX, with regular updates promised.</li>
+                    <li><strong>Apecoin Staking</strong> &mdash; proposal to purchase and stake 2,042 $APE with MAYC for yield.</li>
+                </ul>
+            </section>
+
+            <section class="Topic">
+                <h4>Whale Shadows on Apechain</h4>
+                <ul>
+                    <li>Whale Shadows launched as soulbound NFTs on Apechain, mirroring OG whale ownership.</li>
+                    <li>Users can sync their whales using a web UI or ApeScan.</li>
+                    <li>Guides and contract details provided for the community.</li>
+                </ul>
+            </section>
+
+            <div class="Gallery">
+                <img src="images/history/2025-04/2025-04-17_04-36-38_niftyisland_game_community_GotcToaX0AAR0AT.png" alt="April 2025 - niftyisland game community GotcToaX0AAR0AT" loading="lazy">
+                <img src="images/history/2025-04/2025-04-24_19-59-53_niftyisland_game_community_GpU0keFWsAAda4X.png" alt="April 2025 - niftyisland game community GpU0keFWsAAda4X" loading="lazy">
+            </div>
+
+            <footer class="Sources">
+                <ul>
+                    <li>March Madness Round 3, Apr 2, 2025</li>
+                    <li>March Madness Championship, Apr 6, 2025</li>
+                    <li>March Madness Winner &amp; Prizes, Apr 11, 2025</li>
+                    <li>Learn From a Legend Workshop, Apr 10, 2025</li>
+                    <li>Rebel Whale Announcement, Apr 17, 2025</li>
+                    <li>Megabot Whale Free Mint, Apr 24, 2025</li>
+                    <li>Fishing Game Night, Apr 24, 2025</li>
+                    <li>Moon Ape Lab 3D Mint Proposal &amp; Results, Apr 13 &amp; 17, 2025</li>
+                    <li>Active Crypto Trading Proposal &amp; Results, Apr 13 &amp; 17, 2025</li>
+                    <li>Apecoin Staking Proposal, Apr 28, 2025</li>
+                    <li>Whale Shadows on Apechain Guide, Apr 27, 2025</li>
+                    <li>Whale Shadows UI Launch, Apr 30, 2025</li>
+                </ul>
+            </footer>
+        </article>
+
+        <article class="Chapter" id="m2025-05">
+            <h3><time datetime="2025-05">May 2025</time>Nifty Island Victories, Avatar Releases, Workshops, and Vault Updates</h3>
+
+            <section class="Topic">
+                <h4>Nifty Island &mdash; Island Brawl 2</h4>
+                <ul>
+                    <li>SSoW participated in the second round with representatives from the community.</li>
+                    <li>The SSoW team achieved an undefeated streak, winning all three matches.</li>
+                    <li>All members of the Nifty Island SSoW community received in-game rewards (blooms) for the team's performance.</li>
+                </ul>
+            </section>
+
+            <section class="Topic">
+                <h4>New Avatars on Nifty Island</h4>
+                <ul>
+                    <li><strong>Space Rebel Whale</strong> &mdash; launched as a free mint exclusively for SSoW holders and Guild Flag holders.</li>
+                    <li><strong>King Hades Whale</strong> &mdash; created in collaboration with Ordinary Goldfish and funded by community member support. Free mint for SSoW holders and Guild Flag holders; purchasable for others at 80 $island tokens.</li>
+                </ul>
+            </section>
+
+            <section class="Topic">
+                <h4>Educational Workshops</h4>
+                <ul>
+                    <li><strong>Learn from a Legend &mdash; 3D Modeling with Blender</strong>, hosted by the Nifty Island Team, focused on improving community skills in 3D modeling.</li>
+                    <li>Blender, a powerful and free open-source tool, was introduced and taught to the community for creating animated and interactive 3D content.</li>
+                </ul>
+            </section>
+
+            <section class="Topic">
+                <h4>Vault and Community Initiatives</h4>
+                <p>
+                    <strong>Nifty Island Partnership Extension:</strong> a proposal passed to extend the
+                    successful partnership with Nifty Island for an additional three months, aiming to
+                    strengthen community ties and expand collaborative opportunities.
+                </p>
+            </section>
+
+            <section class="Topic">
+                <h4>Community Features and Enhancements</h4>
+                <p>
+                    <strong>OpenSea Trait Offers Enabled:</strong> the collection owner activated the
+                    trait-specific offer feature on OpenSea, allowing users to place offers on individual
+                    whale traits.
+                </p>
+            </section>
+
+            <p class="Closing">
+                The Secret Society of Whales continues to engage actively with its community through gaming
+                events, educational opportunities, and strategic vault initiatives, ensuring ongoing growth
+                and participation in the evolving web3 landscape.
+            </p>
+
+            <footer class="Sources">
+                <ul>
+                    <li>Island Brawl 2 Announcement, May 2025</li>
+                    <li>Round Start Announcement, May 2025</li>
+                    <li>Victory Announcement, May 2025</li>
+                    <li>Space Rebel Whale Mint, May 2025</li>
+                    <li>King Hades Whale Announcement, May 2025</li>
+                    <li>3D Modeling Workshop Announcement, May 2025</li>
+                    <li>Nifty Island Partnership Proposal, May 2025</li>
+                    <li>OpenSea Trait Offers Enabled, May 2025</li>
+                </ul>
+            </footer>
+        </article>
+
+        <article class="Chapter" id="m2025-06">
+            <h3><time datetime="2025-06">June 2025</time>Abstract Integration, Nifty Island Tournaments, and Server Enhancements</h3>
+
+            <section class="Topic">
+                <h4>Abstract Integration</h4>
+                <p><strong>Whale Shadows Expansion:</strong></p>
+                <ul>
+                    <li>Whale Shadows are now supported on the Abstract blockchain, expanding beyond Apechain.</li>
+                    <li>Detailed documentation created via Gitbook to assist holders in understanding and syncing their Whale Shadows.</li>
+                    <li>Shadows are special soul-bound NFTs that mirror SSoW 'OG' whales, updating automatically when OG whales move between wallets.</li>
+                </ul>
+            </section>
+
+            <section class="Topic">
+                <h4>Nifty Island Events</h4>
+                <ul>
+                    <li><strong>Learn from a Legend &mdash; Basics of AI to 3D:</strong> a collaborative event
+                        with Nifty Island featuring Zazaz007, focused on AI to 3D creation techniques and aimed
+                        at enhancing community skills in emerging tech areas.
+                    </li>
+                    <li><strong>Nifty Island Tournament:</strong> SSoW participated in another Nifty Island
+                        gaming tournament. Community members competed, and the event was livestreamed for
+                        broader community engagement.
+                    </li>
+                </ul>
+            </section>
+
+            <section class="Topic">
+                <h4>Server Enhancements</h4>
+                <p><strong>Discord Server Boost:</strong></p>
+                <ul>
+                    <li>Community members increased server boosts, unlocking a custom server tag.</li>
+                    <li>The boost initiative encourages continued community participation and visibility on Discord.</li>
+                </ul>
+            </section>
+
+            <section class="Topic">
+                <h4>New Community Project</h4>
+                <p><strong>Bee Game (title TBD):</strong></p>
+                <ul>
+                    <li>Announcement of a new web3 gaming project themed around bees and honey production.</li>
+                    <li>Development led by community leadership, featuring unique NFT art by Champ's wife. More details and progress expected soon.</li>
+                </ul>
+            </section>
+
+            <footer class="Sources">
+                <ul>
+                    <li>Whale Shadows Abstract Integration, June 2025</li>
+                    <li>Learn from a Legend: AI to 3D Workshop, June 2025</li>
+                    <li>Nifty Island Tournament Announcement, June 2025</li>
+                    <li>Tournament Livestream Announcement, June 2025</li>
+                    <li>Discord Server Boost Announcement, June 2025</li>
+                    <li>Bee Game Project Announcement, June 2025</li>
+                </ul>
+            </footer>
+        </article>
+    </section>
+
+    <section class="Today">
+        <h2>Where We Are Now</h2>
+        <p>
+            <!-- Current state of the project and what's next. -->
+        </p>
+        <a href="index.html">Browse the collections</a>
+    </section>
+</main>
+
+<footer class="Footer" data-footer></footer>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/gsap.min.js"></script>
+<script src="strokeText.js"></script>
+<script src="watercolor.js"></script>
+<script src="footer.js"></script>
+<script src="data/gold.js"></script>
+<script src="easteregg.js"></script>
+</body>
+</html>

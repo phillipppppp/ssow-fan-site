@@ -1,0 +1,151 @@
+{
+  "collection": "Secret Society of Whales",
+  "slug": "secretsocietyofwhales",
+  "capturedAt": "2026-09-13T09:19:08.680Z",
+  "currentFloorEth": 0.0050073,
+  "totalVolumeEth": 1566.17,
+  "owners": 4058,
+  "note": "series = lowest completed sale per day (floor proxy); currentFloorEth is the live listing floor",
+  "series": [
+    {
+      "date": "2026-06-16",
+      "eth": 0.009598,
+      "sales": 10
+    },
+    {
+      "date": "2026-06-17",
+      "eth": 0.0096,
+      "sales": 2
+    },
+    {
+      "date": "2026-06-28",
+      "eth": 0.0126,
+      "sales": 1
+    },
+    {
+      "date": "2026-06-29",
+      "eth": 0.009898,
+      "sales": 3
+    },
+    {
+      "date": "2026-07-04",
+      "eth": 0.009597,
+      "sales": 68
+    },
+    {
+      "date": "2026-07-05",
+      "eth": 0.0236,
+      "sales": 2
+    },
+    {
+      "date": "2026-07-06",
+      "eth": 0.023,
+      "sales": 1
+    },
+    {
+      "date": "2026-07-08",
+      "eth": 0.01461,
+      "sales": 8
+    },
+    {
+      "date": "2026-07-09",
+      "eth": 0.013841,
+      "sales": 6
+    },
+    {
+      "date": "2026-07-10",
+      "eth": 0.015,
+      "sales": 3
+    },
+    {
+      "date": "2026-07-13",
+      "eth": 0.013685,
+      "sales": 1
+    },
+    {
+      "date": "2026-07-20",
+      "eth": 0.013266,
+      "sales": 3
+    },
+    {
+      "date": "2026-07-25",
+      "eth": 0.01334,
+      "sales": 1
+    },
+    {
+      "date": "2026-07-26",
+      "eth": 0.01725,
+      "sales": 1
+    },
+    {
+      "date": "2026-08-01",
+      "eth": 0.008,
+      "sales": 2
+    },
+    {
+      "date": "2026-08-02",
+      "eth": 0.009374,
+      "sales": 1
+    },
+    {
+      "date": "2026-08-03",
+      "eth": 0.009254,
+      "sales": 6
+    },
+    {
+      "date": "2026-08-05",
+      "eth": 0.012,
+      "sales": 1
+    },
+    {
+      "date": "2026-08-07",
+      "eth": 0.009,
+      "sales": 1
+    },
+    {
+      "date": "2026-08-10",
+      "eth": 0.009546,
+      "sales": 1
+    },
+    {
+      "date": "2026-08-12",
+      "eth": 0.0187,
+      "sales": 1
+    },
+    {
+      "date": "2026-08-15",
+      "eth": 0.008933,
+      "sales": 3
+    },
+    {
+      "date": "2026-08-16",
+      "eth": 0.007864,
+      "sales": 3
+    },
+    {
+      "date": "2026-08-17",
+      "eth": 0.0183,
+      "sales": 1
+    },
+    {
+      "date": "2026-08-19",
+      "eth": 0.0082,
+      "sales": 1
+    },
+    {
+      "date": "2026-09-01",
+      "eth": 0.005,
+      "sales": 2
+    },
+    {
+      "date": "2026-09-07",
+      "eth": 0.008,
+      "sales": 1
+    },
+    {
+      "date": "2026-09-13",
+      "eth": 0.004315,
+      "sales": 2
+    }
+  ]
+}

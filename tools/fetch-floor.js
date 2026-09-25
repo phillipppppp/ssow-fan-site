@@ -79,6 +79,13 @@ async function main() {
         return { date: day, eth: Number(lowest[day].toFixed(6)), sales: counts[day] };
     });
 
+    /* Nothing sane came back — bail before overwriting good data.
+       Matters most when this runs unattended in CI: a bad response
+       would otherwise commit an empty chart over a working one. */
+    if (series.length === 0) {
+        throw new Error('no sales found in the last ' + DAYS + ' days — refusing to overwrite data/floor.json');
+    }
+
     const out = {
         collection: 'Secret Society of Whales',
         slug: SLUG,

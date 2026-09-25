@@ -1,0 +1,64 @@
+# Keeps the home page price chart current.
+#
+# The OpenSea API sends no CORS headers, so the browser can never call it.
+# This runs the same script you would run by hand, on GitHub's servers,
+# and commits the result. GitHub Pages then redeploys on its own.
+#
+# Needs one repository secret: OPENSEA_API_KEY
+#   Settings -> Secrets and variables -> Actions -> New repository secret
+
+name: Update floor data
+
+on:
+  schedule:
+    # 05:17 UTC daily = 13:17 Manila. The odd minute is deliberate:
+    # GitHub drops scheduled jobs that pile up on the hour.
+    - cron: '17 5 * * *'
+  workflow_dispatch:        # also runnable by hand from the Actions tab
+
+permissions:
+  contents: write           # needed to commit the refreshed data
+
+concurrency:
+  group: update-floor
+  cancel-in-progress: false
+
+jobs:
+  refresh:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+
+      - name: Fetch latest floor and sales
+        env:
+          OPENSEA_API_KEY: ${{ secrets.OPENSEA_API_KEY }}
+        run: |
+          if [ -z "$OPENSEA_API_KEY" ]; then
+            echo "::error::OPENSEA_API_KEY secret is not set. Add it in Settings > Secrets and variables > Actions."
+            exit 1
+          fi
+          node tools/fetch-floor.js
+
+      - name: Commit if the numbers changed
+        run: |
+          git config user.name  "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+
+          # capturedAt changes on every run, so compare the numbers only.
+          if git diff --quiet -- data/floor.json data/floor.js; then
+            echo "No change."
+            exit 0
+          fi
+          if [ -z "$(git diff -U0 -- data/floor.json | grep -E '^[+-]' | grep -vE '^[+-]{3}' | grep -v capturedAt)" ]; then
+            echo "Only the timestamp moved - nothing worth committing."
+            git checkout -- data/floor.json data/floor.js
+            exit 0
+          fi
+
+          git add data/floor.json data/floor.js
+          git commit -m "Update floor data ($(date -u +%Y-%m-%d))"
+          git push

@@ -1,0 +1,65 @@
+# Publishes the site to GitHub Pages.
+#
+# The repo keeps readable source; tools/build.js copies the site into
+# _site/ and minifies the JS and CSS on the way. Only _site/ is published,
+# so tools/, originals/ and any local config.js never go live.
+#
+# Runs on every push to main, and after each daily floor-data refresh.
+# That second trigger matters: the refresh commits with GITHUB_TOKEN, and
+# GitHub deliberately doesn't let those commits start other push
+# workflows — without workflow_run the new floor data would never deploy.
+
+name: Deploy site
+
+on:
+  push:
+    branches: [main]
+  workflow_run:
+    workflows: ['Update floor data']
+    types: [completed]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+# One deploy at a time; a newer one waits rather than cancelling mid-publish.
+concurrency:
+  group: pages
+  cancel-in-progress: false
+
+jobs:
+  build:
+    # skip when the floor refresh itself failed - nothing new to publish
+    if: github.event_name != 'workflow_run' || github.event.workflow_run.conclusion == 'success'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: main              # after a floor refresh, pick up its new commit
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+
+      - name: Build and minify
+        run: |
+          npm install --no-save --no-package-lock esbuild@0.25.12
+          node tools/build.js
+
+      - uses: actions/configure-pages@v5
+
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: _site
+
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - id: deployment
+        uses: actions/deploy-pages@v4

@@ -9,3 +9,10 @@ node_modules/
 Thumbs.db
 desktop.ini
 .DS_Store
+
+# Full-size source images. Kept locally, never published -
+# the site uses the resized WebP copies in images/history.
+originals/
+
+# Build output from tools/build.js - generated at deploy time
+_site/

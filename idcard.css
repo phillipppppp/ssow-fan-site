@@ -272,7 +272,21 @@ output { font-family: var(--font-mono); color: var(--accent); }
    Wallet holdings
    ------------------------------------------------------------ */
 
-.Holdings { display: flex; flex-wrap: wrap; gap: 0.3rem; margin-top: 0.9rem; list-style: none; }
+.Holdings {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.3rem;
+    margin-top: 0.9rem;
+    list-style: none;
+    /* paged in 24 at a time, but a big wallet can keep going —
+       scroll inside the list instead of stretching the page */
+    max-height: 13.5rem;
+    overflow-y: auto;
+}
+
+.Holdings-more { margin-top: 0.6rem; }
+/* .Btn sets display, which would otherwise beat the hidden attribute */
+.Holdings-more[hidden] { display: none; }
 
 .Holding {
     padding: 0.3rem 0.65rem;

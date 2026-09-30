@@ -6,6 +6,8 @@
     <title>ID Generator | Secret Society of Whales</title>
     <link rel="icon" type="image/png" sizes="32x32" href="images/favicon-32.png">
     <link rel="apple-touch-icon" sizes="180x180" href="images/favicon-180.png">
+    <!-- whales load from IPFS; open that connection before any script asks -->
+    <link rel="preconnect" href="https://gateway.pinata.cloud" crossorigin>
     <link rel="stylesheet" href="base.css">
     <link rel="stylesheet" href="idcard.css">
     <script>
@@ -37,7 +39,7 @@
         <a href="meme.html">Meme</a>
         <a href="idcard.html" aria-current="page">ID Generator</a>
         <a class="Nav-logo" href="index.html">
-            <img src="images/OG_logo.png" alt="Secret Society of Whales &mdash; home">
+            <img src="images/OG_logo-nav.webp" alt="Secret Society of Whales &mdash; home" width="34" height="29">
         </a>
     </nav>
 
@@ -73,6 +75,9 @@
                 <p class="Field-status" id="walletStatus" role="status"></p>
 
                 <ul class="Holdings" id="holdings"></ul>
+                <button type="button" id="holdingsMore" class="Btn Btn--ghost Holdings-more" hidden>
+                    Show more
+                </button>
 
                 <div class="Divider"><span>or preview any whale</span></div>
 
@@ -158,14 +163,13 @@
 
 <footer class="Footer" data-footer></footer>
 
-<script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/gsap.min.js"></script>
-<script src="strokeText.js"></script>
-<script src="whale.js"></script>
-<script src="logo.js"></script>
-<script src="idcard.js"></script>
-<script src="watercolor.js"></script>
-<script src="footer.js"></script>
-<script src="data/gold.js"></script>
-<script src="easteregg.js"></script>
+<script defer src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/gsap.min.js"></script>
+<script defer src="strokeText.js"></script>
+<script defer src="whale.js"></script>
+<script defer src="idcard.js"></script>
+<script defer src="watercolor.js"></script>
+<script defer src="footer.js"></script>
+<script defer src="data/gold.js"></script>
+<script defer src="easteregg.js"></script>
 </body>
 </html>

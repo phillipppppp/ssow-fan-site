@@ -21,17 +21,25 @@
     const SEL_OWNER_OF = '0x6352211e';         /* ownerOf(uint256)                    */
 
     /* Public endpoints that allow browser requests (verified ACAO: *).
-       Tried in order so one being down isn't fatal. */
+       Tried in order so one being down isn't fatal. (Ankr was dropped
+       in Sep 2026 — it started demanding an API key.) */
     const RPCS = [
         'https://ethereum-rpc.publicnode.com',
+        'https://rpc.mevblocker.io',
         'https://eth.drpc.org',
-        'https://rpc.ankr.com/eth',
         'https://eth.merkle.io'
+    ];
+
+    /* The subset verified to answer a full 24-call JSON-RPC batch.
+       drpc's free tier caps batches at 3, and merkle rate-limits them. */
+    const BATCH_RPCS = [
+        'https://ethereum-rpc.publicnode.com',
+        'https://rpc.mevblocker.io'
     ];
 
     const W = 1000;
     const H = 630;
-    const MAX_LISTED = 24;                 /* cap the holdings fetch */
+    const PAGE_SIZE = 24;                  /* holdings fetched per page */
 
     /* Kept in step with the --accent* tokens in idcard.css. */
     const COLORS = {
@@ -123,6 +131,7 @@
         checkWallet: $('checkWallet'),
         walletStatus: $('walletStatus'),
         holdings: $('holdings'),
+        holdingsMore: $('holdingsMore'),
         memberName: $('memberName'),
         memberSince: $('memberSince'),
         showTraits: $('showTraits'),
@@ -571,9 +580,70 @@
         throw lastError || new Error('every RPC endpoint failed');
     }
 
+    /* Many eth_calls in one HTTP request (JSON-RPC batching).
+
+       Listing a wallet used to await tokenOfOwnerByIndex once per whale,
+       in sequence — 24 round trips back to back, the N+1 pattern. A
+       batch is one round trip. A reply only counts if every item came
+       back clean: some free endpoints accept the batch and then answer
+       each item with a "batch too large" error instead. */
+    async function ethCallBatch(datas) {
+        if (datas.length === 1) return [await ethCall(datas[0])];
+
+        const payload = JSON.stringify(datas.map(function (data, i) {
+            return {
+                jsonrpc: '2.0',
+                id: i,
+                method: 'eth_call',
+                params: [{ to: CONTRACT, data: data }, 'latest']
+            };
+        }));
+
+        for (let r = 0; r < BATCH_RPCS.length; r++) {
+            try {
+                const res = await fetch(BATCH_RPCS[r], {
+                    method: 'POST',
+                    headers: { 'content-type': 'application/json' },
+                    body: payload
+                });
+                if (!res.ok) continue;
+
+                const json = await res.json();
+                if (!Array.isArray(json)) continue;
+
+                /* replies may arrive in any order — match them up by id */
+                const results = [];
+                json.forEach(function (item) { results[item.id] = item; });
+
+                let clean = true;
+                for (let i = 0; i < datas.length; i++) {
+                    const item = results[i];
+                    if (!item || item.error || !item.result || item.result === '0x') {
+                        clean = false;
+                        break;
+                    }
+                }
+                if (clean) return results.map(function (item) { return item.result; });
+            } catch (err) {
+                /* try the next endpoint */
+            }
+        }
+
+        /* Nobody would batch. Fall back to single calls, six at a time —
+           still a handful of round trips rather than one per whale, and
+           gentle enough not to trip the public nodes' rate limits. */
+        const out = [];
+        for (let i = 0; i < datas.length; i += 6) {
+            /* eslint-disable-next-line no-await-in-loop */
+            const chunk = await Promise.all(datas.slice(i, i + 6).map(ethCall));
+            out.push.apply(out, chunk);
+        }
+        return out;
+    }
+
     /* Authoritative single-call ownership check. Used to gate the
-       download — enumeration only ever shows the first 24, so a whale
-       further down the list would otherwise look unowned. */
+       download — the holdings list is paged, so a whale that hasn't been
+       listed yet would otherwise look unowned. */
     async function ownsWhale(address, tokenId) {
         const hex = await ethCall(SEL_OWNER_OF + padUint(tokenId));
         if (!hex || hex === '0x') return false;
@@ -604,34 +674,83 @@
             state.address = address;
 
             if (!balance) {
+                holdings = null;
                 els.holdings.innerHTML = '';
+                els.holdingsMore.hidden = true;
                 setStatus(els.walletStatus, shortAddress(address) + ' holds no OG whales', 'warn');
                 await applyOwnership();
                 return;
             }
 
-            const count = Math.min(balance, MAX_LISTED);
-            const ids = [];
-            for (let i = 0; i < count; i++) {
-                /* eslint-disable-next-line no-await-in-loop */
-                const hex = await ethCall(SEL_TOKEN_OF_OWNER + padAddress(address) + padUint(i));
-                ids.push(parseInt(hex, 16));
-            }
+            holdings = { address: address, balance: balance, ids: [] };
+            els.holdings.innerHTML = '';
 
-            renderHoldings(ids);
-            setStatus(
-                els.walletStatus,
-                balance > count
-                    ? 'holds ' + balance + ' whales — showing the first ' + count
-                    : 'holds ' + balance + (balance === 1 ? ' whale' : ' whales'),
-                'ok'
-            );
-
-            if (ids.length) loadWhale(ids[0]);
+            const firstPage = await loadHoldingsPage();
+            if (firstPage.length) loadWhale(firstPage[0]);
         } catch (err) {
             setStatus(els.walletStatus, 'lookup failed (' + err.message + ')', 'error');
         } finally {
             els.checkWallet.disabled = false;
+        }
+    }
+
+    /* ---------------------------------------------------------
+       Holdings, one page at a time
+
+       A wallet can hold a lot of whales — the one holding #1 has
+       1,490. Fetch PAGE_SIZE at a time and offer "show more" rather
+       than either capping the list or firing 1,490 calls up front.
+       --------------------------------------------------------- */
+
+    let holdings = null;     /* { address, balance, ids: [...] } */
+
+    async function loadHoldingsPage() {
+        const h = holdings;
+        const from = h.ids.length;
+        const to = Math.min(h.balance, from + PAGE_SIZE);
+
+        const calls = [];
+        for (let i = from; i < to; i++) {
+            calls.push(SEL_TOKEN_OF_OWNER + padAddress(h.address) + padUint(i));
+        }
+
+        const page = (await ethCallBatch(calls)).map(function (hex) {
+            return parseInt(hex, 16);
+        });
+
+        /* the wallet was changed while this page was loading */
+        if (holdings !== h) return [];
+
+        h.ids.push.apply(h.ids, page);
+        renderHoldings(page, from === 0);
+        updateHoldingsStatus();
+        return page;
+    }
+
+    function updateHoldingsStatus() {
+        const h = holdings;
+        setStatus(
+            els.walletStatus,
+            h.balance > h.ids.length
+                ? 'holds ' + h.balance + ' whales — showing ' + h.ids.length
+                : 'holds ' + h.balance + (h.balance === 1 ? ' whale' : ' whales'),
+            'ok'
+        );
+        els.holdingsMore.hidden = h.ids.length >= h.balance;
+    }
+
+    async function showMoreHoldings() {
+        if (!holdings) return;
+        els.holdingsMore.disabled = true;
+        const label = els.holdingsMore.textContent;
+        els.holdingsMore.textContent = 'loading…';
+        try {
+            await loadHoldingsPage();
+        } catch (err) {
+            setStatus(els.walletStatus, 'could not load more (' + err.message + ')', 'error');
+        } finally {
+            els.holdingsMore.disabled = false;
+            els.holdingsMore.textContent = label;
         }
     }
 
@@ -673,34 +792,72 @@
         render();
     }
 
-    function renderHoldings(ids) {
-        els.holdings.innerHTML = '';
+    /* Appends a page of holdings. Built in a fragment so each page is
+       one DOM insert, and clicks are handled by one delegated listener
+       on the list (below) rather than one per button — a big holder
+       can page through hundreds. */
+    function renderHoldings(ids, reset) {
+        if (reset) els.holdings.innerHTML = '';
+        const frag = document.createDocumentFragment();
         ids.forEach(function (id) {
             const li = document.createElement('li');
             const btn = document.createElement('button');
             btn.type = 'button';
             btn.className = 'Holding';
+            btn.dataset.id = id;
             btn.textContent = '#' + id;
-            btn.addEventListener('click', function () {
-                els.holdings.querySelectorAll('.Holding').forEach(function (b) {
-                    b.classList.remove('is-active');
-                });
-                btn.classList.add('is-active');
-                loadWhale(id);
-            });
             li.appendChild(btn);
-            els.holdings.appendChild(li);
+            frag.appendChild(li);
         });
-        const first = els.holdings.querySelector('.Holding');
-        if (first) first.classList.add('is-active');
+        els.holdings.appendChild(frag);
+        if (reset) {
+            const first = els.holdings.querySelector('.Holding');
+            if (first) first.classList.add('is-active');
+        }
     }
+
+    els.holdings.addEventListener('click', function (evt) {
+        const btn = evt.target.closest('.Holding');
+        if (!btn) return;
+        const active = els.holdings.querySelector('.Holding.is-active');
+        if (active) active.classList.remove('is-active');
+        btn.classList.add('is-active');
+        loadWhale(Number(btn.dataset.id));
+    });
+
+    els.holdingsMore.addEventListener('click', showMoreHoldings);
 
     /* ---------------------------------------------------------
        Export
        --------------------------------------------------------- */
 
+    /* Typing a name or pasting an address fires 'input' per keystroke,
+       and each render repaints the full card — guilloché, chip, sheen.
+       Batch to one paint per frame; the preview still tracks live.
+       (Debouncing would wait for you to stop typing, which makes a live
+       preview feel broken.) */
+    let renderQueued = false;
+    function requestRender() {
+        if (renderQueued) return;
+        renderQueued = true;
+        window.requestAnimationFrame(function () {
+            if (!renderQueued) return;
+            renderQueued = false;
+            render();
+        });
+    }
+
+    /* Anything reading the canvas must see the latest edit, not the
+       previous frame. */
+    function flushRender() {
+        if (!renderQueued) return;
+        renderQueued = false;
+        render();
+    }
+
     function download() {
         if (!state.owned) return;      /* the button is disabled too; belt and braces */
+        flushRender();
         try {
             const url = canvas.toDataURL('image/png');
             const a = document.createElement('a');
@@ -794,7 +951,9 @@
         state.owned = false;
         els.download.disabled = true;
         els.holdings.innerHTML = '';
-        render();
+        els.holdingsMore.hidden = true;
+        holdings = null;
+        requestRender();
     });
 
     els.download.addEventListener('click', download);
@@ -808,20 +967,16 @@
     });
 
     [els.memberName, els.memberSince, els.showTraits, els.showAddress]
-        .forEach(function (el) { el.addEventListener('input', render); });
+        .forEach(function (el) { el.addEventListener('input', requestRender); });
 
-    /* The logo comes from logo.js as a data: URI rather than from
-       images/OG_logo.png. A file:// page treats even its own local images
-       as cross-origin, and drawing one taints the canvas so the PNG export
-       throws. A data URI never taints.
-
-       To regenerate after changing the art, from the project folder:
-         powershell -c "'window.WHALE_LOGO = ''data:image/png;base64,' +
-           [Convert]::ToBase64String([IO.File]::ReadAllBytes('images/OG_logo.png')) +
-           ''';' | Set-Content logo.js"
-    */
-    if (window.WHALE_LOGO) {
-        loadImage(window.WHALE_LOGO, false)
+    /* Served over http(s) the logo is same-origin, so drawing it never
+       taints the canvas. Opened from file:// the browser treats even a
+       local image as cross-origin and the PNG export would throw — so
+       there the card goes without the logo rather than losing the
+       download. (This used to ship as a 45 KB data: URI in logo.js to
+       dodge that; the hosted site doesn't need it.) */
+    if (window.location.protocol !== 'file:') {
+        loadImage('images/OG_logo.png', false)
             .then(function (img) { state.logo = img; render(); })
             .catch(function () { /* card just renders without it */ });
     }

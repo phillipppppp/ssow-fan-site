@@ -20,17 +20,47 @@
     /* Base CID from tokenURI() on 0x88091012eedF8Dba59D08e27Ed7B22008F5d6fe5 */
     const BASE_CID = 'QmdAxHGSCS2NftXn52WbumMn2ENMKXcmk55QgXbmWr86KL';
 
-    /* Pinata first — it's the gateway the metadata itself points at. */
+    /* Pinata first — it's the gateway the metadata itself points at.
+       Rechecked Sep 2026: cloudflare-ipfs.com no longer exists and
+       nftstorage.link dropped its CORS header, so both were pure
+       console noise and were replaced. Some ISPs and routers refuse to
+       resolve ipfs.io / dweb.link, which is why two gateways on other
+       domains lead the list. */
     const GATEWAYS = [
         'https://gateway.pinata.cloud/ipfs/',
+        'https://ipfs.filebase.io/ipfs/',
         'https://ipfs.io/ipfs/',
-        'https://cloudflare-ipfs.com/ipfs/',
-        'https://nftstorage.link/ipfs/'
+        'https://dweb.link/ipfs/'
     ];
 
     const SUPPLY = 10000;
     const cache = {};        /* id -> whale metadata */
     const imageCache = {};   /* id -> decoded HTMLImageElement */
+
+    /* Metadata also persists across visits. It lives under a content
+       hash (the CID), so it can never change — safe to keep forever.
+       Without this every visit re-asked all four gateways, even when
+       the browser already had the answer on disk. The images need no
+       help: gateways send max-age of ~11 months, so the browser's own
+       HTTP cache keeps them. */
+    const STORE_KEY = 'ssow-whale:' + BASE_CID + ':';
+
+    function readStored(id) {
+        try {
+            const raw = window.localStorage.getItem(STORE_KEY + id);
+            return raw ? JSON.parse(raw) : null;
+        } catch (err) {
+            return null;     /* private mode, blocked storage, bad JSON */
+        }
+    }
+
+    function writeStored(id, whale) {
+        try {
+            window.localStorage.setItem(STORE_KEY + id, JSON.stringify(whale));
+        } catch (err) {
+            /* full or blocked — the in-memory cache still works */
+        }
+    }
 
     /* Ask every gateway at once and keep the first that answers. Trying
        them in sequence meant a slow leader cost its full latency (~5s)
@@ -75,6 +105,12 @@
             const key = String(id);
             if (cache[key]) return cache[key];
 
+            const stored = readStored(key);
+            if (stored && stored.image) {
+                cache[key] = stored;
+                return stored;
+            }
+
             const meta = await fetchMetadata(id);
             const whale = {
                 id: Number(id),
@@ -83,6 +119,7 @@
             };
 
             cache[key] = whale;
+            writeStored(key, whale);
             return whale;
         },
 

@@ -287,11 +287,22 @@
 
         let running = true;
         let start = null;
+        let lastDraw = -Infinity;
+
+        /* A slow drifting wash reads the same at 30fps as at 60 — or at
+           120 on high-refresh phones, where rAF runs even faster. Every
+           skipped frame is a full-screen fBm shader pass not run, on
+           every page, for as long as the tab is open. Time still comes
+           from the clock, so the drift speed is unchanged. */
+        const FRAME_MS = 1000 / 30;
 
         function frame(now) {
             if (!running) return;
             if (start === null) start = now;
-            draw(((now - start) / 1000) * opts.speed * 10);
+            if (now - lastDraw >= FRAME_MS - 1) {       /* -1: rAF timing jitter */
+                lastDraw = now;
+                draw(((now - start) / 1000) * opts.speed * 10);
+            }
             window.requestAnimationFrame(frame);
         }
 

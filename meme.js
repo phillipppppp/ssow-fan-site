@@ -285,7 +285,7 @@
         if (!state.dragging) return;
         const p = canvasPoint(evt);
         state[state.dragging] = { x: p.x, y: p.y };
-        render();
+        requestRender();
     });
 
     canvas.addEventListener('pointerup', function (evt) {
@@ -299,7 +299,32 @@
        Export
        --------------------------------------------------------- */
 
+    /* Typing, sliders and caption drags fire far faster than the screen
+       refreshes, and each render repaints the whole 1000px canvas. Batch
+       them to one paint per frame — the preview still tracks live, it
+       just stops drawing frames nobody sees. (Debouncing would wait for
+       you to stop, which makes a live preview feel broken.) */
+    let renderQueued = false;
+    function requestRender() {
+        if (renderQueued) return;
+        renderQueued = true;
+        window.requestAnimationFrame(function () {
+            if (!renderQueued) return;
+            renderQueued = false;
+            render();
+        });
+    }
+
+    /* Anything reading the canvas must see the latest edit, not the
+       previous frame. */
+    function flushRender() {
+        if (!renderQueued) return;
+        renderQueued = false;
+        render();
+    }
+
     function download() {
+        flushRender();
         try {
             const url = canvas.toDataURL('image/png');
             const a = document.createElement('a');
@@ -365,17 +390,17 @@
 
     [els.topText, els.bottomText, els.fontFamily, els.fillColor,
      els.strokeColor, els.uppercase].forEach(function (el) {
-        el.addEventListener('input', render);
+        el.addEventListener('input', requestRender);
     });
 
     els.fontSize.addEventListener('input', function () {
         els.fontSizeOut.textContent = els.fontSize.value;
-        render();
+        requestRender();
     });
 
     els.strokeWidth.addEventListener('input', function () {
         els.strokeWidthOut.textContent = els.strokeWidth.value;
-        render();
+        requestRender();
     });
 
     /* Impact and the Google fonts may land after first paint. */

@@ -43,6 +43,12 @@
     let hideTimer = null;
     let lastId = null;
 
+    /* id -> finished cutout canvas. The chroma key walks every pixel,
+       and the same whale comes back every 30 seconds — do it once per
+       page, then reuse the canvas. (pop() empties the host, which just
+       detaches it; the next appear() puts the same one back.) */
+    const cutouts = {};
+
     function mount() {
         host = document.createElement('div');
         host.className = 'Golden';
@@ -167,10 +173,13 @@
         const whale = pick();
         lastId = whale.id;
 
-        let canvas;
+        let canvas = cutouts[whale.id];
         try {
-            const img = await loadImage(whale.image);
-            canvas = cutout(img);
+            if (!canvas) {
+                const img = await loadImage(whale.image);
+                canvas = cutout(img);
+                if (canvas) cutouts[whale.id] = canvas;
+            }
         } catch (err) {
             /* Skip this round rather than showing a broken box — but say
                so, because a silent return makes this impossible to debug. */

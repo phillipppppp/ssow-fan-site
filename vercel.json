@@ -1,0 +1,7 @@
+{
+  "$schema": "https://openapi.vercel.sh/vercel.json",
+  "framework": null,
+  "installCommand": "npm install --no-save --no-package-lock esbuild@0.25.12",
+  "buildCommand": "node tools/build.js",
+  "outputDirectory": "_site"
+}

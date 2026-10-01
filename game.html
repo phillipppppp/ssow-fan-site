@@ -1,0 +1,135 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Whale Road | Secret Society of Whales</title>
+    <link rel="icon" type="image/png" sizes="32x32" href="images/favicon-32.png">
+    <link rel="apple-touch-icon" sizes="180x180" href="images/favicon-180.png">
+    <!-- whales load from IPFS; open that connection before any script asks -->
+    <link rel="preconnect" href="https://gateway.pinata.cloud" crossorigin>
+    <link rel="stylesheet" href="base.css">
+    <link rel="stylesheet" href="game.css">
+    <script>
+        /* Runs before <body> paints: if the boot screen already played
+           this session, mark the document so CSS skips it outright.
+           Deferring this to a file would flash the intro on every page. */
+        try {
+            if (sessionStorage.getItem('ssow-booted')) {
+                document.documentElement.classList.add('booted');
+            }
+            sessionStorage.setItem('ssow-booted', '1');
+        } catch (e) { /* private mode - the intro just plays again */ }
+    </script>
+</head>
+<body>
+<div class="Boot" aria-hidden="true">
+    <div class="Boot-inner">
+        <p class="Boot-mark">Secret Society of Whales</p>
+        <div class="Boot-bar"><span></span></div>
+    </div>
+</div>
+
+<header>
+
+    <nav>
+        <a href="index.html">Home</a>
+        <a href="history.html">Whalestory</a>
+        <a href="meme.html">Meme</a>
+        <a href="idcard.html">ID Generator</a>
+        <a href="game.html" aria-current="page">Whale Road</a>
+        <a class="Nav-logo" href="index.html">
+            <img src="images/OG_logo-nav.webp" alt="Secret Society of Whales &mdash; home" width="34" height="29">
+        </a>
+    </nav>
+
+</header>
+
+<main>
+    <section class="Intro">
+        <h1 data-stroke-text>Whale Road</h1>
+        <p class="Tagline">
+            Pick a Pixel Whale and hop it across the harbour. Roads, driftwood,
+            trams &mdash; and a seagull for anyone who dawdles.
+        </p>
+    </section>
+
+    <!-- Phones and tablets: the game is keyboard-only, so say so plainly
+         instead of showing a board nobody can play. -->
+    <section class="Desktop-only" id="desktopOnly" hidden>
+        <p class="Desktop-only-mark">Desktop only</p>
+        <p>Whale Road is played with the keyboard &mdash; arrow keys or WASD.
+           Open this page on a computer to play.</p>
+    </section>
+
+    <div class="Arcade" id="arcade">
+
+        <!-- ============ LEFT: pick a whale ============ -->
+        <section class="Picker" aria-label="Choose your whale">
+            <p class="Picker-label"><span class="Step">1</span> Your whale</p>
+
+            <div class="Picker-preview">
+                <canvas id="previewCanvas" width="120" height="120"
+                        aria-label="Your Pixel Whale"></canvas>
+            </div>
+
+            <p class="Picker-name" id="whaleName">Pixel Whale #1</p>
+            <p class="Picker-traits" id="whaleTraits">&nbsp;</p>
+
+            <div class="Picker-row">
+                <label class="Visually-hidden" for="whaleNumber">Pixel Whale number</label>
+                <input type="number" id="whaleNumber" min="0" max="9999" step="1"
+                       placeholder="0 – 9999" inputmode="numeric">
+                <button type="button" id="loadWhale" class="Btn">Load</button>
+            </div>
+            <button type="button" id="randomWhale" class="Btn Btn--ghost">Random whale</button>
+            <p class="Picker-hint">Type your OG whale’s number to play its pixel twin &mdash; same number, same traits.</p>
+
+            <p class="Picker-status" id="whaleStatus" role="status"></p>
+
+            <dl class="Records">
+                <div><dt>Best</dt><dd id="bestScore">0</dd></div>
+                <div><dt>$CIGAR banked</dt><dd id="bankedCoins">0</dd></div>
+            </dl>
+
+            <div class="Keys" aria-label="Controls">
+                <p class="Picker-label"><span class="Step">2</span> Controls</p>
+                <div class="Keys-pad" aria-hidden="true">
+                    <kbd class="Keys-up">W</kbd>
+                    <kbd>A</kbd><kbd>S</kbd><kbd>D</kbd>
+                </div>
+                <p class="Keys-note">or the arrow keys &middot; <kbd>Space</kbd> start / retry &middot; <kbd>P</kbd> pause</p>
+            </div>
+        </section>
+
+        <!-- ============ RIGHT: the board ============ -->
+        <section class="Board" aria-label="Whale Road game">
+            <div class="Board-frame" id="boardFrame">
+                <canvas id="gameCanvas" width="624" height="480"
+                        aria-label="Whale Road game board" tabindex="0"></canvas>
+
+                <div class="Hud" aria-live="off">
+                    <p class="Hud-score" id="hudScore">0</p>
+                    <p class="Hud-coins"><span id="hudCoins">0</span> $CIGAR</p>
+                </div>
+
+                <div class="Overlay" id="overlay">
+                    <p class="Overlay-kicker" id="overlayKicker">Whale Road</p>
+                    <p class="Overlay-title" id="overlayTitle">Ready?</p>
+                    <p class="Overlay-text" id="overlayText">Press <kbd>Space</kbd> to start.</p>
+                    <button type="button" class="Btn Btn--primary" id="overlayButton">Play</button>
+                </div>
+            </div>
+        </section>
+
+    </div>
+</main>
+
+<footer class="Footer" data-footer></footer>
+
+<script defer src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/gsap.min.js"></script>
+<script defer src="strokeText.js"></script>
+<script defer src="game.js"></script>
+<script defer src="footer.js"></script>
+</body>
+</html>

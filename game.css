@@ -70,7 +70,7 @@ main { max-width: 1240px; }
 
 .Arcade {
     display: grid;
-    grid-template-columns: minmax(240px, 280px) 1fr;
+    grid-template-columns: minmax(260px, 300px) 1fr;
     gap: 1px;
     background: var(--rule-soft);
     border: 1px solid var(--rule-soft);
@@ -129,8 +129,10 @@ main { max-width: 1240px; }
 
 .Picker-name {
     font-family: var(--font-display);
-    font-size: 1.05rem;
+    font-size: 0.98rem;
     white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
     font-weight: 800;
     letter-spacing: -0.02em;
     color: var(--ink);
@@ -163,8 +165,6 @@ main { max-width: 1240px; }
 .Picker-row input:focus { outline: none; border-color: var(--accent); }
 .Picker-row input::placeholder { color: var(--ink-4); }
 
-.Picker-hint { font-size: 0.72rem; line-height: 1.5; color: var(--ink-4); }
-
 .Picker-status {
     min-height: 1.2em;
     font-family: var(--font-mono);
@@ -173,6 +173,43 @@ main { max-width: 1240px; }
 }
 
 .Picker-status.is-error { color: var(--error); }
+
+.Picker-status.is-ok { color: var(--accent); }
+
+/* Your OG whales, as buttons. Paged 24 at a time; a big wallet
+   scrolls inside the list instead of stretching the column. */
+.Holdings {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.3rem;
+    max-height: 9.5rem;
+    overflow-y: auto;
+    list-style: none;
+}
+
+.Holdings:empty { display: none; }
+
+.Holding {
+    padding: 0.3rem 0.6rem;
+    font-family: var(--font-mono);
+    font-size: 0.7rem;
+    color: var(--ink-3);
+    background: none;
+    border: 1px solid var(--rule);
+    border-radius: 0;
+    cursor: pointer;
+    transition: color 0.18s ease, border-color 0.18s ease;
+}
+
+.Holding:hover,
+.Holding:focus-visible { color: var(--ink); border-color: var(--ink-3); outline: none; }
+
+.Holding.is-active { color: var(--bg); background: var(--accent); border-color: var(--accent); }
+
+.Holding:disabled { opacity: 0.35; cursor: not-allowed; }
+
+/* .Btn sets display, which would otherwise beat the hidden attribute */
+.Holdings-more[hidden] { display: none; }
 
 .Records {
     display: grid;
@@ -341,10 +378,5 @@ kbd {
 
 @media (max-width: 900px) {
     .Arcade { grid-template-columns: 1fr; }
-    .Picker { display: grid; grid-template-columns: 140px 1fr; column-gap: 1.25rem; }
-    .Picker > .Picker-label,
-    .Picker > .Picker-status,
-    .Picker > .Records,
-    .Picker > .Keys { grid-column: 1 / -1; }
-    .Picker-preview { grid-row: span 4; }
+    .Picker-preview { max-width: 180px; }
 }

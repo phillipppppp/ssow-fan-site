@@ -13,29 +13,9 @@
 (function () {
     'use strict';
 
-    const CONTRACT = '0x88091012eedf8dba59d08e27ed7b22008f5d6fe5';
-
-    /* function selectors */
-    const SEL_BALANCE_OF = '0x70a08231';       /* balanceOf(address)                  */
-    const SEL_TOKEN_OF_OWNER = '0x2f745c59';   /* tokenOfOwnerByIndex(address,uint256) */
-    const SEL_OWNER_OF = '0x6352211e';         /* ownerOf(uint256)                    */
-
-    /* Public endpoints that allow browser requests (verified ACAO: *).
-       Tried in order so one being down isn't fatal. (Ankr was dropped
-       in Sep 2026 — it started demanding an API key.) */
-    const RPCS = [
-        'https://ethereum-rpc.publicnode.com',
-        'https://rpc.mevblocker.io',
-        'https://eth.drpc.org',
-        'https://eth.merkle.io'
-    ];
-
-    /* The subset verified to answer a full 24-call JSON-RPC batch.
-       drpc's free tier caps batches at 3, and merkle rate-limits them. */
-    const BATCH_RPCS = [
-        'https://ethereum-rpc.publicnode.com',
-        'https://rpc.mevblocker.io'
-    ];
+    /* contract reads live in chain.js, shared with Whale Road */
+    const Chain = window.WhaleChain;
+    const CONTRACT = Chain.CONTRACT;
 
     const W = 1000;
     const H = 630;
@@ -537,124 +517,10 @@
        Wallet
        --------------------------------------------------------- */
 
-    function padAddress(addr) {
-        return addr.toLowerCase().replace(/^0x/, '').padStart(64, '0');
-    }
-
-    function padUint(n) {
-        return n.toString(16).padStart(64, '0');
-    }
-
-    function isAddress(value) {
-        return /^0x[0-9a-fA-F]{40}$/.test((value || '').trim());
-    }
-
-    /* Read-only eth_call over plain HTTP — no wallet extension needed. */
-    async function ethCall(data) {
-        const payload = JSON.stringify({
-            jsonrpc: '2.0',
-            id: 1,
-            method: 'eth_call',
-            params: [{ to: CONTRACT, data: data }, 'latest']
-        });
-
-        let lastError = null;
-
-        for (let i = 0; i < RPCS.length; i++) {
-            try {
-                const res = await fetch(RPCS[i], {
-                    method: 'POST',
-                    headers: { 'content-type': 'application/json' },
-                    body: payload
-                });
-                if (!res.ok) { lastError = new Error('rpc ' + res.status); continue; }
-
-                const json = await res.json();
-                if (json.error) { lastError = new Error(json.error.message); continue; }
-                return json.result;
-            } catch (err) {
-                lastError = err;
-            }
-        }
-
-        throw lastError || new Error('every RPC endpoint failed');
-    }
-
-    /* Many eth_calls in one HTTP request (JSON-RPC batching).
-
-       Listing a wallet used to await tokenOfOwnerByIndex once per whale,
-       in sequence — 24 round trips back to back, the N+1 pattern. A
-       batch is one round trip. A reply only counts if every item came
-       back clean: some free endpoints accept the batch and then answer
-       each item with a "batch too large" error instead. */
-    async function ethCallBatch(datas) {
-        if (datas.length === 1) return [await ethCall(datas[0])];
-
-        const payload = JSON.stringify(datas.map(function (data, i) {
-            return {
-                jsonrpc: '2.0',
-                id: i,
-                method: 'eth_call',
-                params: [{ to: CONTRACT, data: data }, 'latest']
-            };
-        }));
-
-        for (let r = 0; r < BATCH_RPCS.length; r++) {
-            try {
-                const res = await fetch(BATCH_RPCS[r], {
-                    method: 'POST',
-                    headers: { 'content-type': 'application/json' },
-                    body: payload
-                });
-                if (!res.ok) continue;
-
-                const json = await res.json();
-                if (!Array.isArray(json)) continue;
-
-                /* replies may arrive in any order — match them up by id */
-                const results = [];
-                json.forEach(function (item) { results[item.id] = item; });
-
-                let clean = true;
-                for (let i = 0; i < datas.length; i++) {
-                    const item = results[i];
-                    if (!item || item.error || !item.result || item.result === '0x') {
-                        clean = false;
-                        break;
-                    }
-                }
-                if (clean) return results.map(function (item) { return item.result; });
-            } catch (err) {
-                /* try the next endpoint */
-            }
-        }
-
-        /* Nobody would batch. Fall back to single calls, six at a time —
-           still a handful of round trips rather than one per whale, and
-           gentle enough not to trip the public nodes' rate limits. */
-        const out = [];
-        for (let i = 0; i < datas.length; i += 6) {
-            /* eslint-disable-next-line no-await-in-loop */
-            const chunk = await Promise.all(datas.slice(i, i + 6).map(ethCall));
-            out.push.apply(out, chunk);
-        }
-        return out;
-    }
-
-    /* Authoritative single-call ownership check. Used to gate the
-       download — the holdings list is paged, so a whale that hasn't been
-       listed yet would otherwise look unowned. */
-    async function ownsWhale(address, tokenId) {
-        const hex = await ethCall(SEL_OWNER_OF + padUint(tokenId));
-        if (!hex || hex === '0x') return false;
-        const owner = '0x' + hex.slice(-40);
-        return owner.toLowerCase() === address.toLowerCase();
-    }
-
     async function checkWallet() {
         const raw = els.walletAddress.value.trim();
 
-        if (!isAddress(raw)) {
+        if (!Chain.isAddress(raw)) {
             setStatus(
                 els.walletStatus,
                 raw ? 'that is not a valid 0x address' : 'paste your wallet address first',
@@ -668,8 +534,7 @@
         setStatus(els.walletStatus, 'reading the chain…');
 
         try {
-            const balanceHex = await ethCall(SEL_BALANCE_OF + padAddress(address));
-            const balance = parseInt(balanceHex, 16) || 0;
+            const balance = await Chain.balanceOf(address);
 
             state.address = address;
 
@@ -709,14 +574,7 @@
         const from = h.ids.length;
         const to = Math.min(h.balance, from + PAGE_SIZE);
 
-        const calls = [];
-        for (let i = from; i < to; i++) {
-            calls.push(SEL_TOKEN_OF_OWNER + padAddress(h.address) + padUint(i));
-        }
-
-        const page = (await ethCallBatch(calls)).map(function (hex) {
-            return parseInt(hex, 16);
-        });
+        const page = await Chain.tokensOfOwner(h.address, from, to);
 
         /* the wallet was changed while this page was loading */
         if (holdings !== h) return [];
@@ -773,7 +631,7 @@
         }
 
         try {
-            state.owned = await ownsWhale(state.address, state.whale.id);
+            state.owned = await Chain.ownsWhale(state.address, state.whale.id);
         } catch (err) {
             state.owned = false;
         }
@@ -991,13 +849,13 @@
         const params = new URLSearchParams(window.location.search);
 
         const wallet = params.get('wallet');
-        if (wallet && isAddress(wallet)) {
+        if (wallet && Chain.isAddress(wallet)) {
             els.walletAddress.value = wallet;
         }
 
         const id = parseInt(params.get('id'), 10);
         if (window.WhaleSource.isValidId(id)) {
-            if (wallet && isAddress(wallet)) {
+            if (wallet && Chain.isAddress(wallet)) {
                 checkWallet().then(function () { loadWhale(id); });
             } else {
                 loadWhale(id);

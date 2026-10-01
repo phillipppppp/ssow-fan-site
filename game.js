@@ -8,8 +8,10 @@
      rail  — a light blinks, then a tram comes through very fast
    Dawdle and the camera creeps past you: a seagull takes you.
 
-   The player is any of the 10,000 Secret Society Pixel Whales
-   (Polygon 0xc74e…ec2e). Their art is a 100×100 pixel grid drawn at
+   You play the Pixel Whale twin of an OG whale your wallet holds:
+   OG #N on Ethereum unlocks Secret Society Pixel Whale #N on Polygon
+   (0xc74e…ec2e), which has the same traits. No OG whales, no wallet:
+   a built-in guest whale. Their art is a 100×100 pixel grid drawn at
    10× on a flat background, so it is sampled back down to native
    size, the background flood-filled away, and drawn 1:1 — one art
    pixel per world pixel. A whale is about 1.5 cells tall, like a
@@ -71,12 +73,14 @@
         coins: $('hudCoins'),
         best: $('bestScore'),
         banked: $('bankedCoins'),
-        number: $('whaleNumber'),
-        load: $('loadWhale'),
-        random: $('randomWhale'),
+        wallet: $('walletAddress'),
+        checkWallet: $('checkWallet'),
+        walletStatus: $('walletStatus'),
+        holdings: $('holdings'),
+        holdingsMore: $('holdingsMore'),
         name: $('whaleName'),
         traits: $('whaleTraits'),
-        status: $('whaleStatus'),
+        whaleStatus: $('whaleStatus'),
         frame: $('boardFrame')
     };
 
@@ -153,21 +157,18 @@
         });
     }
 
-    /* The metadata names one gateway. If that one is down, the same
-       CID is just as good from any other. */
-    async function loadArt(whale) {
+    /* The metadata names Pinata, but the same CID is just as good from
+       any gateway — so ask them all at once and keep the first. The
+       art is 11 KB, so racing costs nothing, while waiting on Pinata
+       alone took ~6s in testing (Filebase answered in under one). */
+    function loadArt(whale) {
         const m = /\/ipfs\/([^/?#]+)/.exec(whale.image || '');
-        const urls = [whale.image].concat(m ? GATEWAYS.map(function (g) { return g + m[1]; }) : []);
-        const seen = {};
-        for (const url of urls) {
-            if (!url || seen[url]) continue;
-            seen[url] = true;
-            try {
-                /* eslint-disable-next-line no-await-in-loop */
-                return await loadImg(url);
-            } catch (err) { /* next gateway */ }
-        }
-        throw new Error('art unavailable');
+        const urls = m ? GATEWAYS.map(function (g) { return g + m[1]; }) : [];
+        if (whale.image && urls.indexOf(whale.image) < 0) urls.unshift(whale.image);
+        if (!urls.length) return Promise.reject(new Error('art unavailable'));
+        return Promise.any(urls.map(loadImg)).catch(function () {
+            throw new Error('art unavailable');
+        });
     }
 
     /* 1000px PNG of a 100px grid on a flat background -> a cropped,
@@ -262,12 +263,32 @@
         return c;
     }
 
-    let sprite = fallbackSprite();
-    let loadToken = 0;
+    /* ---------------------------------------------------------
+       Which whale you play: your wallet decides
 
-    function setStatus(msg, isError) {
-        els.status.textContent = msg || '';
-        els.status.classList.toggle('is-error', !!isError);
+       Paste a wallet; every OG whale it holds on Ethereum unlocks
+       the Pixel Whale with the same number on Polygon — same
+       traits, drawn in pixels. No wallet, or no OG whales: you
+       play the built-in guest whale.
+
+       Like the ID card, this reads the pasted address and asks for
+       no signature, so it is a convenience, not proof of ownership.
+       --------------------------------------------------------- */
+
+    const Chain = window.WhaleChain;
+    const GUEST = fallbackSprite();
+    const GUEST_TEXT = 'Every OG whale you hold unlocks its Pixel twin — same number, same traits.';
+    const PAGE_SIZE = 24;
+
+    let sprite = GUEST;
+    let loadToken = 0;
+    let holdings = null;      /* { address, balance, ids: [...] } */
+    let checkToken = 0;       /* bumped to abandon a lookup still running */
+
+    function setStatus(el, msg, kind) {
+        el.textContent = msg || '';
+        el.classList.toggle('is-error', kind === 'error');
+        el.classList.toggle('is-ok', kind === 'ok');
     }
 
     function drawPreview() {
@@ -291,15 +312,31 @@
         }).filter(Boolean).join(' · ');
     }
 
-    async function chooseWhale(raw) {
-        const id = Number(raw);
-        if (!Number.isInteger(id) || id < 0 || id >= SUPPLY) {
-            setStatus('pick a number from 0 to ' + (SUPPLY - 1), true);
-            return;
-        }
+    /* OG ids run 1-10000 and Pixel ids 0-9999, so OG #10000 is the one
+       whale without a twin. */
+    function hasTwin(id) { return Number.isInteger(id) && id >= 0 && id < SUPPLY; }
+
+    function markActive(id) {
+        els.holdings.querySelectorAll('.Holding').forEach(function (b) {
+            b.classList.toggle('is-active', Number(b.dataset.id) === id);
+        });
+    }
+
+    function playAsGuest() {
+        loadToken++;                 /* drop any art still on its way */
+        sprite = GUEST;
+        els.name.textContent = 'Guest whale';
+        els.traits.textContent = GUEST_TEXT;
+        setStatus(els.whaleStatus, '');
+        markActive(null);
+        drawPreview();
+    }
+
+    /* Only ever called with an id the wallet holds. */
+    async function playWhale(id) {
         const token = ++loadToken;
-        els.number.value = id;
-        setStatus('loading #' + id + '…');
+        markActive(id);
+        setStatus(els.whaleStatus, 'loading Pixel Whale #' + id + '…');
         try {
             const whale = await fetchMeta(id);
             if (token !== loadToken) return;
@@ -312,10 +349,113 @@
             els.name.textContent = 'Pixel Whale #' + id;
             els.traits.textContent = describe(whale.traits) || ' ';
             drawPreview();
-            setStatus('');
+            setStatus(els.whaleStatus, '');
         } catch (err) {
             if (token !== loadToken) return;
-            setStatus('couldn’t load #' + id + ' — ' + err.message, true);
+            setStatus(els.whaleStatus, 'couldn’t load #' + id + ' — ' + err.message, 'error');
+        }
+    }
+
+    function renderHoldings(ids, reset) {
+        if (reset) els.holdings.innerHTML = '';
+        const frag = document.createDocumentFragment();
+        ids.forEach(function (id) {
+            const li = document.createElement('li');
+            const btn = document.createElement('button');
+            btn.type = 'button';
+            btn.className = 'Holding';
+            btn.dataset.id = id;
+            btn.textContent = '#' + id;
+            if (!hasTwin(id)) {
+                btn.disabled = true;
+                btn.title = 'OG #' + id + ' has no Pixel twin';
+            }
+            li.appendChild(btn);
+            frag.appendChild(li);
+        });
+        els.holdings.appendChild(frag);
+    }
+
+    /* A wallet can hold a lot of whales (one holds 1,490), so they come
+       in pages of 24 — the same approach as the ID card. */
+    async function loadHoldingsPage() {
+        const h = holdings;
+        const from = h.ids.length;
+        const page = await Chain.tokensOfOwner(h.address, from, Math.min(h.balance, from + PAGE_SIZE));
+        if (holdings !== h) return [];          /* the wallet changed meanwhile */
+
+        h.ids.push.apply(h.ids, page);
+        renderHoldings(page, from === 0);
+        setStatus(
+            els.walletStatus,
+            h.balance > h.ids.length
+                ? h.balance + ' OG whales — showing ' + h.ids.length
+                : h.balance + (h.balance === 1 ? ' OG whale' : ' OG whales'),
+            'ok'
+        );
+        els.holdingsMore.hidden = h.ids.length >= h.balance;
+        return page;
+    }
+
+    /* preferId: the whale played last time — picked again if still held */
+    async function checkWallet(preferId) {
+        const raw = els.wallet.value.trim();
+        if (!Chain.isAddress(raw)) {
+            setStatus(els.walletStatus, raw ? 'that isn’t a valid 0x address' : 'paste your wallet address first', 'error');
+            return;
+        }
+
+        const address = raw.toLowerCase();
+        const token = ++checkToken;
+        els.checkWallet.disabled = true;
+        setStatus(els.walletStatus, 'reading the chain…');
+
+        try {
+            const balance = await Chain.balanceOf(address);
+            if (token !== checkToken) return;
+            const h = { address: address, balance: balance, ids: [] };
+            holdings = h;
+            els.holdings.innerHTML = '';
+            els.holdingsMore.hidden = true;
+            writeStore('ssow-road-wallet', address);
+
+            if (!balance) {
+                setStatus(els.walletStatus, 'no OG whales here — playing as the guest', 'error');
+                playAsGuest();
+                return;
+            }
+
+            await loadHoldingsPage();
+            if (holdings !== h) return;
+
+            let pick = null;
+            if (hasTwin(preferId) &&
+                (h.ids.indexOf(preferId) >= 0 || await Chain.ownsWhale(address, preferId))) {
+                pick = preferId;
+            }
+            if (holdings !== h) return;
+            if (pick === null) pick = h.ids.find(hasTwin);
+            if (pick === undefined || pick === null) playAsGuest();
+            else playWhale(pick);
+        } catch (err) {
+            if (token === checkToken) setStatus(els.walletStatus, 'lookup failed (' + err.message + ')', 'error');
+        } finally {
+            if (token === checkToken) els.checkWallet.disabled = false;
+        }
+    }
+
+    async function showMoreHoldings() {
+        if (!holdings) return;
+        const label = els.holdingsMore.textContent;
+        els.holdingsMore.disabled = true;
+        els.holdingsMore.textContent = 'loading…';
+        try {
+            await loadHoldingsPage();
+        } catch (err) {
+            setStatus(els.walletStatus, 'could not load more (' + err.message + ')', 'error');
+        } finally {
+            els.holdingsMore.disabled = false;
+            els.holdingsMore.textContent = label;
         }
     }
 
@@ -1196,13 +1336,29 @@
         last = performance.now();
     });
 
-    els.load.addEventListener('click', function () { chooseWhale(els.number.value); });
-    els.number.addEventListener('keydown', function (e) {
-        if (e.key === 'Enter') { e.preventDefault(); chooseWhale(els.number.value); }
+    els.checkWallet.addEventListener('click', function () {
+        checkWallet(readStore('ssow-road-whale', null));
     });
-    els.random.addEventListener('click', function () {
-        chooseWhale((Math.random() * SUPPLY) | 0);
+    els.wallet.addEventListener('keydown', function (e) {
+        if (e.key === 'Enter') { e.preventDefault(); els.checkWallet.click(); }
     });
+    /* A different wallet means the old one's whales are off the table. */
+    els.wallet.addEventListener('input', function () {
+        if (holdings && els.wallet.value.trim().toLowerCase() === holdings.address) return;
+        checkToken++;                        /* forget any lookup still running */
+        els.checkWallet.disabled = false;
+        if (!holdings && !els.walletStatus.textContent) return;
+        holdings = null;
+        els.holdings.innerHTML = '';
+        els.holdingsMore.hidden = true;
+        setStatus(els.walletStatus, '');
+        playAsGuest();
+    });
+    els.holdings.addEventListener('click', function (e) {
+        const btn = e.target.closest('.Holding');
+        if (btn && !btn.disabled) playWhale(Number(btn.dataset.id));
+    });
+    els.holdingsMore.addEventListener('click', showMoreHoldings);
 
     /* ---------------------------------------------------------
        Boot
@@ -1217,8 +1373,12 @@
     drawPreview();
     showOverlay('Whale Road', 'Ready?', 'Hop with <kbd>W</kbd> or <kbd>↑</kbd>. Press <kbd>Space</kbd> to start.', 'Play');
 
-    const saved = readStore('ssow-road-whale', null);
-    chooseWhale(Number.isInteger(saved) ? saved : (Math.random() * SUPPLY) | 0);
+    playAsGuest();
+    const savedWallet = readStore('ssow-road-wallet', null);
+    if (savedWallet && Chain.isAddress(savedWallet)) {
+        els.wallet.value = savedWallet;
+        checkWallet(readStore('ssow-road-whale', null));
+    }
 
     window.requestAnimationFrame(frame);
 })();

@@ -64,27 +64,32 @@
 
     <div class="Arcade" id="arcade">
 
-        <!-- ============ LEFT: pick a whale ============ -->
+        <!-- ============ LEFT: your wallet, your whale ============ -->
         <section class="Picker" aria-label="Choose your whale">
-            <p class="Picker-label"><span class="Step">1</span> Your whale</p>
-
-            <div class="Picker-preview">
-                <canvas id="previewCanvas" width="120" height="120"
-                        aria-label="Your Pixel Whale"></canvas>
-            </div>
-
-            <p class="Picker-name" id="whaleName">Pixel Whale #1</p>
-            <p class="Picker-traits" id="whaleTraits">&nbsp;</p>
+            <p class="Picker-label"><span class="Step">1</span> Your wallet</p>
 
             <div class="Picker-row">
-                <label class="Visually-hidden" for="whaleNumber">Pixel Whale number</label>
-                <input type="number" id="whaleNumber" min="0" max="9999" step="1"
-                       placeholder="0 – 9999" inputmode="numeric">
-                <button type="button" id="loadWhale" class="Btn">Load</button>
+                <label class="Visually-hidden" for="walletAddress">Wallet address</label>
+                <input type="text" id="walletAddress" placeholder="0x… wallet with OG whales"
+                       spellcheck="false" autocomplete="off">
+                <button type="button" id="checkWallet" class="Btn">Find</button>
             </div>
-            <button type="button" id="randomWhale" class="Btn Btn--ghost">Random whale</button>
-            <p class="Picker-hint">Type your OG whale’s number to play its pixel twin &mdash; same number, same traits.</p>
+            <p class="Picker-status" id="walletStatus" role="status"></p>
 
+            <ul class="Holdings" id="holdings" aria-label="Your OG whales"></ul>
+            <button type="button" id="holdingsMore" class="Btn Btn--ghost Holdings-more" hidden>
+                Show more
+            </button>
+
+            <p class="Picker-label"><span class="Step">2</span> Playing as</p>
+
+            <div class="Picker-preview">
+                <canvas id="previewCanvas" width="100" height="100"
+                        aria-label="The whale you are playing as"></canvas>
+            </div>
+
+            <p class="Picker-name" id="whaleName">Guest whale</p>
+            <p class="Picker-traits" id="whaleTraits">Every OG whale you hold unlocks its Pixel twin &mdash; same number, same traits.</p>
             <p class="Picker-status" id="whaleStatus" role="status"></p>
 
             <dl class="Records">
@@ -93,7 +98,7 @@
             </dl>
 
             <div class="Keys" aria-label="Controls">
-                <p class="Picker-label"><span class="Step">2</span> Controls</p>
+                <p class="Picker-label"><span class="Step">3</span> Controls</p>
                 <div class="Keys-pad" aria-hidden="true">
                     <kbd class="Keys-up">W</kbd>
                     <kbd>A</kbd><kbd>S</kbd><kbd>D</kbd>
@@ -129,6 +134,7 @@
 
 <script defer src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/gsap.min.js"></script>
 <script defer src="strokeText.js"></script>
+<script defer src="chain.js"></script>
 <script defer src="game.js"></script>
 <script defer src="footer.js"></script>
 </body>

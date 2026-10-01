@@ -2,10 +2,10 @@
 window.FLOOR_DATA = {
   "collection": "Secret Society of Whales",
   "slug": "secretsocietyofwhales",
-  "capturedAt": "2026-09-30T11:11:30.233Z",
-  "currentFloorEth": 0.00369,
-  "totalVolumeEth": 1566.25,
-  "owners": 4045,
+  "capturedAt": "2026-10-01T11:38:43.084Z",
+  "currentFloorEth": 0.003694,
+  "totalVolumeEth": 1566.26,
+  "owners": 4044,
   "note": "series = lowest completed sale per day (floor proxy); currentFloorEth is the live listing floor",
   "series": [
     {
@@ -171,6 +171,11 @@ window.FLOOR_DATA = {
     {
       "date": "2026-09-29",
       "eth": 0.003689,
+      "sales": 1
+    },
+    {
+      "date": "2026-09-30",
+      "eth": 0.0037,
       "sales": 1
     }
   ]

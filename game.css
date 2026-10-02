@@ -580,3 +580,5 @@ kbd {
    and the locked name takes the whole row. */
 .Picker-row .Btn[hidden] { display: none; }
 .Picker-row:has(.Btn[hidden]) { grid-template-columns: 1fr; }
+
+.Sound-toggle { margin-top: 0.75rem; }

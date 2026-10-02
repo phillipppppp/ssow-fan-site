@@ -44,6 +44,7 @@
 
     const Sim = window.WhaleSim;
     const Rules = window.WhaleRules;
+    const Sfx = window.WhaleAudio;     /* cosmetic only: never touches the sim */
     const CELL = Sim.CELL;
     const COLS = Sim.COLS;
     const ROWS = Sim.ROWS;
@@ -92,6 +93,7 @@
         shopNote: $('shopNote'),
         leaders: $('leaders'),
         live: $('liveDot'),
+        sound: $('soundToggle'),
         frame: $('boardFrame')
     };
 
@@ -703,6 +705,7 @@
         try {
             const res = await api('buy', { token: sess.token, item: id });
             account = { coins: res.coins, items: res.items };
+            Sfx.play('buy');
         } catch (err) {
             els.shopNote.textContent = err.message;
         }
@@ -1445,6 +1448,7 @@
         }
         state = 'playing';
         hideOverlay();
+        Sfx.play('start');
         if (firstMove) pending.push(firstMove);
         canvas.focus({ preventScroll: true });
     }
@@ -1456,6 +1460,7 @@
         newRun(randomSeed(), {});
         state = 'playing';
         hideOverlay();
+        Sfx.play('start');
         if (firstMove) pending.push(firstMove);
         canvas.focus({ preventScroll: true });
     }
@@ -1469,6 +1474,7 @@
             const best = Math.max(readStore('ssow-road-practice-best', 0), score);
             writeStore('ssow-road-practice-best', best);
             showOverlay(msg, String(score), 'Practice run — not recorded · press <kbd>Space</kbd> to go again', 'Play again');
+            Sfx.play('over');
             return;
         }
 
@@ -1481,16 +1487,19 @@
             if (account) account.coins = res.balance;
             if (res.best !== null && (myBest === null || res.best > myBest)) myBest = res.best;
             let text;
+            let newBest = false;
             if (res.flagged) {
                 text = 'This run was flagged for review, so it won’t show on the board for now.';
             } else if (res.score > (prevBest === null ? -1 : prevBest) && res.rank) {
                 text = 'New best! #' + res.rank + ' on the board.';
+                newBest = true;
             } else {
                 text = res.rank ? 'Your best: ' + res.best + ' · #' + res.rank + ' on the board.' : '';
             }
             text += (res.coins ? ' +' + res.coins + ' $CIGAR.' : '') + ' Press <kbd>Space</kbd> to go again.';
             state = 'over';
             showOverlay(msg, String(res.score), text, 'Play again');
+            Sfx.play(newBest ? 'best' : 'over');
             renderShop();
             updateRecords();
             soonRefreshBoard();
@@ -1506,25 +1515,33 @@
         for (let i = 0; i < events.length; i++) {
             const e = events[i];
             if (e.type === 'coin') {
+                Sfx.play('coin');
                 burst(colX(e.col), e.row * CELL + 26, ['#ffcf4a', '#fff1b0', '#b8860b'], 10);
                 updateHud();
             } else if (e.type === 'land') {
                 landSquash = 1;
                 updateHud();
             } else if (e.type === 'bump') {
+                Sfx.play('bump');
                 bumpT = 1;
                 bumpDx = e.dx || 0;
             } else if (e.type === 'shield') {
+                Sfx.play('shield');
                 burst(sim.player.x, sim.player.row * CELL + 34, ['#9fe7ff', '#ffffff', '#5fc9f2'], 18, true);
                 updatePowers();
             } else if (e.type === 'dash') {
+                Sfx.play('dash');
                 dashTrail = { from: e.from, to: e.to, x: sim.player.x, t: 0 };
                 burst(sim.player.x, e.to * CELL + 20, ['#9fe7ff', '#ffffff'], 14, true);
                 updateHud();
                 updatePowers();
             } else if (e.type === 'trapped') {
+                Sfx.play('trapped');
                 burst(sim.player.x, sim.player.row * CELL + 24, ['#c9a26a', '#8a6a3a'], 8);
+            } else if (e.type === 'freed') {
+                Sfx.play('freed');
             } else if (e.type === 'death') {
+                Sfx.play(e.kind === 'drown' || e.kind === 'drift' ? 'splash' : e.kind === 'seagull' ? 'seagull' : 'crash');
                 if (e.kind === 'drown' || e.kind === 'drift') {
                     burst(sim.player.x, sim.player.row * CELL + 18, ['#ffffff', '#bfe3ff', '#5aa7dc'], 16);
                 }
@@ -1535,6 +1552,25 @@
         if (zone !== zoneShown && (zone === 'sea' || zone === 'arctic')) {
             zoneShown = zone;
             showBanner(zone === 'sea' ? 'The Open Sea' : 'The Arctic');
+            Sfx.play('zone');
+        }
+    }
+
+    /* The tram bell, the shark's dun-dun, the orca's whistle: once each
+       time a lane on screen starts its warning. */
+    const warned = new WeakSet();
+    function announceExpress() {
+        const top = Math.ceil(sim.camY + ROWS);
+        for (let row = Math.floor(sim.camY); row <= top; row++) {
+            const lane = sim.lanes.get(row);
+            if (!lane || lane.cat !== 'express') continue;
+            const phase = lane.express.phase;
+            if (phase === 'warn' && !warned.has(lane)) {
+                warned.add(lane);
+                Sfx.play(lane.express.spec.kind);
+            } else if (phase === 'idle') {
+                warned.delete(lane);
+            }
         }
     }
 
@@ -1626,6 +1662,8 @@
             acc += dt;
             let steps = 0;
             while (acc >= DT && steps < 6) {
+                /* read the lean before keys are applied: a key press starts the hop */
+                const tilt = sim.player.tilt;
                 if (state === 'playing' && pending.length && sim.player.alive) {
                     for (let i = 0; i < pending.length; i++) {
                         inputs.push([sim.tick, pending[i]]);
@@ -1634,6 +1672,7 @@
                 }
                 pending.length = 0;
                 sim.step();
+                if (state === 'playing' && sim.player.tilt !== tilt) Sfx.play('hop');
                 handleEvents(sim.drain());
                 acc -= DT;
                 steps++;
@@ -1642,6 +1681,7 @@
             }
             if (steps >= 6) acc = 0;
             updatePowers();
+            if (state === 'playing') announceExpress();
         }
 
         updateParticles(dt);
@@ -1671,9 +1711,23 @@
         }, { threshold: 0.35 }).observe(els.frame);
     }
 
+    /* Browsers only allow sound after a click or a key press. */
+    window.addEventListener('keydown', Sfx.unlock, true);
+    window.addEventListener('pointerdown', Sfx.unlock, true);
+
+    function showSound() {
+        const on = !Sfx.isMuted();
+        els.sound.textContent = on ? 'Sound: on' : 'Sound: off';
+        els.sound.setAttribute('aria-pressed', String(on));
+    }
+    function toggleSound() { Sfx.setMuted(!Sfx.isMuted()); showSound(); }
+    els.sound.addEventListener('click', toggleSound);
+    showSound();
+
     window.addEventListener('keydown', function (e) {
         const tag = (e.target && e.target.tagName || '').toLowerCase();
         if (tag === 'input' || tag === 'textarea' || tag === 'select') return;
+        if (e.code === 'KeyM' && !e.repeat) { toggleSound(); return; }
 
         const code = KEYS[e.code];
         const inGame = state === 'playing' || state === 'paused' || state === 'dying' || state === 'starting';

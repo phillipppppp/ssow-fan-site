@@ -380,3 +380,197 @@ kbd {
     .Arcade { grid-template-columns: 1fr; }
     .Picker-preview { max-width: 180px; }
 }
+
+/* ------------------------------------------------------------
+   Name, shop, power-ups
+   ------------------------------------------------------------ */
+
+.Hint {
+    margin-left: auto;
+    font-size: 0.56rem;
+    letter-spacing: 0.08em;
+    text-transform: none;
+    color: var(--ink-4);
+}
+
+.Picker-row input[type="text"] {
+    width: 100%;
+    padding: 0.6rem 0.7rem;
+    font-family: var(--font-mono);
+    font-size: 0.8rem;
+    color: var(--ink);
+    background: var(--surface);
+    border: 1px solid var(--rule);
+    border-radius: 0;
+}
+
+.Picker-row input[type="text"]:focus { outline: none; border-color: var(--accent); }
+.Picker-row input[type="text"]:disabled { opacity: 0.45; }
+
+.Shop {
+    display: grid;
+    gap: 1px;
+    list-style: none;
+    background: var(--rule-soft);
+    border: 1px solid var(--rule-soft);
+}
+
+.Shop-item {
+    display: grid;
+    grid-template-columns: 1.6rem 1fr auto;
+    grid-template-areas:
+        "icon text owned"
+        "icon buy  bring";
+    gap: 0.35rem 0.6rem;
+    align-items: center;
+    padding: 0.65rem 0.7rem;
+    background: var(--bg);
+}
+
+.Shop-icon { grid-area: icon; font-size: 1.15rem; line-height: 1; }
+.Shop-text { grid-area: text; display: grid; gap: 0.1rem; }
+.Shop-text strong { font-size: 0.8rem; color: var(--ink); }
+.Shop-text small { font-size: 0.68rem; line-height: 1.35; color: var(--ink-3); }
+.Shop-owned { grid-area: owned; font-family: var(--font-mono); font-size: 0.75rem; color: var(--accent); }
+
+.Shop-buy {
+    grid-area: buy;
+    justify-self: start;
+    padding: 0.4rem 0.6rem;
+    font-size: 0.58rem;
+}
+
+.Shop-bring {
+    grid-area: bring;
+    display: flex;
+    align-items: center;
+    gap: 0.3rem;
+    font-family: var(--font-mono);
+    font-size: 0.62rem;
+    color: var(--ink-3);
+    cursor: pointer;
+}
+
+.Shop-bring input { accent-color: var(--accent); }
+.Shop-bring:has(input:disabled) { opacity: 0.4; cursor: not-allowed; }
+
+/* ------------------------------------------------------------
+   HUD extras and the zone banner
+   ------------------------------------------------------------ */
+
+.Hud-right { display: grid; justify-items: end; gap: 0.3rem; }
+
+.Hud-powers {
+    min-height: 1.2em;
+    font-family: var(--font-mono);
+    font-size: 0.85rem;
+    color: #fff;
+    text-shadow: 2px 2px 0 rgba(0, 0, 0, 0.5);
+}
+
+.Zone-banner {
+    position: absolute;
+    top: 30%;
+    left: 50%;
+    transform: translateX(-50%);
+    padding: 0.5rem 1.2rem;
+    font-family: var(--font-display);
+    font-size: clamp(1.4rem, 3.5vw, 2.4rem);
+    font-weight: 800;
+    letter-spacing: -0.02em;
+    color: #fff;
+    white-space: nowrap;
+    background: rgba(7, 13, 22, 0.55);
+    pointer-events: none;
+    animation: bannerIn 0.4s ease-out;
+}
+
+.Zone-banner[hidden] { display: none; }
+
+@keyframes bannerIn {
+    from { opacity: 0; transform: translate(-50%, 0.6rem); }
+}
+
+.Overlay .Btn[hidden] { display: none; }
+
+/* ------------------------------------------------------------
+   Leaderboard
+   ------------------------------------------------------------ */
+
+.Leaderboard {
+    margin-top: clamp(2rem, 5vw, 3.5rem);
+    padding-top: 1.25rem;
+    border-top: 1px solid var(--rule);
+}
+
+.Leaderboard[hidden] { display: none; }
+
+.Leaders-head { display: flex; align-items: baseline; gap: 1rem; }
+
+.Leaders-head h2 {
+    font-family: var(--font-display);
+    font-size: clamp(1.6rem, 4vw, 2.6rem);
+    font-weight: 800;
+    letter-spacing: -0.03em;
+    color: var(--ink);
+}
+
+.Live {
+    font-family: var(--font-mono);
+    font-size: 0.62rem;
+    letter-spacing: 0.16em;
+    text-transform: uppercase;
+    color: var(--ink-4);
+}
+
+.Live::before {
+    content: '';
+    display: inline-block;
+    width: 0.5rem;
+    height: 0.5rem;
+    margin-right: 0.4rem;
+    background: var(--ink-4);
+}
+
+.Live.is-live { color: var(--accent); }
+.Live.is-live::before { background: var(--accent); animation: livePulse 1.6s ease-in-out infinite; }
+
+@keyframes livePulse { 50% { opacity: 0.25; } }
+
+.Leaders-note { margin: 0.4rem 0 1rem; font-size: 0.8rem; color: var(--ink-3); }
+
+.Leaders {
+    display: grid;
+    gap: 1px;
+    list-style: none;
+    background: var(--rule-soft);
+    border: 1px solid var(--rule-soft);
+}
+
+.Leader {
+    display: grid;
+    grid-template-columns: 3.2rem minmax(0, 1.4fr) minmax(0, 1fr) minmax(0, 1fr) 4.5rem;
+    gap: 1rem;
+    align-items: baseline;
+    padding: 0.7rem 1rem;
+    font-family: var(--font-mono);
+    font-size: 0.8rem;
+    color: var(--ink-2);
+    background: var(--bg);
+}
+
+.Leader span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.Leader-rank { color: var(--ink-4); }
+.Leader-name { font-family: var(--font-body); font-weight: 700; color: var(--ink); }
+.Leader-score { text-align: right; font-size: 1rem; color: var(--accent); }
+.Leader:nth-child(1) .Leader-rank { color: #ffcf4a; }
+
+.Leader.is-me { background: var(--accent-wash); }
+.Leader.is-me .Leader-name::after { content: ' \00b7 you'; color: var(--accent); font-weight: 400; }
+
+.Leaders-empty { padding: 1rem; font-size: 0.85rem; color: var(--ink-3); background: var(--bg); }
+
+@media (max-width: 700px) {
+    .Leader { grid-template-columns: 2.6rem 1fr 4rem; }
+    .Leader-whale, .Leader-wallet { display: none; }
+}

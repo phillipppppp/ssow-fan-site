@@ -49,8 +49,9 @@
     <section class="Intro">
         <h1 data-stroke-text>Whale Road</h1>
         <p class="Tagline">
-            Pick a Pixel Whale and hop it across the harbour. Roads, driftwood,
-            trams &mdash; and a seagull for anyone who dawdles.
+            Hop your Pixel Whale from the harbour out to the open sea and into
+            the Arctic. Mind the traffic, the sharks and the nets &mdash; and the
+            seagull, if you dawdle.
         </p>
     </section>
 
@@ -92,18 +93,31 @@
             <p class="Picker-traits" id="whaleTraits">Every OG whale you hold unlocks its Pixel twin &mdash; same number, same traits.</p>
             <p class="Picker-status" id="whaleStatus" role="status"></p>
 
+            <p class="Picker-label"><span class="Step">3</span> Your name</p>
+            <div class="Picker-row">
+                <label class="Visually-hidden" for="playerName">Username</label>
+                <input type="text" id="playerName" maxlength="16" spellcheck="false"
+                       autocomplete="nickname" placeholder="3–16 letters, numbers, _">
+                <button type="button" id="claimName" class="Btn">Save</button>
+            </div>
+            <p class="Picker-status" id="nameStatus" role="status"></p>
+
             <dl class="Records">
-                <div><dt>Best</dt><dd id="bestScore">0</dd></div>
-                <div><dt>$CIGAR banked</dt><dd id="bankedCoins">0</dd></div>
+                <div><dt>Your best</dt><dd id="bestScore">&mdash;</dd></div>
+                <div><dt>$CIGAR</dt><dd id="bankedCoins">&mdash;</dd></div>
             </dl>
 
+            <p class="Picker-label"><span class="Step">4</span> Shop <span class="Hint">in-game $CIGAR, not the token</span></p>
+            <ul class="Shop" id="shop" aria-label="Power-ups"></ul>
+            <p class="Picker-status" id="shopNote"></p>
+
             <div class="Keys" aria-label="Controls">
-                <p class="Picker-label"><span class="Step">3</span> Controls</p>
+                <p class="Picker-label"><span class="Step">5</span> Controls</p>
                 <div class="Keys-pad" aria-hidden="true">
                     <kbd class="Keys-up">W</kbd>
                     <kbd>A</kbd><kbd>S</kbd><kbd>D</kbd>
                 </div>
-                <p class="Keys-note">or the arrow keys &middot; <kbd>Space</kbd> start / retry &middot; <kbd>P</kbd> pause</p>
+                <p class="Keys-note">or the arrow keys &middot; <kbd>E</kbd> Speed Dash &middot; <kbd>Space</kbd> start / retry &middot; <kbd>P</kbd> pause</p>
             </div>
         </section>
 
@@ -115,8 +129,13 @@
 
                 <div class="Hud" aria-live="off">
                     <p class="Hud-score" id="hudScore">0</p>
-                    <p class="Hud-coins"><span id="hudCoins">0</span> $CIGAR</p>
+                    <div class="Hud-right">
+                        <p class="Hud-coins"><span id="hudCoins">0</span> $CIGAR</p>
+                        <p class="Hud-powers" id="hudPowers"></p>
+                    </div>
                 </div>
+
+                <p class="Zone-banner" id="zoneBanner" hidden></p>
 
                 <div class="Overlay" id="overlay">
                     <p class="Overlay-kicker" id="overlayKicker">Whale Road</p>
@@ -128,6 +147,15 @@
         </section>
 
     </div>
+
+    <section class="Leaderboard" id="leaderboard" aria-labelledby="leadersTitle">
+        <div class="Leaders-head">
+            <h2 id="leadersTitle">Leaderboard</h2>
+            <span class="Live" id="liveDot">updating</span>
+        </div>
+        <p class="Leaders-note">Best run per player. Every score is replayed and checked by the server before it lands here.</p>
+        <ol class="Leaders" id="leaders"></ol>
+    </section>
 </main>
 
 <footer class="Footer" data-footer></footer>
@@ -135,6 +163,9 @@
 <script defer src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/gsap.min.js"></script>
 <script defer src="strokeText.js"></script>
 <script defer src="chain.js"></script>
+<script defer src="game-config.js"></script>
+<script defer src="game-rules.js"></script>
+<script defer src="game-sim.js"></script>
 <script defer src="game.js"></script>
 <script defer src="footer.js"></script>
 </body>

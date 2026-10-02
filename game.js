@@ -1,22 +1,23 @@
 /* ============================================================
-   Whale Road — a Crossy Road–style hopper starring Pixel Whales.
+   Whale Road — the page: drawing, keys, wallet, name, shop, board.
 
-   Grid world, 13 columns wide, scrolling forward forever. Lanes:
-     sand  — safe; palms, crates and umbrellas block your way
-     road  — cars, vans and ice cream trucks; touch one and you're flat
-     water — ride the driftwood; whales in suits can't swim
-     rail  — a light blinks, then a tram comes through very fast
-   Dawdle and the camera creeps past you: a seagull takes you.
+   The rules live in game-sim.js (WhaleSim), not here. This file
+   only shows what the simulation says, feeds it key presses, and
+   keeps a log of them — because the server replays that log with
+   the same game-sim.js to decide your score. Nothing drawn here
+   (particles, squash, the seagull swoop) can change a result, and
+   none of it may touch the simulation's random numbers.
 
-   You play the Pixel Whale twin of an OG whale your wallet holds:
-   OG #N on Ethereum unlocks Secret Society Pixel Whale #N on Polygon
-   (0xc74e…ec2e), which has the same traits. No OG whales, no wallet:
-   a built-in guest whale. Their art is a 100×100 pixel grid drawn at
-   10× on a flat background, so it is sampled back down to native
-   size, the background flood-filled away, and drawn 1:1 — one art
-   pixel per world pixel. A whale is about 1.5 cells tall, like a
-   Crossy Road character. There are no walk frames: the movement is
-   the hop, sold with squash, stretch, a lean and a shadow.
+   Three zones re-skin the same five kinds of lane:
+     harbour  sand · roads · driftwood rivers · trams
+     sea      shallows · boats · kelp riptides · sharks · nets
+     arctic   snow · ice roads · ice floes · orcas
+   with a seagull for anyone who dawdles, everywhere.
+
+   Who you play: paste a wallet and every OG whale it holds unlocks
+   its Pixel Whale twin (same number, same traits, on Polygon).
+   No wallet: the built-in guest whale. Either way you pick a name
+   before playing; wallet names are claimed with a free signature.
 
    Keyboard only. Phones get a notice instead (see game.html).
    ============================================================ */
@@ -38,16 +39,17 @@
     }
 
     /* ---------------------------------------------------------
-       Constants
+       Constants — the geometry comes from the simulation
        --------------------------------------------------------- */
 
-    const CELL = 48;
-    const COLS = 13;
-    const ROWS = 10;                 /* visible lanes */
-    const W = CELL * COLS;           /* 624 world px */
-    const H = CELL * ROWS;           /* 480 world px */
-    const HOP_MS = 115;
-    const START_COL = 6;
+    const Sim = window.WhaleSim;
+    const Rules = window.WhaleRules;
+    const CELL = Sim.CELL;
+    const COLS = Sim.COLS;
+    const ROWS = Sim.ROWS;
+    const W = Sim.W;
+    const H = Sim.H;
+    const DT = 1 / Sim.TICK_HZ;
 
     /* tokenURI() on the Pixel Whales contract is ipfs://<this>/<id> */
     const PIXEL_CID = 'QmYsgzpjiefYzYBY27mvb7y7RS8hpAKbGgN6HSYPvcZR1Q';
@@ -71,6 +73,8 @@
         button: $('overlayButton'),
         score: $('hudScore'),
         coins: $('hudCoins'),
+        powers: $('hudPowers'),
+        banner: $('zoneBanner'),
         best: $('bestScore'),
         banked: $('bankedCoins'),
         wallet: $('walletAddress'),
@@ -81,6 +85,13 @@
         name: $('whaleName'),
         traits: $('whaleTraits'),
         whaleStatus: $('whaleStatus'),
+        playerName: $('playerName'),
+        claimName: $('claimName'),
+        nameStatus: $('nameStatus'),
+        shop: $('shop'),
+        shopNote: $('shopNote'),
+        leaders: $('leaders'),
+        live: $('liveDot'),
         frame: $('boardFrame')
     };
 
@@ -88,12 +99,10 @@
        Small helpers
        --------------------------------------------------------- */
 
-    function rand(a, b) { return a + Math.random() * (b - a); }
+    function rand(a, b) { return a + Math.random() * (b - a); }   /* cosmetics only */
     function lerp(a, b, t) { return a + (b - a) * t; }
     function clamp(v, a, b) { return v < a ? a : v > b ? b : v; }
     function colX(c) { return c * CELL + CELL / 2; }
-    function colOf(x) { return clamp(Math.round((x - CELL / 2) / CELL), 0, COLS - 1); }
-    function difficulty(row) { return clamp(row / 160, 0, 1); }
 
     function readStore(key, fallback) {
         try {
@@ -121,6 +130,9 @@
         const b = clamp((n & 255) + amt, 0, 255);
         return 'rgb(' + r + ',' + g + ',' + b + ')';
     }
+
+    function shortAddress(a) { return a ? a.slice(0, 6) + '…' + a.slice(-4) : ''; }
+
 
     /* ---------------------------------------------------------
        The whale: metadata, art, cutout
@@ -281,6 +293,7 @@
     const PAGE_SIZE = 24;
 
     let sprite = GUEST;
+    let whaleId = null;       /* the whale being played; null = the guest */
     let loadToken = 0;
     let holdings = null;      /* { address, balance, ids: [...] } */
     let checkToken = 0;       /* bumped to abandon a lookup still running */
@@ -325,11 +338,13 @@
     function playAsGuest() {
         loadToken++;                 /* drop any art still on its way */
         sprite = GUEST;
+        whaleId = null;
         els.name.textContent = 'Guest whale';
         els.traits.textContent = GUEST_TEXT;
         setStatus(els.whaleStatus, '');
         markActive(null);
         drawPreview();
+        onWhaleChange();
     }
 
     /* Only ever called with an id the wallet holds. */
@@ -345,11 +360,13 @@
             const s = makeSprite(img);
             if (!s) throw new Error('could not cut out the art');
             sprite = s;
+            whaleId = id;
             writeStore('ssow-road-whale', id);
             els.name.textContent = 'Pixel Whale #' + id;
             els.traits.textContent = describe(whale.traits) || ' ';
             drawPreview();
             setStatus(els.whaleStatus, '');
+            onWhaleChange();
         } catch (err) {
             if (token !== loadToken) return;
             setStatus(els.whaleStatus, 'couldn’t load #' + id + ' — ' + err.message, 'error');
@@ -460,413 +477,350 @@
     }
 
     /* ---------------------------------------------------------
-       The world
+       Online: your name, your coins, run tickets, the board
+
+       All of it goes through one edge function (see
+       supabase/functions/whale-road). ?backend=local points the page
+       at tools/dev-backend.ts instead, for testing offline.
        --------------------------------------------------------- */
 
-    const DECOR = ['palm', 'palm', 'palm', 'crate', 'crate', 'umbrella'];
-    const CAR_COLORS = ['#e0563f', '#f2c14e', '#4c9be8', '#6fcf7a', '#f28fb1', '#e9e9e9', '#9b7ff0'];
+    const CONFIG = window.WHALE_ROAD_CONFIG || {};
+    const params = new URLSearchParams(window.location.search);
+    const API = params.get('backend') === 'local' ? 'http://localhost:8787' : (CONFIG.functionUrl || '');
+    const online = !!API;
 
-    let lanes;
-    let genRow;
-    let chunk;
-    let lastWaterDir;
+    /* One session per identity: the guest, and each wallet. */
+    let sessions = readStore('ssow-road-sessions', {});
+    let account = null;            /* { coins, items: { shield, dash, magnet } } */
+    let myBest = null;            /* best score of whoever is playing now */
+    let shownIdentity = null;
+    const bring = { shield: false, dash: false, magnet: false };
 
-    function pickDecor() { return DECOR[(Math.random() * DECOR.length) | 0]; }
+    const ITEMS = [
+        { id: 'shield', icon: '\u{1FAE7}', name: 'Bubble Shield', desc: 'Shrugs off one hit or one drowning.' },
+        { id: 'dash', icon: '\u{1F4A8}', name: 'Speed Dash', desc: 'Press E to rocket 1–30 rows ahead.' },
+        { id: 'magnet', icon: '\u{1F9F2}', name: 'Cigar Magnet', desc: 'Pulls in $CIGAR from nearby lanes.' }
+    ];
 
-    /* Lanes come in runs ("chunks") — a few roads together, a river
-       two or three wide — like the real thing. The first four rows are
-       always sand so nobody dies before they've pressed a key. */
-    function nextType(row) {
-        if (row < 4) return 'sand';
-        if (chunk.left <= 0) {
-            const d = difficulty(row);
-            const options = [
-                ['road', 0.36],
-                ['water', 0.24 + 0.06 * d],
-                ['rail', row > 12 ? 0.14 : 0],
-                ['sand', 0.26 - 0.08 * d]
-            ].filter(function (o) { return o[0] !== chunk.type && o[1] > 0; });
-            let total = 0;
-            options.forEach(function (o) { total += o[1]; });
-            let roll = Math.random() * total;
-            let type = options[0][0];
-            for (const o of options) {
-                roll -= o[1];
-                if (roll <= 0) { type = o[0]; break; }
-            }
-            const lengths = {
-                road: 1 + ((Math.random() * (2 + 2 * d)) | 0),
-                water: 1 + ((Math.random() * 3) | 0),
-                rail: Math.random() < 0.3 ? 2 : 1,
-                sand: Math.random() < 0.35 ? 2 : 1
-            };
-            chunk = { type: type, left: lengths[type] };
+    async function api(action, body) {
+        const headers = { 'content-type': 'application/json' };
+        if (CONFIG.anonKey && API === CONFIG.functionUrl) {
+            headers.apikey = CONFIG.anonKey;
+            headers.authorization = 'Bearer ' + CONFIG.anonKey;
         }
-        chunk.left--;
-        return chunk.type;
-    }
-
-    function makeVehicle() {
-        const roll = Math.random();
-        const kind = roll < 0.62 ? 'car' : roll < 0.84 ? 'van' : 'icecream';
-        const w = kind === 'car' ? 64 : kind === 'van' ? 80 : 112;
-        return { kind: kind, w: w, color: CAR_COLORS[(Math.random() * CAR_COLORS.length) | 0] };
-    }
-
-    function maybeCoin(lane, chance) {
-        if (Math.random() >= chance) return;
-        for (let tries = 0; tries < 6; tries++) {
-            const c = (Math.random() * COLS) | 0;
-            if (!lane.blocked.has(c)) { lane.coins.add(c); return; }
+        let res;
+        try {
+            res = await fetch(API, { method: 'POST', headers: headers, body: JSON.stringify(Object.assign({ action: action }, body || {})) });
+        } catch (err) {
+            const e = new Error('can’t reach the server');
+            e.status = 0;
+            throw e;
         }
-    }
-
-    /* Spread movers across the whole lane so it starts mid-traffic. */
-    function prefill(lane) {
-        let x = -rand(0, lane.gapMax);
-        while (x < W + CELL) {
-            const it = lane.make();
-            it.x = x;
-            lane.items.push(it);
-            x += it.w + rand(lane.gapMin, lane.gapMax);
+        let data = {};
+        try { data = await res.json(); } catch (err) { /* empty */ }
+        if (!res.ok) {
+            const e = new Error(data.error || 'server error ' + res.status);
+            e.status = res.status;
+            throw e;
         }
-        lane.nextGap = rand(lane.gapMin, lane.gapMax);
+        return data;
     }
 
-    function makeLane(row) {
-        const type = nextType(row);
-        const d = difficulty(Math.max(0, row));
-        const lane = {
-            row: row,
-            type: type,
-            items: [],
-            blocked: new Map(),
-            coins: new Set(),
-            seed: ((row * 7919) % 1000 + 1000) % 1000
-        };
+    /* A Pixel Whale only counts for the wallet that holds it. */
+    function identity() {
+        if (whaleId !== null && holdings) return { kind: 'wallet', key: holdings.address, wallet: holdings.address };
+        return { kind: 'guest', key: 'guest', wallet: null };
+    }
 
-        if (type === 'sand') {
-            if (row < 0) {
-                /* behind the start: a grove you can't wander into */
-                for (let c = 0; c < COLS; c++) {
-                    if (c % 2 === 0 || Math.random() < 0.5) lane.blocked.set(c, 'palm');
-                }
-            } else if (row < 4) {
-                [0, 1, 11, 12].forEach(function (c) {
-                    if (Math.random() < 0.55) lane.blocked.set(c, pickDecor());
-                });
-            } else {
-                const n = (Math.random() * (3 + d * 2)) | 0;
-                for (let i = 0; i < n; i++) lane.blocked.set((Math.random() * COLS) | 0, pickDecor());
-                maybeCoin(lane, 0.16);
-            }
-        } else if (type === 'road') {
-            lane.dir = Math.random() < 0.5 ? 1 : -1;
-            lane.speed = rand(70, 135) * (1 + 0.7 * d);
-            lane.gapMin = CELL * (2.4 - 0.7 * d);
-            lane.gapMax = CELL * (5.5 - 1.6 * d);
-            lane.make = makeVehicle;
-            prefill(lane);
-            maybeCoin(lane, 0.1);
-        } else if (type === 'water') {
-            /* neighbouring rivers flow opposite ways */
-            lane.dir = -lastWaterDir;
-            lastWaterDir = lane.dir;
-            lane.speed = rand(42, 80) * (1 + 0.5 * d);
-            lane.gapMin = CELL * 0.9;
-            lane.gapMax = CELL * (2.1 + 0.5 * d);
-            lane.make = function () {
-                const cells = 2 + ((Math.random() * (d > 0.6 ? 2 : 3)) | 0);
-                return { kind: 'log', w: cells * CELL };
-            };
-            prefill(lane);
-        } else {
-            lane.dir = Math.random() < 0.5 ? 1 : -1;
-            lane.rail = { phase: 'idle', timer: rand(1.2, 4.5), train: null };
+    function currentSession() { return sessions[identity().key] || null; }
+
+    function saveSession(key, value) {
+        sessions[key] = value;
+        writeStore('ssow-road-sessions', sessions);
+    }
+
+    function dropSession(key) {
+        delete sessions[key];
+        writeStore('ssow-road-sessions', sessions);
+    }
+
+    /* The secret that owns a guest name. Lose it (clear the browser)
+       and the name can't be claimed back. */
+    function guestKey() {
+        let key = readStore('ssow-road-guest-key', null);
+        if (typeof key !== 'string' || !/^[0-9a-f]{64}$/.test(key)) {
+            key = Array.from(crypto.getRandomValues(new Uint8Array(32)), function (b) {
+                return b.toString(16).padStart(2, '0');
+            }).join('');
+            writeStore('ssow-road-guest-key', key);
         }
-        return lane;
+        return key;
     }
 
-    function laneAt(row) {
-        let lane = lanes.get(row);
-        if (!lane) {
-            lane = makeLane(row);
-            lanes.set(row, lane);
-        }
-        return lane;
-    }
-
-    function ensureLanes() {
-        while (genRow <= camY + ROWS + 3) {
-            lanes.set(genRow, makeLane(genRow));
-            genRow++;
-        }
-        const floor = Math.floor(camY) - 3;
-        lanes.forEach(function (_, row) { if (row < floor) lanes.delete(row); });
-    }
-
-    function updateMovers(lane, dt) {
-        const step = lane.dir * lane.speed * dt;
-        lane.items.forEach(function (it) { it.x += step; });
-        lane.items = lane.items.filter(function (it) {
-            return it.x < W + CELL * 3 && it.x + it.w > -CELL * 3;
-        });
-
-        /* feed new ones in from upstream, off screen */
-        if (lane.dir > 0) {
-            let lead = Infinity;
-            lane.items.forEach(function (it) { lead = Math.min(lead, it.x); });
-            if (lead === Infinity) lead = -CELL;
-            while (lead - lane.nextGap > -CELL * 2) {
-                const it = lane.make();
-                it.x = lead - lane.nextGap - it.w;
-                lane.items.push(it);
-                lead = it.x;
-                lane.nextGap = rand(lane.gapMin, lane.gapMax);
-            }
-        } else {
-            let tail = -Infinity;
-            lane.items.forEach(function (it) { tail = Math.max(tail, it.x + it.w); });
-            if (tail === -Infinity) tail = W + CELL;
-            while (tail + lane.nextGap < W + CELL * 2) {
-                const it = lane.make();
-                it.x = tail + lane.nextGap;
-                lane.items.push(it);
-                tail = it.x + it.w;
-                lane.nextGap = rand(lane.gapMin, lane.gapMax);
-            }
+    /* Free and gasless: proves the wallet is yours, so nobody else can
+       rename it. Needs a browser wallet (MetaMask, Rabby, …) holding it. */
+    async function signClaim(username, wallet) {
+        const eth = window.ethereum;
+        if (!eth || !eth.request) throw new Error('install a browser wallet like MetaMask to sign');
+        const accounts = (await eth.request({ method: 'eth_requestAccounts' })).map(function (a) { return a.toLowerCase(); });
+        if (accounts.indexOf(wallet) < 0) throw new Error('switch your wallet to ' + shortAddress(wallet) + ' and try again');
+        const issuedAt = new Date().toISOString();
+        const message = Rules.claimMessage(username, wallet, issuedAt);
+        const hex = '0x' + Array.from(new TextEncoder().encode(message), function (b) {
+            return b.toString(16).padStart(2, '0');
+        }).join('');
+        try {
+            const signature = await eth.request({ method: 'personal_sign', params: [hex, wallet] });
+            return { issuedAt: issuedAt, signature: signature };
+        } catch (err) {
+            throw new Error(err && err.code === 4001 ? 'signature cancelled' : 'your wallet couldn’t sign');
         }
     }
 
-    function updateRail(lane, dt) {
-        const r = lane.rail;
-        r.timer -= dt;
-        if (r.phase === 'idle' && r.timer <= 0) {
-            r.phase = 'warn';
-            r.timer = 1.1;
-        } else if (r.phase === 'warn' && r.timer <= 0) {
-            r.phase = 'pass';
-            const w = CELL * 12;
-            r.train = { x: lane.dir > 0 ? -w - CELL : W + CELL, w: w };
+    function refreshIdentity() {
+        const id = identity();
+        const sess = currentSession();
+        /* a best score belongs to one player: forget it when the player changes */
+        const who = id.key + ':' + (sess ? sess.username : '');
+        if (who !== shownIdentity) { shownIdentity = who; myBest = null; updateRecords(); }
+        if (!online) {
+            els.playerName.disabled = true;
+            els.claimName.disabled = true;
+            setStatus(els.nameStatus, 'leaderboard offline — practice runs only');
+            renderShop();
+            return;
         }
-        if (r.phase === 'pass') {
-            r.train.x += lane.dir * 1150 * dt;
-            const gone = lane.dir > 0 ? r.train.x > W + CELL : r.train.x + r.train.w < -CELL;
-            if (gone) {
-                r.phase = 'idle';
-                r.timer = rand(2.5, 6);
-                r.train = null;
-            }
+        if (sess) els.playerName.value = sess.username;
+        else if (document.activeElement !== els.playerName) els.playerName.value = '';
+        els.claimName.textContent = id.kind === 'wallet' ? (sess ? 'Re-sign' : 'Sign & save') : (sess ? 'Rename' : 'Save');
+        setStatus(
+            els.nameStatus,
+            sess ? 'playing as ' + sess.username + (id.kind === 'wallet' ? ' · ' + shortAddress(id.wallet) : ' · guest')
+                : id.kind === 'wallet' ? 'pick a name — your wallet signs it (free, no gas)'
+                    : 'pick a name to get on the board',
+            sess ? 'ok' : null
+        );
+        refreshAccount();
+        highlightMe();
+    }
+
+    async function refreshAccount() {
+        const id = identity();
+        const sess = currentSession();
+        if (!online || !sess) { account = null; renderShop(); updateRecords(); return; }
+        try {
+            const res = await api('me', { token: sess.token });
+            if (identity().key !== id.key) return;
+            account = { coins: res.player.coins, items: res.player.items };
+        } catch (err) {
+            if (err.status === 401) { dropSession(id.key); refreshIdentity(); return; }
         }
-    }
-
-    function updateLanes(dt) {
-        const lo = Math.floor(camY) - 2;
-        const hi = Math.ceil(camY + ROWS) + 2;
-        for (let row = lo; row <= hi; row++) {
-            const lane = laneAt(row);
-            if (lane.type === 'road' || lane.type === 'water') updateMovers(lane, dt);
-            else if (lane.type === 'rail') updateRail(lane, dt);
-        }
-    }
-
-    /* ---------------------------------------------------------
-       The player
-       --------------------------------------------------------- */
-
-    let player;
-    let queued = null;
-    let camY;
-    let started = false;
-    let runCoins = 0;
-    let particles = [];
-    let gull = null;
-    let time = 0;
-    let state = 'ready';
-    let best = readStore('ssow-road-best', 0);
-    let banked = readStore('ssow-road-cigar', 0);
-
-    function reset() {
-        lanes = new Map();
-        genRow = -4;
-        chunk = { type: 'sand', left: 0 };
-        lastWaterDir = 1;
-        camY = -3;
-        player = {
-            row: 0, x: colX(START_COL), facing: 1, hop: null, log: null, logOffset: 0,
-            alive: true, maxRow: 0, tilt: 1, land: 0, bump: 0, bumpDx: 0, death: null
-        };
-        queued = null;
-        started = false;
-        runCoins = 0;
-        particles = [];
-        gull = null;
-        ensureLanes();
-        updateHud();
-    }
-
-    /* Where the whale is *now*, mid-hop included. Collisions use the
-       row it is leaving until it is halfway across. */
-    function playerPos() {
-        const p = player;
-        if (!p.hop) return { x: p.x, row: p.row };
-        return {
-            x: lerp(p.hop.fromX, p.hop.toX, p.hop.t),
-            row: p.hop.t < 0.5 ? p.hop.fromRow : p.hop.toRow
-        };
-    }
-
-    function bump(dx) {
-        player.bump = 1;
-        player.bumpDx = dx || 0;
-    }
-
-    function tryMove(dx, dy) {
-        const p = player;
-        if (!p.alive) return;
-        if (p.hop) { queued = [dx, dy]; return; }   /* one buffered hop, like the original */
-
-        const toRow = p.row + dy;
-        const target = laneAt(toRow);
-        let toX = p.x + dx * CELL;
-        /* off the water you're back on the grid */
-        if (target.type !== 'water') toX = colX(colOf(toX));
-
-        if (toX < CELL / 2 - 1 || toX > W - CELL / 2 + 1) { bump(dx); return; }
-        if (target.type === 'sand' && target.blocked.has(colOf(toX))) { bump(dx); return; }
-
-        if (dx) p.facing = dx;
-        p.tilt = -p.tilt;                            /* lean the other way each hop: a waddle */
-        p.log = null;
-        p.hop = { fromX: p.x, fromRow: p.row, toX: toX, toRow: toRow, t: 0 };
-        started = true;
-    }
-
-    function land() {
-        const p = player;
-        const h = p.hop;
-        p.row = h.toRow;
-        p.x = h.toX;
-        p.hop = null;
-        p.land = 1;
-
-        const lane = laneAt(p.row);
-        if (lane.type === 'water') {
-            const log = lane.items.find(function (it) { return p.x > it.x + 6 && p.x < it.x + it.w - 6; });
-            if (!log) { die('drown'); return; }
-            /* settle onto the nearest plank of the log */
-            const slots = Math.round(log.w / CELL);
-            const slot = clamp(Math.floor((p.x - log.x) / CELL), 0, slots - 1);
-            p.log = log;
-            p.logOffset = slot * CELL + CELL / 2;
-            p.x = log.x + p.logOffset;
-        } else {
-            const c = colOf(p.x);
-            if (lane.coins.has(c)) {
-                lane.coins.delete(c);
-                runCoins++;
-                burst(p.x, p.row * CELL + 26, ['#ffcf4a', '#fff1b0', '#b8860b'], 10);
-            }
-        }
-
-        if (p.row > p.maxRow) p.maxRow = p.row;
-        updateHud();
-
-        if (queued) {
-            const q = queued;
-            queued = null;
-            tryMove(q[0], q[1]);
-        }
-    }
-
-    function checkHits() {
-        const pos = playerPos();
-        const lane = laneAt(pos.row);
-        const half = 13;
-        if (lane.type === 'road') {
-            for (const it of lane.items) {
-                if (pos.x + half > it.x + 4 && pos.x - half < it.x + it.w - 4) { die('car', it); return; }
-            }
-        } else if (lane.type === 'rail' && lane.rail.train) {
-            const t = lane.rail.train;
-            if (pos.x + half > t.x && pos.x - half < t.x + t.w) die('train');
-        }
-    }
-
-    function updatePlayer(dt) {
-        const p = player;
-        if (p.land > 0) p.land = Math.max(0, p.land - dt * 8);
-        if (p.bump > 0) p.bump = Math.max(0, p.bump - dt * 6);
-        if (!p.alive) return;
-
-        if (p.hop) {
-            p.hop.t += (dt * 1000) / HOP_MS;
-            if (p.hop.t >= 1) land();
-        } else if (p.log) {
-            p.x = p.log.x + p.logOffset;
-            if (p.x < CELL * 0.3 || p.x > W - CELL * 0.3) die('drift');
-        }
-        if (p.alive) checkHits();
-    }
-
-    /* The camera follows, and also creeps forward on its own once you
-       start - the longer the run, the faster. Fall off the bottom and
-       the seagull has you. */
-    function updateCamera(dt) {
-        const p = player;
-        const target = (p.hop ? p.hop.toRow : p.row) - 3;
-        if (target > camY) camY += (target - camY) * Math.min(1, dt * 5);
-        if (started && p.alive) camY += (0.28 + Math.min(0.4, p.maxRow * 0.0025)) * dt;
-        ensureLanes();
-        if (p.alive && !p.hop && p.row < camY - 0.5) die('seagull');
-    }
-
-    const DEATHS = {
-        car: function (it) {
-            const what = it && it.kind === 'icecream' ? 'an ice cream truck'
-                : it && it.kind === 'van' ? 'a van' : 'a car';
-            return 'Flattened by ' + what + '.';
-        },
-        train: function () { return 'The tram waits for no whale.'; },
-        drown: function () { return 'Turns out whales in suits can’t swim.'; },
-        drift: function () { return 'Drifted out to sea.'; },
-        seagull: function () { return 'Snatched by a seagull. Keep moving!'; }
-    };
-
-    function die(kind, item) {
-        const p = player;
-        if (!p.alive) return;
-        const pos = playerPos();
-        p.x = pos.x;
-        p.row = pos.row;
-        p.hop = null;
-        p.log = null;
-        p.alive = false;
-        p.death = { kind: kind, t: 0, message: DEATHS[kind](item), prevBest: best };
-        queued = null;
-        state = 'dying';
-
-        if (kind === 'drown' || kind === 'drift') {
-            burst(p.x, p.row * CELL + 18, ['#ffffff', '#bfe3ff', '#5aa7dc'], 16);
-        }
-        if (kind === 'seagull') gull = { t: 0 };
-
-        if (p.maxRow > best) best = p.maxRow;
-        banked += runCoins;
-        writeStore('ssow-road-best', best);
-        writeStore('ssow-road-cigar', banked);
+        renderShop();
         updateRecords();
     }
 
+    async function claimName() {
+        const name = els.playerName.value.trim();
+        const why = Rules.checkName(name);
+        if (why) { setStatus(els.nameStatus, why, 'error'); return; }
+        const id = identity();
+        els.claimName.disabled = true;
+        try {
+            let body;
+            if (id.kind === 'wallet') {
+                setStatus(els.nameStatus, 'check your wallet to sign…');
+                const signed = await signClaim(name, id.wallet);
+                body = { kind: 'wallet', username: name, wallet: id.wallet, issuedAt: signed.issuedAt, signature: signed.signature };
+            } else {
+                body = { kind: 'guest', username: name, guestKey: guestKey() };
+            }
+            const res = await api('claim', body);
+            saveSession(id.key, { token: res.token, username: res.player.username });
+            account = { coins: res.player.coins, items: res.player.items };
+            refreshIdentity();
+        } catch (err) {
+            setStatus(els.nameStatus, err.message, 'error');
+        } finally {
+            els.claimName.disabled = false;
+        }
+    }
+
+    /* ---------- the $CIGAR shop ---------- */
+
+    function renderShop() {
+        const sess = currentSession();
+        const ready = online && sess && account;
+        els.shop.innerHTML = '';
+        ITEMS.forEach(function (item) {
+            const owned = ready ? account.items[item.id] : 0;
+            if (owned <= 0) bring[item.id] = false;
+            const li = document.createElement('li');
+            li.className = 'Shop-item';
+            li.innerHTML =
+                '<span class="Shop-icon" aria-hidden="true"></span>' +
+                '<span class="Shop-text"><strong></strong><small></small></span>' +
+                '<span class="Shop-owned"></span>' +
+                '<button type="button" class="Btn Shop-buy"></button>' +
+                '<label class="Shop-bring"><input type="checkbox"> bring</label>';
+            li.querySelector('.Shop-icon').textContent = item.icon;
+            li.querySelector('strong').textContent = item.name;
+            li.querySelector('small').textContent = item.desc;
+            li.querySelector('.Shop-owned').textContent = '×' + owned;
+            const buy = li.querySelector('.Shop-buy');
+            buy.textContent = Sim.PRICES[item.id] + ' $CIGAR';
+            buy.disabled = !ready || account.coins < Sim.PRICES[item.id];
+            buy.addEventListener('click', function () { buyItem(item.id, buy); });
+            const box = li.querySelector('input');
+            box.checked = bring[item.id];
+            box.disabled = !ready || owned <= 0;
+            box.addEventListener('change', function () { bring[item.id] = box.checked; updatePowers(); });
+            els.shop.appendChild(li);
+        });
+        els.shopNote.textContent = !online ? 'the shop opens when the leaderboard is online'
+            : !sess ? 'save your name to use the shop'
+                : 'tick “bring” to use one on your next run';
+        updatePowers();
+    }
+
+    async function buyItem(id, button) {
+        const sess = currentSession();
+        if (!sess) return;
+        button.disabled = true;
+        try {
+            const res = await api('buy', { token: sess.token, item: id });
+            account = { coins: res.coins, items: res.items };
+        } catch (err) {
+            els.shopNote.textContent = err.message;
+        }
+        renderShop();
+        updateRecords();
+    }
+
+    function chosenLoadout() {
+        const out = {};
+        ITEMS.forEach(function (i) { out[i.id] = !!(bring[i.id] && account && account.items[i.id] > 0); });
+        return out;
+    }
+
+    /* ---------- the leaderboard ---------- */
+
+    let boardRows = [];
+
+    function renderBoard(rows) {
+        boardRows = rows;
+        els.leaders.innerHTML = '';
+        if (!rows.length) {
+            const li = document.createElement('li');
+            li.className = 'Leaders-empty';
+            li.textContent = 'No scores yet — be the first.';
+            els.leaders.appendChild(li);
+            return;
+        }
+        rows.forEach(function (r, i) {
+            const li = document.createElement('li');
+            li.className = 'Leader';
+            li.dataset.name = String(r.username).toLowerCase();
+            const cells = [
+                ['Leader-rank', '#' + (i + 1)],
+                ['Leader-name', r.username],
+                ['Leader-whale', r.whale_id !== null && r.whale_id !== undefined ? 'Pixel #' + r.whale_id : 'guest whale'],
+                ['Leader-wallet', r.wallet ? shortAddress(r.wallet) : '—'],
+                ['Leader-score', String(r.score)]
+            ];
+            cells.forEach(function (c) {
+                const span = document.createElement('span');
+                span.className = c[0];
+                span.textContent = c[1];
+                li.appendChild(span);
+            });
+            els.leaders.appendChild(li);
+        });
+        highlightMe();
+    }
+
+    function highlightMe() {
+        const sess = currentSession();
+        const me = sess ? sess.username.toLowerCase() : null;
+        els.leaders.querySelectorAll('.Leader').forEach(function (li) {
+            li.classList.toggle('is-me', li.dataset.name === me);
+        });
+        const mine = me && boardRows.find(function (r) { return String(r.username).toLowerCase() === me; });
+        if (mine && (myBest === null || mine.score > myBest)) { myBest = mine.score; updateRecords(); }
+    }
+
+    let boardTimer = null;
+    async function refreshBoard() {
+        if (!online) {
+            els.leaders.innerHTML = '<li class="Leaders-empty">The leaderboard is offline.</li>';
+            return;
+        }
+        try {
+            renderBoard((await api('board')).rows || []);
+        } catch (err) {
+            if (!boardRows.length) els.leaders.innerHTML = '<li class="Leaders-empty">Leaderboard unavailable right now.</li>';
+        }
+    }
+
+    function soonRefreshBoard() {
+        clearTimeout(boardTimer);
+        boardTimer = setTimeout(refreshBoard, 400);
+    }
+
+    /* Realtime pushes a nudge whenever any row changes; the page then
+       re-reads the top 20. A slow poll covers everything else. */
+    function goLive() {
+        if (!online) return;
+        let live = false;
+        if (CONFIG.supabaseUrl && CONFIG.anonKey && API === CONFIG.functionUrl) {
+            /* 218 KB, and only needed for the live nudge — so it loads here,
+               not in the page head, and only once the backend is configured */
+            const script = document.createElement('script');
+            script.src = 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.117.2/dist/umd/supabase.js';
+            script.onload = subscribe;
+            document.head.appendChild(script);
+        }
+        function subscribe() {
+            if (!window.supabase || !window.supabase.createClient) return;
+            try {
+                const client = window.supabase.createClient(CONFIG.supabaseUrl, CONFIG.anonKey, { auth: { persistSession: false } });
+                client.channel('wr-leaderboard')
+                    .on('postgres_changes', { event: '*', schema: 'public', table: 'wr_leaderboard' }, soonRefreshBoard)
+                    .subscribe(function (status) {
+                        live = status === 'SUBSCRIBED';
+                        els.live.classList.toggle('is-live', live);
+                        els.live.textContent = live ? 'live' : 'updating';
+                    });
+            } catch (err) { /* polling still works */ }
+        }
+        setInterval(function () { if (!document.hidden && !live) refreshBoard(); }, 15000);
+        refreshBoard();
+    }
+
     /* ---------------------------------------------------------
-       Particles (splashes, coin sparkles) — world px, y pointing up
+       Drawing — everything here is cosmetic
        --------------------------------------------------------- */
 
-    function burst(x, wy, colors, n) {
+    let sim = null;
+    let acc = 0;
+    let time = 0;
+    let particles = [];
+    let gull = null;
+    let landSquash = 0;
+    let bumpT = 0;
+    let bumpDx = 0;
+    let dashTrail = null;
+
+    /* lanes where a whale is swimming rather than standing */
+    const SWIM = { shallows: true, boats: true, sharks: true, nets: true, orcas: true };
+
+    function laneY(row) { return Math.round(H - (row - sim.camY + 1) * CELL); }
+    function screenY(wy) { return H - (wy - sim.camY * CELL); }
+
+    function burst(x, wy, colors, n, up) {
         for (let i = 0; i < n; i++) {
             particles.push({
                 x: x, wy: wy,
-                vx: rand(-90, 90), vy: rand(80, 230),
+                vx: rand(-90, 90), vy: rand(up ? 120 : 80, up ? 260 : 230),
                 life: rand(0.35, 0.7),
                 color: colors[i % colors.length],
                 size: Math.random() < 0.5 ? 3 : 4
@@ -884,60 +838,112 @@
         particles = particles.filter(function (q) { return q.life > 0; });
     }
 
-    /* ---------------------------------------------------------
-       Drawing
-       --------------------------------------------------------- */
+    function drawShadow(cx, y, w) {
+        ctx.fillStyle = 'rgba(0,0,0,0.2)';
+        ctx.fillRect(Math.round(cx - w / 2), Math.round(y), Math.round(w), 5);
+    }
 
-    function laneY(row) { return Math.round(H - (row - camY + 1) * CELL); }
-    function screenY(wy) { return H - (wy - camY * CELL); }
+    function ripples(lane, y, color, count, speedFactor) {
+        const drift = time * lane.dir * Math.max(lane.speed, 30) * speedFactor;
+        for (let i = 0; i < count; i++) {
+            const rx = ((((lane.seed * 37 + i * 109 + drift) % (W + 40)) + (W + 40)) % (W + 40)) - 20;
+            fill(color, rx, y + 10 + ((i * 11) % 28), 10, 2);
+        }
+    }
+
+    /* The express lanes warn you in their own way: a signal, a fin, a spout. */
+    function expressCue(lane, y) {
+        const e = lane.express;
+        const blink = e.phase === 'pass' || (e.phase === 'warn' && Math.floor(time * 8) % 2 === 0);
+        if (lane.type === 'rail') {
+            fill('#2b2f36', W - 14, y - 10, 4, 34);
+            fill('#1c1f24', W - 19, y - 18, 14, 10);
+            fill(blink ? '#ff4d4d' : '#5a1e1e', W - 17, y - 16, 10, 6);
+            return;
+        }
+        if (e.phase !== 'warn') return;
+        const ex = lane.dir > 0 ? 18 : W - 18;
+        if (lane.type === 'sharks') {
+            const bob = Math.floor(time * 6) % 2;
+            fill('#5f6d7b', ex - 4, y + 14 + bob, 8, 12);
+            fill('#5f6d7b', ex - 2, y + 8 + bob, 5, 6);
+            fill('#c6e6f5', ex - 10, y + 26, 20, 2);
+        } else {
+            if (blink) {
+                fill('#ffffff', ex - 2, y + 2, 4, 14);
+                fill('#e6f6ff', ex - 7, y - 2, 4, 6);
+                fill('#e6f6ff', ex + 3, y - 2, 4, 6);
+            }
+        }
+    }
 
     function drawGround(lane, y) {
         const alt = (lane.row & 1) === 0;
-        if (lane.type === 'sand') {
-            fill(alt ? '#ead59e' : '#e3cc90', 0, y, W, CELL);
+        const t = lane.type;
+        if (t === 'sand' || t === 'snow') {
+            const snow = t === 'snow';
+            fill(snow ? (alt ? '#eef3f8' : '#e6edf4') : (alt ? '#ead59e' : '#e3cc90'), 0, y, W, CELL);
             for (let i = 0; i < 7; i++) {
                 const sx = (lane.seed * 13 + i * 89) % W;
                 const sy = (lane.seed * 7 + i * 17) % (CELL - 8);
-                fill('#d4bb81', sx, y + 3 + sy, 3, 3);
+                fill(snow ? '#cfdbe7' : '#d4bb81', sx, y + 3 + sy, 3, 3);
             }
-            fill('#cdb47a', 0, y + CELL - 3, W, 3);
-        } else if (lane.type === 'road') {
-            fill('#3b404c', 0, y, W, CELL);
-            const above = lanes.get(lane.row + 1);
-            const below = lanes.get(lane.row - 1);
-            if (above && above.type === 'road') {
-                for (let x = 8; x < W; x += 44) fill('#d9dde3', x, y - 1, 22, 2);
+            fill(snow ? '#c9d6e2' : '#cdb47a', 0, y + CELL - 3, W, 3);
+        } else if (t === 'road' || t === 'icelane') {
+            const ice = t === 'icelane';
+            fill(ice ? (alt ? '#bcd3e6' : '#b5cde2') : '#3b404c', 0, y, W, CELL);
+            const above = sim.lanes.get(lane.row + 1);
+            const below = sim.lanes.get(lane.row - 1);
+            const line = ice ? '#9fb9cf' : '#d9dde3';
+            if (above && above.type === t) {
+                for (let x = 8; x < W; x += 44) fill(line, x, y - 1, 22, 2);
             } else {
-                fill('#8e95a1', 0, y, W, 3);
+                fill(ice ? '#e6eef6' : '#8e95a1', 0, y, W, 3);
             }
-            if (!below || below.type !== 'road') fill('#8e95a1', 0, y + CELL - 4, W, 4);
-        } else if (lane.type === 'water') {
+            if (!below || below.type !== t) fill(ice ? '#9fb9cf' : '#8e95a1', 0, y + CELL - 4, W, 4);
+            if (ice) for (let x = (lane.seed % 30); x < W; x += 60) fill('#a9c2d8', x, y + 20, 26, 2);
+        } else if (t === 'water') {
             fill(alt ? '#2c79b4' : '#2a73ad', 0, y, W, CELL);
             fill('#1d5a8a', 0, y, W, 4);
-            const drift = time * lane.dir * lane.speed * 0.25;
-            for (let i = 0; i < 7; i++) {
-                const rx = ((((lane.seed * 37 + i * 109 + drift) % (W + 40)) + (W + 40)) % (W + 40)) - 20;
-                fill('#5aa7dc', rx, y + 10 + ((i * 11) % 28), 10, 2);
-            }
-        } else {
+            ripples(lane, y, '#5aa7dc', 7, 0.25);
+        } else if (t === 'rail') {
             fill(alt ? '#80776d' : '#796f66', 0, y, W, CELL);
             for (let x = lane.seed % 24; x < W; x += 24) fill('#5b4636', x, y + 10, 8, 30);
             fill('#c3c8d0', 0, y + 16, W, 3);
             fill('#c3c8d0', 0, y + 31, W, 3);
             fill('#eef1f5', 0, y + 16, W, 1);
             fill('#eef1f5', 0, y + 31, W, 1);
-            /* the signal: dark until a tram is due, then blinking red */
-            const r = lane.rail;
-            const lit = r.phase === 'pass' || (r.phase === 'warn' && Math.floor(time * 8) % 2 === 0);
-            fill('#2b2f36', W - 14, y - 10, 4, 34);
-            fill('#1c1f24', W - 19, y - 18, 14, 10);
-            fill(lit ? '#ff4d4d' : '#5a1e1e', W - 17, y - 16, 10, 6);
+            expressCue(lane, y);
+        } else if (t === 'shallows') {
+            fill(alt ? '#4fb3c4' : '#4aabbd', 0, y, W, CELL);
+            for (let i = 0; i < 6; i++) fill('#7fd0d9', (lane.seed * 13 + i * 97) % W, y + 6 + ((i * 13) % 30), 4, 3);
+            ripples(lane, y, '#a8e6ee', 4, 0.15);
+        } else if (t === 'boats') {
+            fill(alt ? '#2f86b8' : '#2c7fb0', 0, y, W, CELL);
+            ripples(lane, y, '#6cb3dc', 6, 0.35);
+        } else if (t === 'riptide') {
+            fill(alt ? '#1f5f8f' : '#1d5886', 0, y, W, CELL);
+            fill('#164a73', 0, y, W, 4);
+            const drift = time * lane.dir * lane.speed * 0.9;
+            for (let i = 0; i < 9; i++) {
+                const rx = ((((lane.seed * 23 + i * 71 + drift) % (W + 40)) + (W + 40)) % (W + 40)) - 20;
+                const ry = y + 12 + ((i * 9) % 24);
+                fill('#d9f1ff', rx, ry, 6, 2);
+                fill('#d9f1ff', rx + (lane.dir > 0 ? 4 : -2), ry + 2, 4, 2);
+            }
+        } else if (t === 'sharks' || t === 'orcas') {
+            const arctic = t === 'orcas';
+            fill(arctic ? (alt ? '#1d4a6e' : '#1b466a') : (alt ? '#245f86' : '#225a80'), 0, y, W, CELL);
+            ripples(lane, y, arctic ? '#4e7ea3' : '#4f8fbb', 5, 0.2);
+            expressCue(lane, y);
+        } else if (t === 'nets') {
+            fill(alt ? '#3a8fb8' : '#378ab2', 0, y, W, CELL);
+            ripples(lane, y, '#76bde0', 5, 0.3);
+        } else if (t === 'floes') {
+            fill(alt ? '#173d5c' : '#163a57', 0, y, W, CELL);
+            fill('#0f2c45', 0, y, W, 4);
+            for (let i = 0; i < 6; i++) fill('#9fc0d8', (lane.seed * 31 + i * 103 + time * lane.dir * 12) % W, y + 12 + ((i * 7) % 24), 5, 3);
         }
-    }
-
-    function drawShadow(cx, y, w) {
-        ctx.fillStyle = 'rgba(0,0,0,0.2)';
-        ctx.fillRect(Math.round(cx - w / 2), Math.round(y), Math.round(w), 5);
     }
 
     function drawDecor(kind, cx, y) {
@@ -959,12 +965,52 @@
             fill('#7a4e25', cx - 17, y + 26, 34, 2);
             fill('#7a4e25', cx - 2, y + 15, 3, 24);
             fill('#5d3a1a', cx - 17, y + 37, 34, 2);
-        } else {
+        } else if (kind === 'umbrella') {
             drawShadow(cx, base + 2, 26);
             fill('#e6e6e6', cx - 1, y + 4, 3, CELL - 12);
             fill('#e8524a', cx - 24, y + 2, 48, 6);
             fill('#ffffff', cx - 16, y - 3, 32, 5);
             fill('#e8524a', cx - 8, y - 6, 16, 3);
+        } else if (kind === 'coral') {
+            fill('#ff7a8a', cx - 3, y + 8, 6, 30);
+            fill('#ff7a8a', cx - 14, y + 14, 6, 20);
+            fill('#ff7a8a', cx + 8, y + 12, 6, 22);
+            fill('#ff7a8a', cx - 14, y + 30, 28, 6);
+            fill('#ffb0bb', cx - 3, y + 6, 6, 4);
+            fill('#ffb0bb', cx - 14, y + 12, 6, 3);
+            fill('#ffb0bb', cx + 8, y + 10, 6, 3);
+        } else if (kind === 'buoy') {
+            fill('#f4f4f4', cx - 1, y - 4, 3, 10);
+            fill('#e8524a', cx - 9, y + 6, 18, 8);
+            fill('#f4f4f4', cx - 9, y + 14, 18, 6);
+            fill('#e8524a', cx - 9, y + 20, 18, 8);
+            fill('#2c7fb0', cx - 14, y + 30, 28, 3);
+        } else if (kind === 'rock') {
+            fill('#5f6b75', cx - 16, y + 18, 32, 18);
+            fill('#7b8893', cx - 12, y + 12, 24, 8);
+            fill('#9aa7b1', cx - 8, y + 14, 8, 3);
+        } else if (kind === 'iceberg') {
+            drawShadow(cx, base + 2, 34);
+            fill('#bfe0f2', cx - 17, y + 14, 34, 26);
+            fill('#e8f6ff', cx - 12, y - 2, 22, 18);
+            fill('#ffffff', cx - 6, y - 8, 12, 8);
+            fill('#9cc8e0', cx + 4, y + 16, 12, 22);
+        } else if (kind === 'snowman') {
+            drawShadow(cx, base + 2, 26);
+            fill('#ffffff', cx - 12, y + 20, 24, 18);
+            fill('#f4f8fb', cx - 9, y + 6, 18, 15);
+            fill('#2b2f36', cx - 8, y - 4, 16, 10);
+            fill('#2b2f36', cx - 11, y + 5, 22, 3);
+            fill('#f2913a', cx + 3, y + 12, 7, 3);
+            fill('#2b2f36', cx - 4, y + 10, 2, 2);
+            fill('#2b2f36', cx + 2, y + 10, 2, 2);
+        } else if (kind === 'igloo') {
+            drawShadow(cx, base + 2, 40);
+            fill('#eef6fb', cx - 20, y + 16, 40, 24);
+            fill('#eef6fb', cx - 14, y + 8, 28, 10);
+            fill('#cfe0ec', cx - 20, y + 26, 40, 2);
+            fill('#cfe0ec', cx - 14, y + 16, 28, 2);
+            fill('#1f3346', cx - 6, y + 26, 12, 14);
         }
     }
 
@@ -979,79 +1025,151 @@
         fill('#ff5a36', cx + 3, cy - 1, 2, 3);
     }
 
+    /* Cars and their cousins: one shape, different paint. */
     function drawVehicle(it, y, dir) {
         const x = Math.round(it.x);
         const w = it.w;
-        const body = it.kind === 'icecream' ? '#fbfbfb' : it.color;
+        const k = it.kind;
+        if (k === 'jetski' || k === 'boat' || k === 'yacht' || k === 'icebreaker') {
+            drawHull(it, x, w, y, dir);
+            return;
+        }
+        let body = k === 'icecream' ? '#fbfbfb' : k === 'snowmobile' ? '#d9413a' : k === 'sled' ? '#a8743f' : it.color;
         drawShadow(x + w / 2, y + CELL - 9, w - 6);
-        fill(shade(body, 25), x + 2, y + 10, w - 4, 6);          /* top */
+        fill(shade(body, 25), x + 2, y + 10, w - 4, 6);
         fill(body, x, y + 14, w, 18);
-        fill(shade(body, -45), x, y + 30, w, 8);                   /* front face */
-        if (it.kind === 'icecream') {
+        fill(shade(body, -45), x, y + 30, w, 8);
+        if (k === 'icecream') {
             fill('#f28fb1', x, y + 22, w, 4);
             fill('#e7b169', x + w / 2 - 4, y + 2, 8, 8);
             fill('#f28fb1', x + w / 2 - 6, y - 4, 12, 7);
             fill('#2a3a4f', (dir > 0 ? x + w - 22 : x + 6), y + 16, 16, 7);
+        } else if (k === 'snowmobile' || k === 'sled') {
+            fill('#2b2f36', x + 10, y + 8, w - 26, 8);
+            fill('#cfd6dd', x - 2, y + 38, w + 4, 3);
         } else {
-            const cab = it.kind === 'van' ? w - 14 : w - 26;
+            const cab = k === 'van' ? w - 14 : w - 26;
             const cx = dir > 0 ? x + w - cab - 8 : x + 8;
             fill(shade(body, 40), cx, y + 6, cab, 10);
             fill('#2a3a4f', cx + 3, y + 8, cab - 6, 6);
         }
-        fill('#141414', x + 7, y + 36, 11, 6);
-        fill('#141414', x + w - 18, y + 36, 11, 6);
+        if (k !== 'sled' && k !== 'snowmobile') {
+            fill('#141414', x + 7, y + 36, 11, 6);
+            fill('#141414', x + w - 18, y + 36, 11, 6);
+        }
         fill('#ffe28a', dir > 0 ? x + w - 3 : x, y + 20, 3, 6);
         fill('#c0392b', dir > 0 ? x : x + w - 3, y + 20, 3, 6);
     }
 
-    function drawLog(it, y) {
-        const x = Math.round(it.x);
-        fill('#6d4420', x, y + 36, it.w, 4);
-        fill('#8b5a2b', x, y + 18, it.w, 18);
-        fill('#a8743d', x, y + 14, it.w, 6);
-        for (let bx = x + 14; bx < x + it.w - 10; bx += 22) fill('#74481f', bx, y + 24, 10, 2);
-        fill('#c9a173', x, y + 16, 6, 20);
-        fill('#c9a173', x + it.w - 6, y + 16, 6, 20);
-        fill('#9c7650', x + 2, y + 22, 2, 8);
-        fill('#9c7650', x + it.w - 4, y + 22, 2, 8);
+    function drawHull(it, x, w, y, dir) {
+        const k = it.kind;
+        const hull = k === 'icebreaker' ? '#c0392b' : '#f4f4f4';
+        const nose = dir > 0 ? x + w : x;
+        fill('rgba(255,255,255,0.35)', dir > 0 ? x - 14 : x + w + 2, y + 30, 12, 3);
+        fill(hull, x + 4, y + 20, w - 8, 16);
+        fill(shade(hull.length === 7 ? hull : '#f4f4f4', -60), x + 6, y + 34, w - 12, 4);
+        fill(hull, dir > 0 ? nose - 6 : nose, y + 22, 6, 10);
+        if (k === 'jetski') {
+            fill('#e0563f', x + w / 2 - 8, y + 12, 16, 8);
+            fill('#2b2f36', x + w / 2 - 3, y + 8, 6, 5);
+        } else if (k === 'boat') {
+            fill('#2c7fb0', x + 4, y + 26, w - 8, 3);
+            fill('#ffffff', x + w / 2 - 16, y + 8, 32, 12);
+            fill('#2a3a4f', x + w / 2 - 12, y + 11, 24, 5);
+        } else if (k === 'yacht') {
+            fill('#2a3a4f', x + 10, y + 26, w - 20, 3);
+            fill('#ffffff', x + 16, y + 6, w - 32, 14);
+            fill('#ffffff', x + 30, y - 2, w - 60, 9);
+            for (let wx = x + 20; wx < x + w - 26; wx += 14) fill('#2a3a4f', wx, y + 10, 8, 5);
+        } else {
+            fill('#1a1d22', x + 4, y + 30, w - 8, 3);
+            fill('#f4f4f4', x + w / 2 - 22, y + 4, 44, 16);
+            fill('#2a3a4f', x + w / 2 - 18, y + 8, 36, 5);
+            fill('#2b2f36', x + w / 2 - 4, y - 6, 8, 10);
+        }
     }
 
-    function drawTrain(t, y, dir) {
-        const seg = CELL * 3;
-        for (let s = 0; s < 4; s++) {
-            const sx = Math.round(t.x + s * seg);
-            drawShadow(sx + seg / 2, y + CELL - 8, seg - 6);
-            fill('#e46a5e', sx + 2, y + 2, seg - 6, 6);
-            fill('#c8473d', sx + 2, y + 8, seg - 6, 26);
-            fill('#f2f2f2', sx + 2, y + 22, seg - 6, 4);
-            fill('#8e2b23', sx + 2, y + 34, seg - 6, 6);
-            for (let wx = sx + 10; wx < sx + seg - 16; wx += 22) fill('#2a3a4f', wx, y + 11, 14, 8);
-            fill('#3a3a3a', sx - 2, y + 18, 4, 8);
+    function drawRaft(it, y) {
+        const x = Math.round(it.x);
+        if (it.kind === 'log') {
+            fill('#6d4420', x, y + 36, it.w, 4);
+            fill('#8b5a2b', x, y + 18, it.w, 18);
+            fill('#a8743d', x, y + 14, it.w, 6);
+            for (let bx = x + 14; bx < x + it.w - 10; bx += 22) fill('#74481f', bx, y + 24, 10, 2);
+            fill('#c9a173', x, y + 16, 6, 20);
+            fill('#c9a173', x + it.w - 6, y + 16, 6, 20);
+        } else if (it.kind === 'kelp') {
+            fill('#2f5a24', x, y + 34, it.w, 4);
+            fill('#4f7a3a', x, y + 16, it.w, 18);
+            for (let bx = x + 6; bx < x + it.w - 6; bx += 10) fill('#6b9a48', bx, y + 12 + ((bx / 10) % 2) * 4, 4, 14);
+        } else {
+            fill('#8fb4cc', x + 2, y + 34, it.w - 4, 5);
+            fill('#e8f1f8', x, y + 16, it.w, 18);
+            fill('#ffffff', x + 4, y + 14, it.w - 8, 5);
+            for (let bx = x + 12; bx < x + it.w - 12; bx += 30) fill('#cfe0ec', bx, y + 24, 12, 2);
         }
-        const nose = dir > 0 ? Math.round(t.x + t.w - 6) : Math.round(t.x + 2);
-        fill('#ffe28a', nose, y + 14, 4, 8);
+    }
+
+    function drawNet(it, y) {
+        const x = Math.round(it.x);
+        ctx.fillStyle = 'rgba(138,106,58,0.85)';
+        for (let gx = x; gx <= x + it.w; gx += 8) ctx.fillRect(gx, y + 10, 1, 28);
+        for (let gy = y + 10; gy <= y + 38; gy += 7) ctx.fillRect(x, gy, it.w, 1);
+        fill('#8a6a3a', x, y + 9, it.w, 2);
+        for (let fx = x + 4; fx < x + it.w; fx += 24) fill('#f2913a', fx, y + 6, 6, 6);
+    }
+
+    function drawRider(r, y, dir) {
+        const x = Math.round(r.x);
+        if (r.kind === 'tram') {
+            const seg = CELL * 3;
+            for (let s = 0; s * seg < r.w; s++) {
+                const sx = Math.round(x + s * seg);
+                drawShadow(sx + seg / 2, y + CELL - 8, seg - 6);
+                fill('#e46a5e', sx + 2, y + 2, seg - 6, 6);
+                fill('#c8473d', sx + 2, y + 8, seg - 6, 26);
+                fill('#f2f2f2', sx + 2, y + 22, seg - 6, 4);
+                fill('#8e2b23', sx + 2, y + 34, seg - 6, 6);
+                for (let wx = sx + 10; wx < sx + seg - 16; wx += 22) fill('#2a3a4f', wx, y + 11, 14, 8);
+            }
+            fill('#ffe28a', dir > 0 ? x + r.w - 6 : x + 2, y + 14, 4, 8);
+            return;
+        }
+        const shark = r.kind === 'shark';
+        const body = shark ? '#7d8b99' : '#14181d';
+        const head = dir > 0 ? x + r.w : x;
+        fill(body, x + 6, y + 16, r.w - 12, 16);
+        fill(shark ? '#e9eef2' : '#ffffff', x + 10, y + 28, r.w - 24, 5);
+        fill(body, dir > 0 ? head - 10 : head, y + 19, 10, 10);
+        fill(body, dir > 0 ? x : x + r.w - 8, y + 12, 8, 24);
+        fill(body, x + r.w / 2 - 5, y + 2, 10, 15);
+        if (!shark) fill('#ffffff', dir > 0 ? head - 22 : head + 12, y + 18, 9, 5);
+        fill('#000000', dir > 0 ? head - 14 : head + 10, y + 20, 3, 3);
     }
 
     function drawThings(lane, y) {
-        if (lane.type === 'sand') {
-            lane.blocked.forEach(function (kind, c) { drawDecor(kind, colX(c), y); });
-        }
+        if (lane.cat === 'safe') lane.blocked.forEach(function (kind, c) { drawDecor(kind, colX(c), y); });
         lane.coins.forEach(function (c) { drawCoin(colX(c), y); });
-        if (lane.type === 'road') lane.items.forEach(function (it) { drawVehicle(it, y, lane.dir); });
-        else if (lane.type === 'water') lane.items.forEach(function (it) { drawLog(it, y); });
-        else if (lane.type === 'rail' && lane.rail.train) drawTrain(lane.rail.train, y, lane.dir);
+        if (lane.cat === 'traffic') lane.items.forEach(function (it) { drawVehicle(it, y, lane.dir); });
+        else if (lane.cat === 'river') lane.items.forEach(function (it) { drawRaft(it, y); });
+        else if (lane.cat === 'net') lane.items.forEach(function (it) { drawNet(it, y); });
+        else if (lane.cat === 'express' && lane.express.rider) drawRider(lane.express.rider, y, lane.dir);
     }
 
     function footY(row) {
-        const lane = laneAt(row);
-        return laneY(row) + (lane.type === 'water' ? CELL - 12 : CELL - 7);
+        const lane = sim.laneAt(row);
+        return laneY(row) + (lane.cat === 'river' ? CELL - 12 : CELL - 7);
     }
 
-    /* Everything about the whale's pose comes from here: the hop arc,
-       squash on landing, stretch in the air, a lean that alternates
-       hop to hop, a slow idle breath, and the way it dies. */
+    function hopT() {
+        const p = sim.player;
+        return p.hop ? clamp((p.hop.ticks + acc / DT) / Sim.HOP_TICKS, 0, 1) : 0;
+    }
+
+    /* The hop arc, squash on landing, stretch in the air, a lean that
+       alternates hop to hop, a slow idle breath, and the way it dies. */
     function playerPose() {
-        const p = player;
+        const p = sim.player;
         let x = p.x;
         let fy = footY(p.row);
         let lift = 0;
@@ -1061,7 +1179,7 @@
         let alpha = 1;
 
         if (p.hop) {
-            const t = p.hop.t;
+            const t = hopT();
             const a = Math.sin(Math.PI * t);
             x = lerp(p.hop.fromX, p.hop.toX, t);
             fy = lerp(footY(p.hop.fromRow), footY(p.hop.toRow), t);
@@ -1071,21 +1189,22 @@
             rot = p.tilt * 0.12 * a;
         } else if (p.alive) {
             const breath = Math.sin(time * 3.2) * 0.02;
-            sy = 1 + breath - 0.16 * p.land;
-            sx = 1 + 0.12 * p.land;
+            sy = 1 + breath - 0.16 * landSquash;
+            sx = 1 + 0.12 * landSquash;
         }
-
-        if (p.bump) x += p.bumpDx * 3 * Math.sin(p.bump * Math.PI * 3);
+        if (bumpT) x += bumpDx * 3 * Math.sin(bumpT * Math.PI * 3);
+        if (p.alive && p.grace > 0 && Math.floor(time * 12) % 2 === 0) alpha = 0.45;
 
         if (p.death) {
             const k = p.death.kind;
-            if (k === 'car' || k === 'train') {
+            const t = (sim.tick - sim.deathTick) / Sim.TICK_HZ;
+            if (k === 'traffic' || k === 'express') {
                 sy = 0.22;
                 sx = 1.4;
                 rot = 0;
             } else if (k === 'drown' || k === 'drift') {
-                lift = -Math.min(1, p.death.t * 1.6) * 26;
-                alpha = Math.max(0, 1 - p.death.t * 1.4);
+                lift = -Math.min(1, t * 1.6) * 26;
+                alpha = Math.max(0, 1 - t * 1.4);
             }
         }
         return { x: x, fy: fy, lift: lift, sx: sx, sy: sy, rot: rot, alpha: alpha };
@@ -1103,26 +1222,54 @@
     }
 
     function drawPlayer(pose) {
-        const p = player;
-        if (p.death && p.death.kind === 'seagull' && gull && gull.t > 0.45) return;  /* it's airborne */
+        const p = sim.player;
+        if (p.death && p.death.kind === 'seagull' && gull && gull.t > 0.45) return;
+        const lane = sim.laneAt(p.row);
         const sinking = p.death && (p.death.kind === 'drown' || p.death.kind === 'drift');
-        if (sinking) {
-            /* disappear *into* the water: cut the sprite off at the surface */
+        const swimming = !p.hop && !sinking && SWIM[lane.type];
+
+        if (sinking || swimming) {
+            /* cut the sprite off at the waterline: under water, out of sight */
+            const surface = swimming ? pose.fy - Math.round(sprite.height * 0.42) : footY(p.row) - 2;
             ctx.save();
             ctx.beginPath();
-            ctx.rect(0, 0, W, footY(p.row) - 2);
+            ctx.rect(0, 0, W, surface);
             ctx.clip();
-            drawWhale(pose.x, pose.fy - pose.lift, pose.sx, pose.sy, pose.rot, pose.alpha, p.facing);
+            drawWhale(pose.x, pose.fy - pose.lift + (swimming ? 4 + Math.round(Math.sin(time * 3) * 2) : 0), pose.sx, pose.sy, pose.rot, pose.alpha, p.facing);
             ctx.restore();
-            return;
+            if (swimming) {
+                const wob = Math.round(Math.sin(time * 4) * 2);
+                fill('rgba(255,255,255,0.75)', pose.x - 20 - wob, surface, 14, 2);
+                fill('rgba(255,255,255,0.75)', pose.x + 6 + wob, surface, 14, 2);
+            }
+        } else {
+            drawShadow(pose.x, pose.fy - 3, 24 * (1 - 0.35 * (pose.lift / 14)));
+            drawWhale(pose.x, pose.fy - pose.lift, pose.sx, pose.sy, pose.rot, pose.alpha, p.facing);
         }
-        drawShadow(pose.x, pose.fy - 3, 24 * (1 - 0.35 * (pose.lift / 14)));
-        drawWhale(pose.x, pose.fy - pose.lift, pose.sx, pose.sy, pose.rot, pose.alpha, p.facing);
+
+        if (p.alive && p.shield) {
+            const cy = pose.fy - pose.lift - sprite.height / 2;
+            const r = Math.max(sprite.width, sprite.height) / 2 + 4;
+            ctx.save();
+            ctx.globalAlpha = 0.5 + Math.sin(time * 5) * 0.15;
+            ctx.strokeStyle = '#9fe7ff';
+            ctx.lineWidth = 2;
+            ctx.beginPath();
+            ctx.arc(Math.round(pose.x), Math.round(cy), r, 0, Math.PI * 2);
+            ctx.stroke();
+            ctx.restore();
+        }
+        if (p.alive && p.trap > 0) {
+            ctx.fillStyle = 'rgba(138,106,58,0.9)';
+            const top = pose.fy - sprite.height * 0.6;
+            for (let gx = -16; gx <= 16; gx += 6) ctx.fillRect(Math.round(pose.x + gx), Math.round(top), 1, Math.round(sprite.height * 0.55));
+            for (let gy = 0; gy < sprite.height * 0.55; gy += 6) ctx.fillRect(Math.round(pose.x - 16), Math.round(top + gy), 33, 1);
+        }
     }
 
     function drawGull() {
         if (!gull) return;
-        const p = player;
+        const p = sim.player;
         const wx = p.x;
         const wy = footY(p.row) - sprite.height * 0.85;
         let gx;
@@ -1138,7 +1285,6 @@
             gy = lerp(wy - 6, -120, u);
             drawWhale(gx, gy + 6 + sprite.height, 1, 1, -0.25, 1, p.facing);
         }
-        /* drawn at 2x around (gx, gy): at 1x it was lost next to the whale */
         const flap = Math.floor(time * 14) % 2 === 0;
         ctx.save();
         ctx.translate(Math.round(gx), Math.round(gy));
@@ -1153,24 +1299,35 @@
         ctx.restore();
     }
 
+    function drawDashTrail() {
+        if (!dashTrail) return;
+        const a = 1 - dashTrail.t / 0.5;
+        if (a <= 0) { dashTrail = null; return; }
+        const top = laneY(dashTrail.to) + CELL / 2;
+        const bottom = laneY(dashTrail.from) + CELL;
+        ctx.save();
+        ctx.globalAlpha = a * 0.6;
+        fill('#9fe7ff', dashTrail.x - 3, Math.max(0, top), 6, Math.max(0, Math.min(H, bottom) - Math.max(0, top)));
+        ctx.globalAlpha = a * 0.3;
+        fill('#ffffff', dashTrail.x - 9, Math.max(0, top), 18, Math.max(0, Math.min(H, bottom) - Math.max(0, top)));
+        ctx.restore();
+    }
+
     function draw() {
         ctx.setTransform(k, 0, 0, k, 0, 0);
         ctx.imageSmoothingEnabled = false;
         fill('#0c1a2a', 0, 0, W, H);
+        if (!sim) return;
 
+        const p = sim.player;
         const pose = playerPose();
-        /* the whale is drawn with whichever lane its feet are in, so
-           nearer lanes (and their palms and trucks) overlap it. A sinking
-           whale stays with its own lane - it's going down, not forward. */
-        const p = player;
         const sinking = p.death && (p.death.kind === 'drown' || p.death.kind === 'drift');
-        const playerRow = sinking ? p.row
-            : Math.ceil(camY - 1 + (H - (pose.fy - pose.lift)) / CELL);
+        const playerRow = sinking ? p.row : Math.ceil(sim.camY - 1 + (H - (pose.fy - pose.lift)) / CELL);
 
-        const top = Math.ceil(camY + ROWS);
-        const bottom = Math.floor(camY) - 1;
+        const top = Math.ceil(sim.camY + ROWS);
+        const bottom = Math.floor(sim.camY) - 1;
         for (let row = top; row >= bottom; row--) {
-            const lane = laneAt(row);
+            const lane = sim.laneAt(row);
             const y = laneY(row);
             drawGround(lane, y);
             drawThings(lane, y);
@@ -1178,6 +1335,7 @@
         }
         if (playerRow > top || playerRow < bottom) drawPlayer(pose);
 
+        drawDashTrail();
         particles.forEach(function (q) {
             fill(q.color, q.x - q.size / 2, screenY(q.wy) - q.size / 2, q.size, q.size);
         });
@@ -1185,53 +1343,225 @@
     }
 
     /* ---------------------------------------------------------
-       Loop, HUD, overlay, input
+       Runs: tickets, the fixed-tick loop, the key log
        --------------------------------------------------------- */
 
+    let state = 'ready';     /* ready starting playing paused dying submitting over */
+    let ticket = null;       /* { runId, seed, loadout, whaleId } — null in practice */
+    let practice = false;
+    let offerPractice = false;
+    let inputs = [];
+    let pending = [];
+    let zoneShown = 'harbour';
+    let bannerTimer = null;
+
+    const NAMES = {
+        car: 'a car', van: 'a van', icecream: 'an ice cream truck', jetski: 'a jet ski',
+        boat: 'a boat', yacht: 'a yacht', snowmobile: 'a snowmobile', icebreaker: 'an icebreaker',
+        sled: 'a sled', tram: 'a tram', shark: 'a shark', orca: 'an orca'
+    };
+
+    function deathMessage(d) {
+        if (!d) return '';
+        if (d.kind === 'traffic') return 'Flattened by ' + (NAMES[d.what] || 'traffic') + '.';
+        if (d.kind === 'express') {
+            return d.what === 'tram' ? 'The tram waits for no whale.'
+                : d.what === 'shark' ? 'A shark had other plans.'
+                    : 'Orcas: the ocean’s actual bosses.';
+        }
+        if (d.kind === 'drown') {
+            return d.zone === 'sea' ? 'Swept off by the riptide.'
+                : d.zone === 'arctic' ? 'Froze solid. Stay on the ice.'
+                    : 'Turns out whales in suits can’t swim.';
+        }
+        if (d.kind === 'drift') return d.what === 'net' ? 'Tangled in a net and hauled away.' : 'Drifted out to sea.';
+        return 'Snatched by a seagull. Keep moving!';
+    }
+
+    function randomSeed() { return crypto.getRandomValues(new Uint32Array(1))[0]; }
+
+    function newRun(seed, loadout) {
+        sim = Sim.create({ seed: seed, loadout: loadout });
+        inputs = [];
+        pending = [];
+        acc = 0;
+        particles = [];
+        gull = null;
+        dashTrail = null;
+        zoneShown = 'harbour';
+        updateHud();
+    }
+
+    async function begin(firstMove) {
+        if (state === 'starting' || state === 'submitting' || state === 'playing') return;
+        offerPractice = false;
+        if (online) {
+            const sess = currentSession();
+            if (!sess) {
+                showOverlay('One more thing', 'Pick a name', 'Save a name on the left first — it’s how the leaderboard knows you.', 'OK');
+                state = 'ready';
+                els.playerName.focus();
+                return;
+            }
+            state = 'starting';
+            showOverlay('Whale Road', 'Ready…', 'Getting your run ticket…', null);
+            try {
+                const lo = chosenLoadout();
+                const t = await api('start', { token: sess.token, loadout: lo, whaleId: whaleId });
+                ticket = t;
+                practice = false;
+                if (account) ITEMS.forEach(function (i) { if (t.loadout[i.id]) account.items[i.id]--; });
+                renderShop();
+                newRun(t.seed, t.loadout);
+            } catch (err) {
+                state = 'ready';
+                if (err.status === 401) { dropSession(identity().key); refreshIdentity(); }
+                if (err.status === 0) {
+                    offerPractice = true;
+                    showOverlay('Can’t reach the server', 'Practice?', 'The leaderboard is unreachable right now. Press <kbd>Space</kbd> for a practice run — it won’t be recorded.', 'Practice');
+                    return;
+                }
+                showOverlay('Couldn’t start', 'Hmm.', '', 'Try again');
+                els.text.textContent = err.message;
+                return;
+            }
+        } else {
+            startPractice();
+            return;
+        }
+        state = 'playing';
+        hideOverlay();
+        if (firstMove) pending.push(firstMove);
+        canvas.focus({ preventScroll: true });
+    }
+
+    function startPractice(firstMove) {
+        practice = true;
+        ticket = null;
+        offerPractice = false;
+        newRun(randomSeed(), {});
+        state = 'playing';
+        hideOverlay();
+        if (firstMove) pending.push(firstMove);
+        canvas.focus({ preventScroll: true });
+    }
+
+    async function runOver() {
+        const score = sim.score;
+        const msg = deathMessage(sim.player.death);
+
+        if (practice || !ticket) {
+            state = 'over';
+            const best = Math.max(readStore('ssow-road-practice-best', 0), score);
+            writeStore('ssow-road-practice-best', best);
+            showOverlay(msg, String(score), 'Practice run — not recorded · press <kbd>Space</kbd> to go again', 'Play again');
+            return;
+        }
+
+        state = 'submitting';
+        showOverlay(msg, String(score), 'Checking your run with the server…', null);
+        const sess = currentSession();
+        const prevBest = myBest;
+        try {
+            const res = await api('finish', { token: sess.token, runId: ticket.runId, inputs: inputs, clientScore: score });
+            if (account) account.coins = res.balance;
+            if (res.best !== null && (myBest === null || res.best > myBest)) myBest = res.best;
+            let text;
+            if (res.flagged) {
+                text = 'This run was flagged for review, so it won’t show on the board for now.';
+            } else if (res.score > (prevBest === null ? -1 : prevBest) && res.rank) {
+                text = 'New best! #' + res.rank + ' on the board.';
+            } else {
+                text = res.rank ? 'Your best: ' + res.best + ' · #' + res.rank + ' on the board.' : '';
+            }
+            text += (res.coins ? ' +' + res.coins + ' $CIGAR.' : '') + ' Press <kbd>Space</kbd> to go again.';
+            state = 'over';
+            showOverlay(msg, String(res.score), text, 'Play again');
+            renderShop();
+            updateRecords();
+            soonRefreshBoard();
+        } catch (err) {
+            state = 'over';
+            showOverlay(msg, String(score), '', 'Play again');
+            els.text.textContent = 'Couldn’t record this run (' + err.message + ').';
+        }
+        ticket = null;
+    }
+
+    function handleEvents(events) {
+        for (let i = 0; i < events.length; i++) {
+            const e = events[i];
+            if (e.type === 'coin') {
+                burst(colX(e.col), e.row * CELL + 26, ['#ffcf4a', '#fff1b0', '#b8860b'], 10);
+                updateHud();
+            } else if (e.type === 'land') {
+                landSquash = 1;
+                updateHud();
+            } else if (e.type === 'bump') {
+                bumpT = 1;
+                bumpDx = e.dx || 0;
+            } else if (e.type === 'shield') {
+                burst(sim.player.x, sim.player.row * CELL + 34, ['#9fe7ff', '#ffffff', '#5fc9f2'], 18, true);
+                updatePowers();
+            } else if (e.type === 'dash') {
+                dashTrail = { from: e.from, to: e.to, x: sim.player.x, t: 0 };
+                burst(sim.player.x, e.to * CELL + 20, ['#9fe7ff', '#ffffff'], 14, true);
+                updateHud();
+                updatePowers();
+            } else if (e.type === 'trapped') {
+                burst(sim.player.x, sim.player.row * CELL + 24, ['#c9a26a', '#8a6a3a'], 8);
+            } else if (e.type === 'death') {
+                if (e.kind === 'drown' || e.kind === 'drift') {
+                    burst(sim.player.x, sim.player.row * CELL + 18, ['#ffffff', '#bfe3ff', '#5aa7dc'], 16);
+                }
+                if (e.kind === 'seagull') gull = { t: 0 };
+            }
+        }
+        const zone = Sim.zoneOf(sim.player.row);
+        if (zone !== zoneShown && (zone === 'sea' || zone === 'arctic')) {
+            zoneShown = zone;
+            showBanner(zone === 'sea' ? 'The Open Sea' : 'The Arctic');
+        }
+    }
+
+    function showBanner(text) {
+        els.banner.textContent = text;
+        els.banner.hidden = false;
+        clearTimeout(bannerTimer);
+        bannerTimer = setTimeout(function () { els.banner.hidden = true; }, 2200);
+    }
+
     function updateHud() {
-        els.score.textContent = player ? player.maxRow : 0;
-        els.coins.textContent = runCoins;
+        els.score.textContent = sim ? sim.score : 0;
+        els.coins.textContent = sim ? sim.coins : 0;
+    }
+
+    function updatePowers() {
+        const parts = [];
+        const p = sim && state !== 'ready' ? sim.player : null;
+        if (p && p.alive) {
+            if (p.shield) parts.push('\u{1FAE7}');
+            if (p.dashes > 0) parts.push('\u{1F4A8} E');
+            if (p.magnet) parts.push('\u{1F9F2}');
+        }
+        els.powers.textContent = parts.join('  ');
     }
 
     function updateRecords() {
-        els.best.textContent = best;
-        els.banked.textContent = banked;
+        els.best.textContent = myBest === null ? (online ? '—' : readStore('ssow-road-practice-best', 0)) : myBest;
+        els.banked.textContent = account ? account.coins : '—';
     }
 
     function showOverlay(kicker, title, html, button) {
         els.kicker.textContent = kicker;
         els.title.textContent = title;
         els.text.innerHTML = html;
-        els.button.textContent = button;
+        els.button.hidden = !button;
+        if (button) els.button.textContent = button;
         els.overlay.hidden = false;
     }
 
     function hideOverlay() { els.overlay.hidden = true; }
-
-    function begin() {
-        state = 'playing';
-        hideOverlay();
-        canvas.focus({ preventScroll: true });
-    }
-
-    function restart() {
-        reset();
-        begin();
-    }
-
-    function gameOver() {
-        state = 'over';
-        const p = player;
-        const fresh = p.maxRow > p.death.prevBest;
-        showOverlay(
-            p.death.message,
-            String(p.maxRow),
-            (fresh ? 'New best! ' : 'Best ' + best + ' · ') +
-                (runCoins ? '+' + runCoins + ' $CIGAR · ' : '') +
-                'press <kbd>Space</kbd> to go again',
-            'Play again'
-        );
-    }
 
     function pause() {
         if (state !== 'playing') return;
@@ -1239,10 +1569,19 @@
         showOverlay('Paused', 'Breather', 'Press <kbd>P</kbd> or <kbd>Space</kbd> to keep going.', 'Resume');
     }
 
-    function primary() {
-        if (state === 'ready') begin();
-        else if (state === 'over') restart();
-        else if (state === 'paused') begin();
+    function resume() {
+        state = sim.player.alive ? 'playing' : 'dying';
+        acc = 0;
+        last = performance.now();
+        hideOverlay();
+        canvas.focus({ preventScroll: true });
+    }
+
+    function primary(firstMove) {
+        if (state === 'paused') { resume(); return; }
+        if (state !== 'ready' && state !== 'over') return;
+        if (offerPractice) startPractice(firstMove);
+        else begin(firstMove);
     }
 
     let k = 1;   /* device pixels per world pixel */
@@ -1262,41 +1601,55 @@
 
     let last = performance.now();
 
+    /* Fixed 60 Hz ticks, exactly as the server replays them. Keys wait
+       for the next tick boundary and are logged with that tick. */
     function frame(now) {
-        const dt = Math.min(0.05, (now - last) / 1000);
+        const dt = Math.min(0.1, (now - last) / 1000);
         last = now;
         time += dt;
 
-        if (state === 'playing' || state === 'dying') {
-            updateLanes(dt);
-            updatePlayer(dt);
-            updateCamera(dt);
-            updateParticles(dt);
-            if (gull) gull.t += dt;
-            if (state === 'dying') {
-                player.death.t += dt;
-                if (player.death.t > (player.death.kind === 'seagull' ? 1.35 : 0.9)) gameOver();
+        if (sim && (state === 'playing' || state === 'dying' || (state === 'ready' && !sim.started))) {
+            acc += dt;
+            let steps = 0;
+            while (acc >= DT && steps < 6) {
+                if (state === 'playing' && pending.length && sim.player.alive) {
+                    for (let i = 0; i < pending.length; i++) {
+                        inputs.push([sim.tick, pending[i]]);
+                        sim.input(pending[i]);
+                    }
+                }
+                pending.length = 0;
+                sim.step();
+                handleEvents(sim.drain());
+                acc -= DT;
+                steps++;
+                if (state === 'playing' && !sim.player.alive) state = 'dying';
+                if (state === 'dying' && sim.over) { runOver(); break; }
             }
-        } else if (state === 'ready' || state === 'over') {
-            /* traffic keeps moving behind the menu */
-            updateLanes(dt);
-            updateParticles(dt);
-            if (gull) gull.t += dt;
+            if (steps >= 6) acc = 0;
+            updatePowers();
         }
+
+        updateParticles(dt);
+        if (landSquash > 0) landSquash = Math.max(0, landSquash - dt * 8);
+        if (bumpT > 0) bumpT = Math.max(0, bumpT - dt * 6);
+        if (gull) gull.t += dt;
+        if (dashTrail) dashTrail.t += dt;
 
         draw();
         window.requestAnimationFrame(frame);
     }
 
     const KEYS = {
-        ArrowUp: [0, 1], KeyW: [0, 1],
-        ArrowDown: [0, -1], KeyS: [0, -1],
-        ArrowLeft: [-1, 0], KeyA: [-1, 0],
-        ArrowRight: [1, 0], KeyD: [1, 0]
+        ArrowUp: 'u', KeyW: 'u',
+        ArrowDown: 'd', KeyS: 'd',
+        ArrowLeft: 'l', KeyA: 'l',
+        ArrowRight: 'r', KeyD: 'r',
+        KeyE: 'e'
     };
 
     /* Only grab keys while the board is on screen, so arrow keys still
-       scroll the page when you're down reading the footer. */
+       scroll the page when you're down reading the leaderboard. */
     let boardVisible = true;
     if ('IntersectionObserver' in window) {
         new IntersectionObserver(function (entries) {
@@ -1308,10 +1661,10 @@
         const tag = (e.target && e.target.tagName || '').toLowerCase();
         if (tag === 'input' || tag === 'textarea' || tag === 'select') return;
 
-        const move = KEYS[e.code];
-        const inGame = state === 'playing' || state === 'paused' || state === 'dying';
+        const code = KEYS[e.code];
+        const inGame = state === 'playing' || state === 'paused' || state === 'dying' || state === 'starting';
         if (!inGame && !boardVisible) return;
-        if (!move && e.code !== 'Space' && e.code !== 'KeyP' && e.code !== 'Escape') return;
+        if (!code && e.code !== 'Space' && e.code !== 'KeyP' && e.code !== 'Escape') return;
 
         e.preventDefault();
         if (e.repeat) return;                      /* tap to hop, no holding */
@@ -1319,15 +1672,18 @@
         if (e.code === 'Space') { primary(); return; }
         if (e.code === 'KeyP' || e.code === 'Escape') {
             if (state === 'playing') pause();
-            else if (state === 'paused') begin();
+            else if (state === 'paused') resume();
             return;
         }
-        if (state === 'ready') begin();
-        else if (state === 'over') restart();
-        if (state === 'playing') tryMove(move[0], move[1]);
+        if (state === 'playing') pending.push(code);
+        else if ((state === 'ready' || state === 'over') && code !== 'e') primary(code);
     });
 
-    els.button.addEventListener('click', primary);
+    els.button.addEventListener('click', function () { primary(); });
+    els.claimName.addEventListener('click', claimName);
+    els.playerName.addEventListener('keydown', function (e) {
+        if (e.key === 'Enter') { e.preventDefault(); claimName(); }
+    });
 
     /* Tabbing away mid-run shouldn't kill you. */
     window.addEventListener('blur', pause);
@@ -1360,6 +1716,11 @@
     });
     els.holdingsMore.addEventListener('click', showMoreHoldings);
 
+    /* Called by the wallet section whenever the whale you'd play changes. */
+    function onWhaleChange() {
+        refreshIdentity();
+    }
+
     /* ---------------------------------------------------------
        Boot
        --------------------------------------------------------- */
@@ -1368,17 +1729,27 @@
     window.addEventListener('resize', resize);
     resize();
 
-    reset();
-    updateRecords();
-    drawPreview();
-    showOverlay('Whale Road', 'Ready?', 'Hop with <kbd>W</kbd> or <kbd>↑</kbd>. Press <kbd>Space</kbd> to start.', 'Play');
+    /* the world idles behind the menu until a run begins */
+    sim = Sim.create({ seed: randomSeed(), loadout: {} });
 
     playAsGuest();
+    renderShop();
+    refreshIdentity();
+    updateRecords();
+    showOverlay(
+        online ? 'Whale Road' : 'Whale Road · practice',
+        'Ready?',
+        online ? 'Save a name on the left, then press <kbd>Space</kbd> or <kbd>W</kbd>. <kbd>E</kbd> fires a Speed Dash.'
+            : 'The leaderboard is offline, so runs aren’t recorded. Press <kbd>Space</kbd> to play.',
+        'Play'
+    );
+
     const savedWallet = readStore('ssow-road-wallet', null);
-    if (savedWallet && Chain.isAddress(savedWallet)) {
+    if (savedWallet && window.WhaleChain.isAddress(savedWallet)) {
         els.wallet.value = savedWallet;
         checkWallet(readStore('ssow-road-whale', null));
     }
 
+    goLive();
     window.requestAnimationFrame(frame);
 })();

@@ -16,3 +16,6 @@ originals/
 
 # Build output from tools/build.js - generated at deploy time
 _site/
+
+.vercel
+.env*

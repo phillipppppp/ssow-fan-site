@@ -1,0 +1,11 @@
+# What a deploy from this folder must never upload: the full-size
+# originals (87 MB, local only), build output, and local tool state.
+# Vercel builds the site itself from vercel.json.
+originals/
+_site/
+node_modules/
+supabase/.temp/
+supabase/.branches/
+.env
+.env.*
+config.js

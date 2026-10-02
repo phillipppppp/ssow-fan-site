@@ -637,6 +637,7 @@
             const res = await api('claim', body);
             saveSession(id.key, { token: res.token, username: res.player.username });
             account = { coins: res.player.coins, items: res.player.items };
+            renderShop();          /* the claim already told us your coins: unlock now */
             refreshIdentity();
         } catch (err) {
             setStatus(els.nameStatus, err.message, 'error');

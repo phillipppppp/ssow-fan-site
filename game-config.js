@@ -8,7 +8,7 @@
    Leave functionUrl empty and the game runs as practice only. */
 
 window.WHALE_ROAD_CONFIG = {
-    functionUrl: '',
+    functionUrl: 'https://brinxceqiczxanmxvoph.supabase.co/functions/v1/whale-road',
     supabaseUrl: 'https://brinxceqiczxanmxvoph.supabase.co',
-    anonKey: ''
+    anonKey: 'sb_publishable_eKd6uOyrvCBvS9R8wVHlCw_3ij0xk3Y'
 };

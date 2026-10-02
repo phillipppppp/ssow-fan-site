@@ -94,6 +94,7 @@
         leaders: $('leaders'),
         live: $('liveDot'),
         sound: $('soundToggle'),
+        music: $('musicToggle'),
         frame: $('boardFrame')
     };
 
@@ -1449,6 +1450,7 @@
         state = 'playing';
         hideOverlay();
         Sfx.play('start');
+        Sfx.music(Sim.zoneOf(sim.player.row));
         if (firstMove) pending.push(firstMove);
         canvas.focus({ preventScroll: true });
     }
@@ -1461,6 +1463,7 @@
         state = 'playing';
         hideOverlay();
         Sfx.play('start');
+        Sfx.music(Sim.zoneOf(sim.player.row));
         if (firstMove) pending.push(firstMove);
         canvas.focus({ preventScroll: true });
     }
@@ -1542,6 +1545,7 @@
                 Sfx.play('freed');
             } else if (e.type === 'death') {
                 Sfx.play(e.kind === 'drown' || e.kind === 'drift' ? 'splash' : e.kind === 'seagull' ? 'seagull' : 'crash');
+                Sfx.music(null);
                 if (e.kind === 'drown' || e.kind === 'drift') {
                     burst(sim.player.x, sim.player.row * CELL + 18, ['#ffffff', '#bfe3ff', '#5aa7dc'], 16);
                 }
@@ -1553,6 +1557,7 @@
             zoneShown = zone;
             showBanner(zone === 'sea' ? 'The Open Sea' : 'The Arctic');
             Sfx.play('zone');
+            Sfx.music(zone);
         }
     }
 
@@ -1616,11 +1621,13 @@
     function pause() {
         if (state !== 'playing') return;
         state = 'paused';
+        Sfx.pauseMusic(true);
         showOverlay('Paused', 'Breather', 'Press <kbd>P</kbd> or <kbd>Space</kbd> to keep going.', 'Resume');
     }
 
     function resume() {
         state = sim.player.alive ? 'playing' : 'dying';
+        Sfx.pauseMusic(false);
         acc = 0;
         last = performance.now();
         hideOverlay();
@@ -1721,6 +1728,19 @@
         els.sound.setAttribute('aria-pressed', String(on));
     }
     function toggleSound() { Sfx.setMuted(!Sfx.isMuted()); showSound(); }
+
+    function showMusic() {
+        const on = !Sfx.isMusicOff();
+        els.music.textContent = on ? 'Music: on' : 'Music: off';
+        els.music.setAttribute('aria-pressed', String(on));
+    }
+    function toggleMusic() {
+        Sfx.setMusicOff(!Sfx.isMusicOff());
+        if (!Sfx.isMusicOff() && (state === 'playing' || state === 'paused')) Sfx.music(Sim.zoneOf(sim.player.row));
+        showMusic();
+    }
+    els.music.addEventListener('click', toggleMusic);
+    showMusic();
     els.sound.addEventListener('click', toggleSound);
     showSound();
 
@@ -1728,6 +1748,7 @@
         const tag = (e.target && e.target.tagName || '').toLowerCase();
         if (tag === 'input' || tag === 'textarea' || tag === 'select') return;
         if (e.code === 'KeyM' && !e.repeat) { toggleSound(); return; }
+        if (e.code === 'KeyN' && !e.repeat) { toggleMusic(); return; }
 
         const code = KEYS[e.code];
         const inGame = state === 'playing' || state === 'paused' || state === 'dying' || state === 'starting';

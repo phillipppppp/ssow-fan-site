@@ -55,23 +55,6 @@
     }
 
     /* ---------------------------------------------------------
-       Wallet names: the one message a holder signs
-
-       Signing is free — no gas, no transaction — and proves the
-       wallet is yours, so nobody can rename it. The timestamp keeps
-       an old signature from being replayed later.
-       --------------------------------------------------------- */
-
-    const CLAIM_TTL_MS = 10 * 60 * 1000;
-
-    function claimMessage(username, wallet, issuedAt) {
-        return 'Whale Road\n' +
-            'Claim the name: ' + username + '\n' +
-            'Wallet: ' + wallet.toLowerCase() + '\n' +
-            'Issued: ' + issuedAt;
-    }
-
-    /* ---------------------------------------------------------
        Is this run a bot?
 
        tells come from WhaleSim.replay(). Thresholds were set by
@@ -99,9 +82,7 @@
 
     return {
         NAME_RE: NAME_RE,
-        CLAIM_TTL_MS: CLAIM_TTL_MS,
         checkName: checkName,
-        claimMessage: claimMessage,
         judge: judge
     };
 });

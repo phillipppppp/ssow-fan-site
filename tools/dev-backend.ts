@@ -117,7 +117,10 @@ if (import.meta.main) {
     // DEV_OWNER=0xabc... makes that wallet own every whale, so the wallet
     // flow can be tested with a throwaway key. Never set on Supabase.
     const devOwner = Deno.env.get('DEV_OWNER')?.toLowerCase();
-    const handle = createHandler(client, devOwner ? { ownerOf: () => Promise.resolve(devOwner) } : {});
+    const handle = createHandler(client, devOwner ? {
+        ownerOf: () => Promise.resolve(devOwner),
+        balanceOf: (wallet: string) => Promise.resolve(wallet === devOwner ? 2 : 0)
+    } : {});
     if (devOwner) console.log('DEV_OWNER: ' + devOwner + ' owns every whale here');
     const port = Number(Deno.env.get('PORT') ?? 8787);
     Deno.serve({ port, onListen: () => console.log(`Whale Road dev backend on http://localhost:${port}`) }, handle);

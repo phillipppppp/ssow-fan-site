@@ -2,7 +2,7 @@
 // whale-road handler — the server half of Whale Road.
 //
 // One endpoint, POST { action, ... }:
-//   claim   pick a username (guest key, or a signed wallet message)
+//   claim   pick a username: a guest key, or a wallet with OG whales
 //   me      who am I, coins, power-ups
 //   buy     spend coins on a power-up
 //   start   issue a run ticket: a fresh seed, power-ups spent
@@ -19,7 +19,6 @@
 
 import '../_shared/game-sim.js';
 import '../_shared/game-rules.js';
-import { verifyMessage } from 'npm:viem@2.57.2';
 
 // deno-lint-ignore no-explicit-any
 const Sim = (globalThis as any).WhaleSim;
@@ -34,9 +33,13 @@ const ETH_RPCS = [
 ];
 
 // deno-lint-ignore no-explicit-any
-export function createHandler(db: any, deps: { ownerOf?: (id: number) => Promise<string> } = {}) {
-    // Tests may swap the Ethereum lookup; production never passes one.
+export function createHandler(
+    db: any,
+    deps: { ownerOf?: (id: number) => Promise<string>; balanceOf?: (wallet: string) => Promise<number> } = {}
+) {
+    // Tests may swap the Ethereum lookups; production never passes any.
     const lookupOwner = deps.ownerOf ?? ownerOf;
+    const lookupBalance = deps.balanceOf ?? balanceOf;
 
     const SESSION_DAYS = 30;
     const HOURLY_RUN_CAP = 120;
@@ -114,10 +117,9 @@ export function createHandler(db: any, deps: { ownerOf?: (id: number) => Promise
         return row.wr_players;
     }
 
-    // ---------- the OG contract, for "is this whale yours?" ----------
+    // ---------- the OG contract: whose whale is it, does this wallet hold any ----------
 
-    async function ownerOf(tokenId: number) {
-        const data = '0x6352211e' + tokenId.toString(16).padStart(64, '0');
+    async function ethCall(data: string) {
         for (const url of ETH_RPCS) {
             try {
                 const res = await fetch(url, {
@@ -127,50 +129,62 @@ export function createHandler(db: any, deps: { ownerOf?: (id: number) => Promise
                     signal: AbortSignal.timeout(6000)
                 });
                 const json = await res.json();
-                if (json.result && json.result.length >= 42) return ('0x' + json.result.slice(-40)).toLowerCase();
+                if (typeof json.result === 'string' && json.result.length >= 66) return json.result as string;
             } catch {
                 // next endpoint
             }
         }
-        throw new Fail(503, 'couldn’t reach Ethereum to check your whale — try again');
+        throw new Fail(503, 'couldn\u2019t reach Ethereum to check your wallet \u2014 try again');
+    }
+
+    async function ownerOf(tokenId: number) {
+        const hex = await ethCall('0x6352211e' + tokenId.toString(16).padStart(64, '0'));
+        return ('0x' + hex.slice(-40)).toLowerCase();
+    }
+
+    async function balanceOf(wallet: string) {
+        const hex = await ethCall('0x70a08231' + wallet.slice(2).padStart(64, '0'));
+        return parseInt(hex, 16) || 0;
     }
 
     // ---------- actions ----------
 
+    // Names. No signatures, by design (the owner's call): a wallet is
+    // identified by its address alone. So a wallet's name is set once and
+    // then locked — pasting someone else's address can sign you in as
+    // them, but can never rename them. Registering a wallet needs at least
+    // one OG whale in it. Guests own their name with a secret key kept in
+    // their browser, which nobody else has, so guests may rename.
     // deno-lint-ignore no-explicit-any
     async function claim(body: any) {
+        if (body.kind === 'wallet') {
+            const wallet = String(body.wallet ?? '').toLowerCase();
+            if (!/^0x[0-9a-f]{40}$/.test(wallet)) throw new Fail(400, 'bad wallet address');
+
+            const { data: existing } = await db.from('wr_players').select(PUBLIC_FIELDS).eq('wallet', wallet).maybeSingle();
+            if (existing) return { token: await newSession(existing.id), player: publicPlayer(existing) };
+
+            const username = String(body.username ?? '');
+            if (!username) throw new Fail(404, 'pick a name for this wallet');
+            const why = Rules.checkName(username);
+            if (why) throw new Fail(400, why);
+            if ((await lookupBalance(wallet)) < 1) throw new Fail(403, 'this wallet holds no OG whales \u2014 play as a guest');
+
+            const { data, error } = await db.from('wr_players').insert({ username, wallet }).select(PUBLIC_FIELDS).single();
+            if (error) {
+                if (error.code === '23505' && /wallet/.test(error.message)) throw new Fail(409, 'this wallet was just registered \u2014 try again');
+                throw new Fail(409, error.code === '23505' ? 'that name is taken' : 'could not create your player');
+            }
+            return { token: await newSession(data.id), player: publicPlayer(data) };
+        }
+
         const username = String(body.username ?? '');
         const why = Rules.checkName(username);
         if (why) throw new Fail(400, why);
-
-        // deno-lint-ignore no-explicit-any
-        let existing: any = null;
-        // deno-lint-ignore no-explicit-any
-        let identity: Record<string, any>;
-
-        if (body.kind === 'wallet') {
-            const wallet = String(body.wallet ?? '').toLowerCase();
-            const issued = String(body.issuedAt ?? '');
-            if (!/^0x[0-9a-f]{40}$/.test(wallet)) throw new Fail(400, 'bad wallet address');
-            const age = Date.now() - new Date(issued).getTime();
-            if (!(age >= -60000 && age < Rules.CLAIM_TTL_MS)) throw new Fail(400, 'that signature is too old — sign again');
-            const message = Rules.claimMessage(username, wallet, issued);
-            let valid = false;
-            try {
-                valid = await verifyMessage({ address: wallet as `0x${string}`, message, signature: body.signature });
-            } catch {
-                valid = false;
-            }
-            if (!valid) throw new Fail(401, 'that signature doesn’t match the wallet');
-            identity = { wallet };
-            ({ data: existing } = await db.from('wr_players').select(PUBLIC_FIELDS).eq('wallet', wallet).maybeSingle());
-        } else {
-            const key = String(body.guestKey ?? '');
-            if (!/^[0-9a-f]{64}$/.test(key)) throw new Fail(400, 'bad guest key');
-            const hash = await sha256(key);
-            identity = { guest_key_hash: hash };
-            ({ data: existing } = await db.from('wr_players').select(PUBLIC_FIELDS).eq('guest_key_hash', hash).maybeSingle());
-        }
+        const key = String(body.guestKey ?? '');
+        if (!/^[0-9a-f]{64}$/.test(key)) throw new Fail(400, 'bad guest key');
+        const hash = await sha256(key);
+        const { data: existing } = await db.from('wr_players').select(PUBLIC_FIELDS).eq('guest_key_hash', hash).maybeSingle();
 
         let player = existing;
         if (existing && existing.username.toLowerCase() !== username.toLowerCase()) {
@@ -179,7 +193,7 @@ export function createHandler(db: any, deps: { ownerOf?: (id: number) => Promise
             player = data;
             await db.from('wr_leaderboard').update({ username }).eq('player_id', existing.id);
         } else if (!existing) {
-            const { data, error } = await db.from('wr_players').insert({ username, ...identity }).select(PUBLIC_FIELDS).single();
+            const { data, error } = await db.from('wr_players').insert({ username, guest_key_hash: hash }).select(PUBLIC_FIELDS).single();
             if (error) throw new Fail(409, error.code === '23505' ? 'that name is taken' : 'could not create your player');
             player = data;
         }

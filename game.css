@@ -574,3 +574,9 @@ kbd {
     .Leader { grid-template-columns: 2.6rem 1fr 4rem; }
     .Leader-whale, .Leader-wallet { display: none; }
 }
+
+/* A wallet's name is permanent: once set, the Save button goes away
+   (.Btn sets display, which would otherwise beat the hidden attribute)
+   and the locked name takes the whole row. */
+.Picker-row .Btn[hidden] { display: none; }
+.Picker-row:has(.Btn[hidden]) { grid-template-columns: 1fr; }

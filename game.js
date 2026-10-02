@@ -17,7 +17,7 @@
    Who you play: paste a wallet and every OG whale it holds unlocks
    its Pixel Whale twin (same number, same traits, on Polygon).
    No wallet: the built-in guest whale. Either way you pick a name
-   before playing; wallet names are claimed with a free signature.
+   before playing; a wallet's name is permanent once set.
 
    Keyboard only. Phones get a notice instead (see game.html).
    ============================================================ */
@@ -557,24 +557,31 @@
         return key;
     }
 
-    /* Free and gasless: proves the wallet is yours, so nobody else can
-       rename it. Needs a browser wallet (MetaMask, Rabby, …) holding it. */
-    async function signClaim(username, wallet) {
-        const eth = window.ethereum;
-        if (!eth || !eth.request) throw new Error('install a browser wallet like MetaMask to sign');
-        const accounts = (await eth.request({ method: 'eth_requestAccounts' })).map(function (a) { return a.toLowerCase(); });
-        if (accounts.indexOf(wallet) < 0) throw new Error('switch your wallet to ' + shortAddress(wallet) + ' and try again');
-        const issuedAt = new Date().toISOString();
-        const message = Rules.claimMessage(username, wallet, issuedAt);
-        const hex = '0x' + Array.from(new TextEncoder().encode(message), function (b) {
-            return b.toString(16).padStart(2, '0');
-        }).join('');
+    /* Wallets: no signing. Load a wallet that holds OG whales, give it a
+       name once, and that name is the wallet's for good — so pasting
+       someone else's address can't rename them. Paste it again later and
+       you're straight back in. Guests can rename: their name is tied to a
+       secret key in this browser that nobody else has. */
+    const walletChecked = {};     /* wallet -> 'checking' | 'needs-name' */
+
+    async function signInWallet(wallet) {
+        if (walletChecked[wallet]) return;
+        walletChecked[wallet] = 'checking';
+        setStatus(els.nameStatus, 'looking up this wallet\u2026');
         try {
-            const signature = await eth.request({ method: 'personal_sign', params: [hex, wallet] });
-            return { issuedAt: issuedAt, signature: signature };
+            const res = await api('claim', { kind: 'wallet', wallet: wallet });
+            saveSession(wallet, { token: res.token, username: res.player.username });
+            account = { coins: res.player.coins, items: res.player.items };
+            delete walletChecked[wallet];
         } catch (err) {
-            throw new Error(err && err.code === 4001 ? 'signature cancelled' : 'your wallet couldn’t sign');
+            walletChecked[wallet] = err.status === 404 ? 'needs-name' : null;
+            if (err.status !== 404) {
+                delete walletChecked[wallet];
+                if (identity().key === wallet) setStatus(els.nameStatus, err.message, 'error');
+                return;
+            }
         }
+        if (identity().key === wallet) refreshIdentity();
     }
 
     function refreshIdentity() {
@@ -586,17 +593,27 @@
         if (!online) {
             els.playerName.disabled = true;
             els.claimName.disabled = true;
-            setStatus(els.nameStatus, 'leaderboard offline — practice runs only');
+            setStatus(els.nameStatus, 'leaderboard offline \u2014 practice runs only');
             renderShop();
             return;
         }
+
+        const locked = id.kind === 'wallet' && !!sess;    /* a wallet's name never changes */
+        els.playerName.disabled = locked;
+        els.claimName.hidden = locked;
+        els.claimName.textContent = sess ? 'Rename' : 'Save';
         if (sess) els.playerName.value = sess.username;
         else if (document.activeElement !== els.playerName) els.playerName.value = '';
-        els.claimName.textContent = id.kind === 'wallet' ? (sess ? 'Re-sign' : 'Sign & save') : (sess ? 'Rename' : 'Save');
+
+        if (id.kind === 'wallet' && !sess) {
+            if (!walletChecked[id.wallet]) { signInWallet(id.wallet); return; }
+            if (walletChecked[id.wallet] === 'checking') return;
+        }
+
         setStatus(
             els.nameStatus,
-            sess ? 'playing as ' + sess.username + (id.kind === 'wallet' ? ' · ' + shortAddress(id.wallet) : ' · guest')
-                : id.kind === 'wallet' ? 'pick a name — your wallet signs it (free, no gas)'
+            sess ? 'playing as ' + sess.username + (id.kind === 'wallet' ? ' \u00b7 ' + shortAddress(id.wallet) : ' \u00b7 guest')
+                : id.kind === 'wallet' ? 'name this wallet \u2014 it\u2019s permanent, so choose well'
                     : 'pick a name to get on the board',
             sess ? 'ok' : null
         );
@@ -626,16 +643,12 @@
         const id = identity();
         els.claimName.disabled = true;
         try {
-            let body;
-            if (id.kind === 'wallet') {
-                setStatus(els.nameStatus, 'check your wallet to sign…');
-                const signed = await signClaim(name, id.wallet);
-                body = { kind: 'wallet', username: name, wallet: id.wallet, issuedAt: signed.issuedAt, signature: signed.signature };
-            } else {
-                body = { kind: 'guest', username: name, guestKey: guestKey() };
-            }
+            const body = id.kind === 'wallet'
+                ? { kind: 'wallet', wallet: id.wallet, username: name }
+                : { kind: 'guest', username: name, guestKey: guestKey() };
             const res = await api('claim', body);
             saveSession(id.key, { token: res.token, username: res.player.username });
+            delete walletChecked[id.key];
             account = { coins: res.player.coins, items: res.player.items };
             renderShop();          /* the claim already told us your coins: unlock now */
             refreshIdentity();

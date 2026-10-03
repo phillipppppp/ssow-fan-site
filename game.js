@@ -828,8 +828,27 @@
     /* lanes where a whale is swimming rather than standing */
     const SWIM = { shallows: true, boats: true, sharks: true, nets: true, orcas: true };
 
-    function laneY(row) { return Math.round(H - (row - sim.camY + 1) * CELL); }
-    function screenY(wy) { return H - (wy - sim.camY * CELL); }
+    /* What the camera shows. Desktop: the whole board, 13 columns by 10
+       rows. Phones: a tall window, 9 columns wide and 12 rows high, that
+       slides sideways to follow the whale — every tile ends up about 60%
+       bigger. Only the drawing changes; the simulation (and so every
+       score and replay) still runs the full board either way. The view's
+       bottom edge is the simulation's camera, so the seagull line is
+       exactly where it looks. Rows up to camY + 12 are generated and
+       moving, so the extra rows on top are live, not frozen. */
+    const VIEW = touch ? { cols: 9, rows: 12 } : { cols: COLS, rows: ROWS };
+    const VW = VIEW.cols * CELL;
+    const VH = VIEW.rows * CELL;
+    let viewX = (W - VW) / 2;
+
+    function followWhale(dt) {
+        if (VW >= W || !sim) return;
+        const target = clamp(sim.player.x - VW / 2, 0, W - VW);
+        viewX += (target - viewX) * Math.min(1, dt * 8);
+    }
+
+    function laneY(row) { return Math.round(VH - (row - sim.camY + 1) * CELL); }
+    function screenY(wy) { return VH - (wy - sim.camY * CELL); }
 
     function burst(x, wy, colors, n, up) {
         for (let i = 0; i < n; i++) {
@@ -871,13 +890,14 @@
         const e = lane.express;
         const blink = e.phase === 'pass' || (e.phase === 'warn' && Math.floor(time * 8) % 2 === 0);
         if (lane.type === 'rail') {
-            fill('#2b2f36', W - 14, y - 10, 4, 34);
-            fill('#1c1f24', W - 19, y - 18, 14, 10);
-            fill(blink ? '#ff4d4d' : '#5a1e1e', W - 17, y - 16, 10, 6);
+            const sx = viewX + VW;
+            fill('#2b2f36', sx - 14, y - 10, 4, 34);
+            fill('#1c1f24', sx - 19, y - 18, 14, 10);
+            fill(blink ? '#ff4d4d' : '#5a1e1e', sx - 17, y - 16, 10, 6);
             return;
         }
         if (e.phase !== 'warn') return;
-        const ex = lane.dir > 0 ? 18 : W - 18;
+        const ex = lane.dir > 0 ? viewX + 18 : viewX + VW - 18;
         if (lane.type === 'sharks') {
             const bob = Math.floor(time * 6) % 2;
             fill('#5f6d7b', ex - 4, y + 14 + bob, 8, 12);
@@ -1292,11 +1312,11 @@
         if (gull.t < 0.45) {
             const u = gull.t / 0.45;
             const e = 1 - (1 - u) * (1 - u);
-            gx = lerp(W + 40, wx, e);
+            gx = lerp(viewX + VW + 40, wx, e);
             gy = lerp(-30, wy - 6, e);
         } else {
             const u = Math.min(1, (gull.t - 0.45) / 0.8);
-            gx = lerp(wx, -80, u * u);
+            gx = lerp(wx, viewX - 80, u * u);
             gy = lerp(wy - 6, -120, u);
             drawWhale(gx, gy + 6 + sprite.height, 1, 1, -0.25, 1, p.facing);
         }
@@ -1322,24 +1342,24 @@
         const bottom = laneY(dashTrail.from) + CELL;
         ctx.save();
         ctx.globalAlpha = a * 0.6;
-        fill('#9fe7ff', dashTrail.x - 3, Math.max(0, top), 6, Math.max(0, Math.min(H, bottom) - Math.max(0, top)));
+        fill('#9fe7ff', dashTrail.x - 3, Math.max(0, top), 6, Math.max(0, Math.min(VH, bottom) - Math.max(0, top)));
         ctx.globalAlpha = a * 0.3;
-        fill('#ffffff', dashTrail.x - 9, Math.max(0, top), 18, Math.max(0, Math.min(H, bottom) - Math.max(0, top)));
+        fill('#ffffff', dashTrail.x - 9, Math.max(0, top), 18, Math.max(0, Math.min(VH, bottom) - Math.max(0, top)));
         ctx.restore();
     }
 
     function draw() {
-        ctx.setTransform(k, 0, 0, k, 0, 0);
+        ctx.setTransform(k, 0, 0, k, -Math.round(viewX * k), 0);
         ctx.imageSmoothingEnabled = false;
-        fill('#0c1a2a', 0, 0, W, H);
+        fill('#0c1a2a', 0, 0, W, VH);
         if (!sim) return;
 
         const p = sim.player;
         const pose = playerPose();
         const sinking = p.death && (p.death.kind === 'drown' || p.death.kind === 'drift');
-        const playerRow = sinking ? p.row : Math.ceil(sim.camY - 1 + (H - (pose.fy - pose.lift)) / CELL);
+        const playerRow = sinking ? p.row : Math.ceil(sim.camY - 1 + (VH - (pose.fy - pose.lift)) / CELL);
 
-        const top = Math.ceil(sim.camY + ROWS);
+        const top = Math.ceil(sim.camY + VIEW.rows);
         const bottom = Math.floor(sim.camY) - 1;
         for (let row = top; row >= bottom; row--) {
             const lane = sim.laneAt(row);
@@ -1461,7 +1481,7 @@
         Sfx.music(Sim.zoneOf(sim.player.row));
         if (firstMove) pending.push(firstMove);
         canvas.focus({ preventScroll: true });
-        if (touch) els.frame.scrollIntoView({ block: 'center', behavior: 'smooth' });
+        if (touch) els.frame.scrollIntoView({ block: 'end', behavior: 'smooth' });
     }
 
     function startPractice(firstMove) {
@@ -1475,7 +1495,7 @@
         Sfx.music(Sim.zoneOf(sim.player.row));
         if (firstMove) pending.push(firstMove);
         canvas.focus({ preventScroll: true });
-        if (touch) els.frame.scrollIntoView({ block: 'center', behavior: 'smooth' });
+        if (touch) els.frame.scrollIntoView({ block: 'end', behavior: 'smooth' });
     }
 
     async function runOver() {
@@ -1659,11 +1679,11 @@
     function resize() {
         const rect = canvas.getBoundingClientRect();
         const dpr = window.devicePixelRatio || 1;
-        const next = clamp(Math.round((rect.width * dpr) / W), 1, 4);
-        if (next !== k || canvas.width !== W * next) {
+        const next = clamp(Math.round((rect.width * dpr) / VW), 1, 4);
+        if (next !== k || canvas.width !== VW * next) {
             k = next;
-            canvas.width = W * k;
-            canvas.height = H * k;
+            canvas.width = VW * k;
+            canvas.height = VH * k;
         }
     }
 
@@ -1703,6 +1723,7 @@
         }
 
         updateParticles(dt);
+        followWhale(dt);
         if (landSquash > 0) landSquash = Math.max(0, landSquash - dt * 8);
         if (bumpT > 0) bumpT = Math.max(0, bumpT - dt * 6);
         if (gull) gull.t += dt;
@@ -1730,8 +1751,11 @@
     }
 
     /* Browsers only allow sound after a click or a key press. */
-    window.addEventListener('keydown', Sfx.unlock, true);
-    window.addEventListener('pointerdown', Sfx.unlock, true);
+    /* iPhones only count some events as permission to play — touchend and
+       click among them — so listen for all of them. */
+    ['keydown', 'pointerdown', 'touchend', 'click'].forEach(function (type) {
+        window.addEventListener(type, Sfx.unlock, true);
+    });
 
     function showSound() {
         const on = !Sfx.isMuted();
@@ -1871,6 +1895,9 @@
     /* ---------------------------------------------------------
        Boot
        --------------------------------------------------------- */
+
+    els.frame.style.aspectRatio = VW + ' / ' + VH;
+    els.frame.classList.toggle('is-portrait', VH > VW);
 
     if ('ResizeObserver' in window) new ResizeObserver(resize).observe(canvas);
     window.addEventListener('resize', resize);

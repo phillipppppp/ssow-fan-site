@@ -28,21 +28,31 @@
             ctx = new AC();
             master = ctx.createGain();
             master.gain.value = muted ? 0 : 0.45;
-            master.connect(ctx.destination);
+            /* A limiter before the speaker: music and effects stacked up can
+               otherwise clip, which phone speakers turn into a harsh crackle. */
+            const limiter = ctx.createDynamicsCompressor();
+            limiter.threshold.value = -10;
+            limiter.knee.value = 6;
+            limiter.ratio.value = 12;
+            limiter.attack.value = 0.003;
+            limiter.release.value = 0.15;
+            master.connect(limiter);
+            limiter.connect(ctx.destination);
 
             /* one second of white noise, reused by every splash and crash */
             noise = ctx.createBuffer(1, ctx.sampleRate, ctx.sampleRate);
             const data = noise.getChannelData(0);
             for (let i = 0; i < data.length; i++) data[i] = Math.random() * 2 - 1;
         }
-        if (ctx.state === 'suspended') ctx.resume();
+        /* iPhones also report 'interrupted' after a call or an app switch */
+        if (ctx.state !== 'running') ctx.resume().catch(function () { /* next tap will try again */ });
     }
 
     function ready() { return ctx && !muted && ctx.state === 'running'; }
 
     /* A single note: wave, pitch (optionally sliding), length, loudness. */
     function tone(opts) {
-        const t0 = ctx.currentTime + (opts.delay || 0);
+        const t0 = ctx.currentTime + 0.01 + (opts.delay || 0);
         const osc = ctx.createOscillator();
         const env = ctx.createGain();
         osc.type = opts.wave || 'square';
@@ -253,6 +263,10 @@
     let musicOff = false;
     try { musicOff = window.localStorage.getItem('ssow-road-music-off') === '1'; } catch (err) { /* fine */ }
 
+    /* Queue notes this far ahead. Generous, so a phone that's busy drawing
+       still has the next notes lined up before they're due. */
+    const LOOKAHEAD = 0.3;
+
     let musicBus = null;      /* every song plays into this; pausing ramps it */
     let song = null;          /* { zone, gain, echo, step, next } */
     let scheduler = null;
@@ -367,7 +381,15 @@
         if (!song || !ctx) return;
         const def = SONGS[song.zone];
         const stepLen = 60 / def.bpm / 4;
-        while (song.next < ctx.currentTime + 0.12) {
+        /* If the page stalled (a busy phone, a scroll, a background tab),
+           don't play every missed note at once — that's a burst of noise.
+           Skip ahead to now and carry on in time. */
+        if (song.next < ctx.currentTime) {
+            const missed = Math.ceil((ctx.currentTime - song.next) / stepLen);
+            song.step = (song.step + missed) % 64;
+            song.next += missed * stepLen;
+        }
+        while (song.next < ctx.currentTime + LOOKAHEAD) {
             playStep(def, song.out, song.step, song.next);
             song.step = (song.step + 1) % 64;
             song.next += stepLen;
@@ -400,7 +422,7 @@
         out.gain.gain.setValueAtTime(0.0001, now);
         out.gain.gain.exponentialRampToValueAtTime(1, now + 1.2);
         song = { zone: wanted, out: out, step: 0, next: now + 0.05 };
-        if (!scheduler) scheduler = setInterval(tickMusic, 25);
+        if (!scheduler) scheduler = setInterval(tickMusic, 50);
         tickMusic();
     }
 

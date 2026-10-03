@@ -609,3 +609,17 @@ kbd {
     .Hud-score { font-size: 1.6rem; }
     .Zone-banner { font-size: 1.2rem; }
 }
+
+/* Phones play in a tall, portrait view (see VIEW in game.js). Let it use
+   the whole width of the screen, and keep a tablet's from towering. */
+.Board-frame.is-portrait {
+    max-width: min(100%, calc(82vh * 3 / 4));
+    margin-inline: auto;
+}
+
+@media (max-width: 600px) {
+    /* full bleed: step out of the page's side margins and the box border */
+    .Arcade { border-left: 0; border-right: 0; }
+    .Board { margin-inline: calc(-1 * var(--gutter)); padding-top: 0; }
+    .Board-frame { border: 0; }
+}

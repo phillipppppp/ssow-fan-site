@@ -28,15 +28,11 @@
     const arcade = document.getElementById('arcade');
     if (!arcade) return;
 
-    /* Phones and tablets have no keys to play with. A touchscreen
-       laptop still reports a fine primary pointer, so it plays. */
-    const touchOnly = window.matchMedia &&
-        window.matchMedia('(hover: none) and (pointer: coarse)').matches;
-    if (touchOnly) {
-        arcade.hidden = true;
-        document.getElementById('desktopOnly').hidden = false;
-        return;
-    }
+    /* Phones and tablets play with taps and swipes; this only changes
+       the wording and shows the on-screen Dash button. A touchscreen
+       laptop reports a fine primary pointer, so it keeps the keys. */
+    const touch = !!(window.matchMedia &&
+        window.matchMedia('(hover: none) and (pointer: coarse)').matches);
 
     /* ---------------------------------------------------------
        Constants — the geometry comes from the simulation
@@ -95,7 +91,8 @@
         live: $('liveDot'),
         sound: $('soundToggle'),
         music: $('musicToggle'),
-        frame: $('boardFrame')
+        frame: $('boardFrame'),
+        dash: $('dashButton')
     };
 
     /* ---------------------------------------------------------
@@ -1396,6 +1393,17 @@
         return 'Snatched by a seagull. Keep moving!';
     }
 
+    /* What to tell people, by device. */
+    const SAY = touch ? {
+        again: 'Tap <b>Play again</b>.',
+        resume: 'Tap <b>Resume</b> to keep going.',
+        where: 'below'
+    } : {
+        again: 'Press <kbd>Space</kbd> to go again.',
+        resume: 'Press <kbd>P</kbd> or <kbd>Space</kbd> to keep going.',
+        where: 'on the left'
+    };
+
     function randomSeed() { return crypto.getRandomValues(new Uint32Array(1))[0]; }
 
     function newRun(seed, loadout) {
@@ -1416,7 +1424,7 @@
         if (online) {
             const sess = currentSession();
             if (!sess) {
-                showOverlay('One more thing', 'Pick a name', 'Save a name on the left first — it’s how the leaderboard knows you.', 'OK');
+                showOverlay('One more thing', 'Pick a name', 'Save a name ' + SAY.where + ' first — it’s how the leaderboard knows you.', 'OK');
                 state = 'ready';
                 els.playerName.focus();
                 return;
@@ -1453,6 +1461,7 @@
         Sfx.music(Sim.zoneOf(sim.player.row));
         if (firstMove) pending.push(firstMove);
         canvas.focus({ preventScroll: true });
+        if (touch) els.frame.scrollIntoView({ block: 'center', behavior: 'smooth' });
     }
 
     function startPractice(firstMove) {
@@ -1466,6 +1475,7 @@
         Sfx.music(Sim.zoneOf(sim.player.row));
         if (firstMove) pending.push(firstMove);
         canvas.focus({ preventScroll: true });
+        if (touch) els.frame.scrollIntoView({ block: 'center', behavior: 'smooth' });
     }
 
     async function runOver() {
@@ -1476,7 +1486,7 @@
             state = 'over';
             const best = Math.max(readStore('ssow-road-practice-best', 0), score);
             writeStore('ssow-road-practice-best', best);
-            showOverlay(msg, String(score), 'Practice run — not recorded · press <kbd>Space</kbd> to go again', 'Play again');
+            showOverlay(msg, String(score), 'Practice run — not recorded. ' + SAY.again, 'Play again');
             Sfx.play('over');
             return;
         }
@@ -1499,7 +1509,7 @@
             } else {
                 text = res.rank ? 'Your best: ' + res.best + ' · #' + res.rank + ' on the board.' : '';
             }
-            text += (res.coins ? ' +' + res.coins + ' $CIGAR.' : '') + ' Press <kbd>Space</kbd> to go again.';
+            text += (res.coins ? ' +' + res.coins + ' $CIGAR.' : '') + ' ' + SAY.again;
             state = 'over';
             showOverlay(msg, String(res.score), text, 'Play again');
             Sfx.play(newBest ? 'best' : 'over');
@@ -1600,6 +1610,7 @@
             if (p.magnet) parts.push('\u{1F9F2}');
         }
         els.powers.textContent = parts.join('  ');
+        els.dash.hidden = !(touch && state === 'playing' && p && p.alive && p.dashes > 0);
     }
 
     function updateRecords() {
@@ -1622,7 +1633,7 @@
         if (state !== 'playing') return;
         state = 'paused';
         Sfx.pauseMusic(true);
-        showOverlay('Paused', 'Breather', 'Press <kbd>P</kbd> or <kbd>Space</kbd> to keep going.', 'Resume');
+        showOverlay('Paused', 'Breather', SAY.resume, 'Resume');
     }
 
     function resume() {
@@ -1764,8 +1775,55 @@
             else if (state === 'paused') resume();
             return;
         }
+        press(code);
+    });
+
+    /* One way in for every move, from a key, a swipe or a button. */
+    function press(code) {
         if (state === 'playing') pending.push(code);
         else if ((state === 'ready' || state === 'over') && code !== 'e') primary(code);
+    }
+
+    /* ---------------------------------------------------------
+       Touch: tap the board to hop forward, swipe to go any way
+
+       A swipe fires the moment the finger has travelled far enough,
+       not when it lifts, so it feels as quick as a key. Each gesture
+       makes exactly one move. Mouse clicks are ignored here — desktop
+       plays with the keyboard. These moves go through the same queue
+       and key log as keys, so the server replays them all the same.
+       --------------------------------------------------------- */
+
+    const SWIPE_PX = 22;
+    let gesture = null;
+
+    canvas.addEventListener('pointerdown', function (e) {
+        if (e.pointerType === 'mouse') return;
+        e.preventDefault();
+        gesture = { id: e.pointerId, x: e.clientX, y: e.clientY, fired: false };
+        try { canvas.setPointerCapture(e.pointerId); } catch (err) { /* fine */ }
+    });
+
+    canvas.addEventListener('pointermove', function (e) {
+        if (!gesture || e.pointerId !== gesture.id || gesture.fired) return;
+        const dx = e.clientX - gesture.x;
+        const dy = e.clientY - gesture.y;
+        if (Math.max(Math.abs(dx), Math.abs(dy)) < SWIPE_PX) return;
+        gesture.fired = true;
+        press(Math.abs(dx) > Math.abs(dy) ? (dx > 0 ? 'r' : 'l') : (dy > 0 ? 'd' : 'u'));
+    });
+
+    function endGesture(e) {
+        if (!gesture || e.pointerId !== gesture.id) return;
+        if (!gesture.fired && e.type === 'pointerup') press('u');      /* a tap */
+        gesture = null;
+    }
+    canvas.addEventListener('pointerup', endGesture);
+    canvas.addEventListener('pointercancel', endGesture);
+
+    els.dash.addEventListener('pointerdown', function (e) {
+        e.preventDefault();
+        press('e');
     });
 
     els.button.addEventListener('click', function () { primary(); });
@@ -1828,8 +1886,10 @@
     showOverlay(
         online ? 'Whale Road' : 'Whale Road · practice',
         'Ready?',
-        online ? 'Save a name on the left, then press <kbd>Space</kbd> or <kbd>W</kbd>. <kbd>E</kbd> fires a Speed Dash.'
-            : 'The leaderboard is offline, so runs aren’t recorded. Press <kbd>Space</kbd> to play.',
+        touch ? (online ? 'Save a name below, then tap <b>Play</b>. Tap to hop, swipe to move.'
+                        : 'Runs aren\u2019t recorded right now. Tap <b>Play</b> \u2014 then tap to hop, swipe to move.')
+            : online ? 'Save a name on the left, then press <kbd>Space</kbd> or <kbd>W</kbd>. <kbd>E</kbd> fires a Speed Dash.'
+                : 'The leaderboard is offline, so runs aren’t recorded. Press <kbd>Space</kbd> to play.',
         'Play'
     );
 

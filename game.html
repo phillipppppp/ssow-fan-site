@@ -55,14 +55,6 @@
         </p>
     </section>
 
-    <!-- Phones and tablets: the game is keyboard-only, so say so plainly
-         instead of showing a board nobody can play. -->
-    <section class="Desktop-only" id="desktopOnly" hidden>
-        <p class="Desktop-only-mark">Desktop only</p>
-        <p>Whale Road is played with the keyboard &mdash; arrow keys or WASD.
-           Open this page on a computer to play.</p>
-    </section>
-
     <div class="Arcade" id="arcade">
 
         <!-- ============ LEFT: your wallet, your whale ============ -->
@@ -117,6 +109,7 @@
                     <kbd class="Keys-up">W</kbd>
                     <kbd>A</kbd><kbd>S</kbd><kbd>D</kbd>
                 </div>
+                <p class="Touch-note">Tap the board to hop forward &middot; swipe left, right or down to move &middot; the &#x1F4A8; button fires a Speed Dash</p>
                 <p class="Keys-note">or the arrow keys &middot; <kbd>E</kbd> Speed Dash &middot; <kbd>Space</kbd> start / retry &middot; <kbd>P</kbd> pause &middot; <kbd>M</kbd> mute &middot; <kbd>N</kbd> music</p>
                 <div class="Sound-row">
                     <button type="button" id="soundToggle" class="Btn Btn--ghost" aria-pressed="true">Sound: on</button>
@@ -140,6 +133,7 @@
                 </div>
 
                 <p class="Zone-banner" id="zoneBanner" hidden></p>
+                <button type="button" class="Dash-button" id="dashButton" aria-label="Speed Dash" hidden>&#x1F4A8;</button>
 
                 <div class="Overlay" id="overlay">
                     <p class="Overlay-kicker" id="overlayKicker">Whale Road</p>

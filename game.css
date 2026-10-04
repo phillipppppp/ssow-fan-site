@@ -623,3 +623,6 @@ kbd {
     .Board { margin-inline: calc(-1 * var(--gutter)); padding-top: 0; }
     .Board-frame { border: 0; }
 }
+
+/* the type-a-whale box (.Picker-row is a grid, which beats [hidden]) */
+#whalePickRow[hidden] { display: none; }

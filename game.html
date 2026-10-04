@@ -73,6 +73,12 @@
             <button type="button" id="holdingsMore" class="Btn Btn--ghost Holdings-more" hidden>
                 Show more
             </button>
+            <div class="Picker-row" id="whalePickRow" hidden>
+                <label class="Visually-hidden" for="whalePick">Whale number</label>
+                <input type="number" id="whalePick" min="1" max="9999" step="1"
+                       placeholder="Not listed? Whale #" inputmode="numeric">
+                <button type="button" id="whalePickGo" class="Btn">Use</button>
+            </div>
 
             <p class="Picker-label"><span class="Step">2</span> Playing as</p>
 

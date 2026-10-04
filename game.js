@@ -79,6 +79,9 @@
         walletStatus: $('walletStatus'),
         holdings: $('holdings'),
         holdingsMore: $('holdingsMore'),
+        whalePickRow: $('whalePickRow'),
+        whalePick: $('whalePick'),
+        whalePickGo: $('whalePickGo'),
         name: $('whaleName'),
         traits: $('whaleTraits'),
         whaleStatus: $('whaleStatus'),
@@ -377,6 +380,7 @@
         if (reset) els.holdings.innerHTML = '';
         const frag = document.createDocumentFragment();
         ids.forEach(function (id) {
+            if (els.holdings.querySelector('.Holding[data-id="' + id + '"]')) return;
             const li = document.createElement('li');
             const btn = document.createElement('button');
             btn.type = 'button';
@@ -411,6 +415,8 @@
             'ok'
         );
         els.holdingsMore.hidden = h.ids.length >= h.balance;
+        els.holdingsMore.textContent = moreLabel();
+        els.whalePickRow.hidden = false;
         return page;
     }
 
@@ -434,6 +440,7 @@
             holdings = h;
             els.holdings.innerHTML = '';
             els.holdingsMore.hidden = true;
+            els.whalePickRow.hidden = true;
             writeStore('ssow-road-wallet', address);
 
             if (!balance) {
@@ -472,7 +479,51 @@
             setStatus(els.walletStatus, 'could not load more (' + err.message + ')', 'error');
         } finally {
             els.holdingsMore.disabled = false;
-            els.holdingsMore.textContent = label;
+            els.holdingsMore.textContent = moreLabel();
+        }
+    }
+
+    function moreLabel() {
+        return holdings ? 'Show more (' + holdings.ids.length + ' of ' + holdings.balance + ')' : 'Show more';
+    }
+
+    /* Big wallets: rather than paging through 100+ whales, type the one you
+       want. It's checked on Ethereum (ownerOf) before it's offered, and the
+       server checks again when the run starts. Champ's idea. */
+    async function pickWhale() {
+        const h = holdings;
+        if (!h) return;
+        const id = Number(els.whalePick.value);
+        if (!Number.isInteger(id) || id < 1 || !hasTwin(id)) {
+            setStatus(els.walletStatus, 'type a whale number from 1 to ' + (SUPPLY - 1), 'error');
+            return;
+        }
+        const listed = els.holdings.querySelector('.Holding[data-id="' + id + '"]');
+        if (listed) {
+            setStatus(els.walletStatus, h.balance + ' OG whales — playing #' + id, 'ok');
+            els.whalePick.value = '';
+            playWhale(id);
+            listed.scrollIntoView({ block: 'nearest' });
+            return;
+        }
+
+        els.whalePickGo.disabled = true;
+        setStatus(els.walletStatus, 'checking #' + id + '\u2026');
+        try {
+            const owns = await Chain.ownsWhale(h.address, id);
+            if (holdings !== h) return;
+            if (!owns) { setStatus(els.walletStatus, '#' + id + ' isn\u2019t in this wallet', 'error'); return; }
+            renderHoldings([id], false);
+            const chip = els.holdings.querySelector('.Holding[data-id="' + id + '"]');
+            if (chip) els.holdings.insertBefore(chip.parentNode, els.holdings.firstChild);
+            els.holdings.scrollTop = 0;
+            setStatus(els.walletStatus, h.balance + ' OG whales \u2014 playing #' + id, 'ok');
+            els.whalePick.value = '';
+            playWhale(id);
+        } catch (err) {
+            setStatus(els.walletStatus, 'couldn\u2019t check #' + id + ' (' + err.message + ')', 'error');
+        } finally {
+            els.whalePickGo.disabled = false;
         }
     }
 
@@ -703,6 +754,7 @@
         try {
             const res = await api('buy', { token: sess.token, item: id });
             account = { coins: res.coins, items: res.items };
+            bring[id] = true;          /* you bought it to use it */
             Sfx.play('buy');
         } catch (err) {
             els.shopNote.textContent = err.message;
@@ -1459,6 +1511,11 @@
                 if (account) ITEMS.forEach(function (i) { if (t.loadout[i.id]) account.items[i.id]--; });
                 renderShop();
                 newRun(t.seed, t.loadout);
+                if (t.loadout.dash) {
+                    setTimeout(function () {
+                        showBanner(touch ? 'Tap \u{1F4A8} to Speed Dash' : 'Press E to Speed Dash');
+                    }, 500);
+                }
             } catch (err) {
                 state = 'ready';
                 if (err.status === 401) { dropSession(identity().key); refreshIdentity(); }
@@ -1878,6 +1935,7 @@
         holdings = null;
         els.holdings.innerHTML = '';
         els.holdingsMore.hidden = true;
+        els.whalePickRow.hidden = true;
         setStatus(els.walletStatus, '');
         playAsGuest();
     });
@@ -1886,6 +1944,10 @@
         if (btn && !btn.disabled) playWhale(Number(btn.dataset.id));
     });
     els.holdingsMore.addEventListener('click', showMoreHoldings);
+    els.whalePickGo.addEventListener('click', pickWhale);
+    els.whalePick.addEventListener('keydown', function (e) {
+        if (e.key === 'Enter') { e.preventDefault(); pickWhale(); }
+    });
 
     /* Called by the wallet section whenever the whale you'd play changes. */
     function onWhaleChange() {

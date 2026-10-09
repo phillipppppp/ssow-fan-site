@@ -1,8 +1,8 @@
 {
   "collection": "Secret Society of Whales",
   "slug": "secretsocietyofwhales",
-  "capturedAt": "2026-10-08T12:03:47.255Z",
-  "currentFloorEth": 0.004039,
+  "capturedAt": "2026-10-09T11:55:47.492Z",
+  "currentFloorEth": 0.004029999,
   "totalVolumeEth": 1566.41,
   "owners": 4043,
   "note": "series = lowest completed sale per day (floor proxy); currentFloorEth is the live listing floor",

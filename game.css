@@ -626,3 +626,8 @@ kbd {
 
 /* the type-a-whale box (.Picker-row is a grid, which beats [hidden]) */
 #whalePickRow[hidden] { display: none; }
+
+/* back to the games hub */
+.Crumbs { margin-bottom: 1rem; font-family: var(--font-mono); font-size: 0.72rem; letter-spacing: 0.12em; text-transform: uppercase; }
+.Crumbs a { color: var(--ink-3); text-decoration: none; }
+.Crumbs a:hover, .Crumbs a:focus-visible { color: var(--accent); }

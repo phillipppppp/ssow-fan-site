@@ -1,0 +1,97 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Minigames | Secret Society of Whales</title>
+    <link rel="icon" type="image/png" sizes="32x32" href="images/favicon-32.png">
+    <link rel="apple-touch-icon" sizes="180x180" href="images/favicon-180.png">
+    <link rel="stylesheet" href="base.css">
+    <link rel="stylesheet" href="minigames.css">
+    <script>
+        /* Runs before <body> paints: if the boot screen already played
+           this session, mark the document so CSS skips it outright.
+           Deferring this to a file would flash the intro on every page. */
+        try {
+            if (sessionStorage.getItem('ssow-booted')) {
+                document.documentElement.classList.add('booted');
+            }
+            sessionStorage.setItem('ssow-booted', '1');
+        } catch (e) { /* private mode - the intro just plays again */ }
+    </script>
+</head>
+<body>
+<div class="Boot" aria-hidden="true">
+    <div class="Boot-inner">
+        <p class="Boot-mark">Secret Society of Whales</p>
+        <div class="Boot-bar"><span></span></div>
+    </div>
+</div>
+<div class="Watercolor" data-watercolor data-cursor="true" data-color1="#0e3a63" data-color2="#5ba3c9" data-opacity="0.26" aria-hidden="true"></div>
+
+<header>
+
+    <nav>
+        <a href="index.html">Home</a>
+        <a href="history.html">Whalestory</a>
+        <a href="meme.html">Meme</a>
+        <a href="idcard.html">ID Generator</a>
+        <a href="minigames.html" aria-current="page">Minigames</a>
+        <a class="Nav-logo" href="index.html">
+            <img src="images/OG_logo-nav.webp" alt="Secret Society of Whales &mdash; home" width="34" height="29">
+        </a>
+    </nav>
+
+</header>
+
+<main>
+    <section class="Intro">
+        <h1 data-stroke-text>Minigames</h1>
+        <p class="Tagline">
+            Games made for the pod. Pick one, top the leaderboard, and check
+            back &mdash; there&rsquo;s more on the way.
+        </p>
+    </section>
+
+    <!-- One card per game. To add a game: copy the Whale Road card, point it
+         at the new page, and drop a square cover in images/games/. -->
+    <ul class="Games" aria-label="Games">
+        <li>
+            <a class="Game-card" href="game.html">
+                <span class="Game-art">
+                    <img src="images/games/whale-road.webp" width="640" height="640"
+                         alt="A Pixel Whale in a top hat on the sand, with traffic and a river ahead">
+                </span>
+                <span class="Game-meta">
+                    <span class="Game-title">Whale Road</span>
+                    <span class="Game-by">by @deeznuts.ron</span>
+                </span>
+                <span class="Game-top" data-game-top hidden></span>
+            </a>
+        </li>
+        <li>
+            <div class="Game-card Game-card--soon" aria-label="More games coming soon">
+                <span class="Game-art">
+                    <span class="Game-soon" aria-hidden="true">?</span>
+                </span>
+                <span class="Game-meta">
+                    <span class="Game-title">More soon</span>
+                    <span class="Game-by">in the works &rarr;</span>
+                </span>
+            </div>
+        </li>
+    </ul>
+</main>
+
+<footer class="Footer" data-footer></footer>
+
+<script defer src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/gsap.min.js"></script>
+<script defer src="strokeText.js"></script>
+<script defer src="game-config.js"></script>
+<script defer src="minigames.js"></script>
+<script defer src="watercolor.js"></script>
+<script defer src="footer.js"></script>
+<script defer src="data/gold.js"></script>
+<script defer src="easteregg.js"></script>
+</body>
+</html>

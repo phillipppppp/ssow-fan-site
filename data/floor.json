@@ -1,17 +1,12 @@
 {
   "collection": "Secret Society of Whales",
   "slug": "secretsocietyofwhales",
-  "capturedAt": "2026-10-31T10:56:37.588Z",
-  "currentFloorEth": 0.004878,
-  "totalVolumeEth": 1566.54,
-  "owners": 4040,
+  "capturedAt": "2026-11-01T11:51:34.430Z",
+  "currentFloorEth": 0.00487,
+  "totalVolumeEth": 1566.55,
+  "owners": 4041,
   "note": "series = lowest completed sale per day (floor proxy); currentFloorEth is the live listing floor",
   "series": [
-    {
-      "date": "2026-08-02",
-      "eth": 0.009374,
-      "sales": 1
-    },
     {
       "date": "2026-08-03",
       "eth": 0.009254,
@@ -186,6 +181,11 @@
       "date": "2026-10-28",
       "eth": 0.003999,
       "sales": 4
+    },
+    {
+      "date": "2026-10-31",
+      "eth": 0.004878,
+      "sales": 1
     }
   ]
 }

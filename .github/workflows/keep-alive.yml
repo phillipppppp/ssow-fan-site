@@ -1,0 +1,46 @@
+# Keeps Whale Road's backend awake, and says so loudly if it isn't.
+#
+# Supabase pauses free projects after about a week with little activity,
+# and a paused project answers nothing — players get "can't reach the
+# server" and no runs are recorded. This reads the leaderboard once a day,
+# which is real database activity, so the project never looks idle.
+#
+# If either check fails, the job fails and GitHub emails the repo owner:
+# usually that means the project was paused anyway (restore it from the
+# Supabase dashboard) or the function needs redeploying.
+#
+# Only public values are used — the URL and publishable key the site
+# already ships in game-config.js. No secrets needed.
+
+name: Keep the leaderboard awake
+
+on:
+  schedule:
+    - cron: '23 3 * * *'      # daily, off the hour (GitHub drops pile-ups on :00)
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  ping:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Read the leaderboard (a real database query)
+        run: |
+          URL=$(grep -o "supabaseUrl: '[^']*'" game-config.js | cut -d"'" -f2)
+          KEY=$(grep -o "anonKey: '[^']*'" game-config.js | cut -d"'" -f2)
+          FN=$(grep -o "functionUrl: '[^']*'" game-config.js | cut -d"'" -f2)
+
+          rest=$(curl -s -o /dev/null -w '%{http_code}' -m 30 \
+            "$URL/rest/v1/wr_leaderboard?select=score&limit=1" -H "apikey: $KEY")
+          fn=$(curl -s -o /dev/null -w '%{http_code}' -m 60 -X POST "$FN" \
+            -H 'content-type: application/json' -d '{"action":"board"}')
+          echo "database (REST): $rest   function: $fn"
+
+          if [ "$rest" != "200" ] || [ "$fn" != "200" ]; then
+            echo "::error::Whale Road's backend didn't answer (database $rest, function $fn). If Supabase paused the project, restore it from the dashboard."
+            exit 1
+          fi

@@ -563,7 +563,7 @@
         try {
             res = await fetch(API, { method: 'POST', headers: headers, body: JSON.stringify(Object.assign({ action: action }, body || {})) });
         } catch (err) {
-            const e = new Error('can’t reach the server');
+            const e = new Error('the leaderboard isn’t answering right now — try again in a minute');
             e.status = 0;
             throw e;
         }

@@ -60,10 +60,6 @@
 
 .Pillar p { font-size: 0.95rem; font-weight: 600; line-height: 1.6; color: var(--ink); }
 
-.About-source { margin-top: 1.5rem; font-size: 0.8rem; font-weight: 700; color: var(--ink-3); }
-.About-source a { color: var(--ink); text-decoration: underline; text-decoration-thickness: 2px; text-underline-offset: 3px; }
-.About-source a:hover { color: var(--accent); }
-
 /* ------------------------------------------------------------
    Hero — the title on the left, the pod of whales on the right
    ------------------------------------------------------------ */

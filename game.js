@@ -120,9 +120,56 @@
         try { window.localStorage.setItem(key, JSON.stringify(value)); } catch (err) { /* fine */ }
     }
 
+    /* Comic ink, like the OG art: every solid thing on the board (not
+       the ground, ripples or sparkles) gets a black outline. inked(fn)
+       runs fn four times nudged up/down/left/right with every fill
+       forced to ink, then once for real on top. Drawing code must give
+       the same shapes each time it runs within a frame, so no
+       Math.random() in anything wrapped by inked(). Translucent fills
+       (wakes, shadows) are skipped in the ink pass. */
+    const INK = '#1d1b20';
+    const INK_W = 2;
+    const INK_OFFSETS = [[-INK_W, 0], [INK_W, 0], [0, -INK_W], [0, INK_W]];
+    let inkPass = false;
+
+    function inked(fn) {
+        inkPass = true;
+        for (let i = 0; i < INK_OFFSETS.length; i++) {
+            const o = INK_OFFSETS[i];
+            ctx.translate(o[0], o[1]);
+            fn();
+            ctx.translate(-o[0], -o[1]);
+        }
+        inkPass = false;
+        fn();
+    }
+
     function fill(color, x, y, w, h) {
-        ctx.fillStyle = color;
+        if (inkPass) {
+            if (color.lastIndexOf('rgba', 0) === 0) return;
+            ctx.fillStyle = INK;
+        } else {
+            ctx.fillStyle = color;
+        }
         ctx.fillRect(Math.round(x), Math.round(y), Math.round(w), Math.round(h));
+    }
+
+    /* A sprite's ink silhouette, made once per sprite. */
+    const inkCache = new WeakMap();
+    function inkOf(s) {
+        let c = inkCache.get(s);
+        if (!c) {
+            c = document.createElement('canvas');
+            c.width = s.width;
+            c.height = s.height;
+            const g = c.getContext('2d');
+            g.drawImage(s, 0, 0);
+            g.globalCompositeOperation = 'source-in';
+            g.fillStyle = INK;
+            g.fillRect(0, 0, c.width, c.height);
+            inkCache.set(s, c);
+        }
+        return c;
     }
 
     /* #rrggbb lightened or darkened by amt (-255..255) */
@@ -925,6 +972,7 @@
     }
 
     function drawShadow(cx, y, w) {
+        if (inkPass) return;
         ctx.fillStyle = 'rgba(0,0,0,0.2)';
         ctx.fillRect(Math.round(cx - w / 2), Math.round(y), Math.round(w), 5);
     }
@@ -978,21 +1026,21 @@
             fill(snow ? '#c9d6e2' : '#cdb47a', 0, y + CELL - 3, W, 3);
         } else if (t === 'road' || t === 'icelane') {
             const ice = t === 'icelane';
-            fill(ice ? (alt ? '#bcd3e6' : '#b5cde2') : '#3b404c', 0, y, W, CELL);
+            fill(ice ? (alt ? '#bcd3e6' : '#b5cde2') : '#3b3742', 0, y, W, CELL);
             const above = sim.lanes.get(lane.row + 1);
             const below = sim.lanes.get(lane.row - 1);
-            const line = ice ? '#9fb9cf' : '#d9dde3';
+            const line = ice ? '#9fb9cf' : '#f7f0e3';
             if (above && above.type === t) {
                 for (let x = 8; x < W; x += 44) fill(line, x, y - 1, 22, 2);
             } else {
-                fill(ice ? '#e6eef6' : '#8e95a1', 0, y, W, 3);
+                fill(ice ? '#e6eef6' : '#94989c', 0, y, W, 3);
             }
-            if (!below || below.type !== t) fill(ice ? '#9fb9cf' : '#8e95a1', 0, y + CELL - 4, W, 4);
+            if (!below || below.type !== t) fill(ice ? '#9fb9cf' : '#94989c', 0, y + CELL - 4, W, 4);
             if (ice) for (let x = (lane.seed % 30); x < W; x += 60) fill('#a9c2d8', x, y + 20, 26, 2);
         } else if (t === 'water') {
-            fill(alt ? '#2c79b4' : '#2a73ad', 0, y, W, CELL);
-            fill('#1d5a8a', 0, y, W, 4);
-            ripples(lane, y, '#5aa7dc', 7, 0.25);
+            fill(alt ? '#3a9a8e' : '#36928a', 0, y, W, CELL);
+            fill('#28746b', 0, y, W, 4);
+            ripples(lane, y, '#83c7b3', 7, 0.25);
         } else if (t === 'rail') {
             fill(alt ? '#80776d' : '#796f66', 0, y, W, CELL);
             for (let x = lane.seed % 24; x < W; x += 24) fill('#5b4636', x, y + 10, 8, 30);
@@ -1002,15 +1050,15 @@
             fill('#eef1f5', 0, y + 31, W, 1);
             expressCue(lane, y);
         } else if (t === 'shallows') {
-            fill(alt ? '#4fb3c4' : '#4aabbd', 0, y, W, CELL);
-            for (let i = 0; i < 6; i++) fill('#7fd0d9', (lane.seed * 13 + i * 97) % W, y + 6 + ((i * 13) % 30), 4, 3);
-            ripples(lane, y, '#a8e6ee', 4, 0.15);
+            fill(alt ? '#7fc0c9' : '#79b9c3', 0, y, W, CELL);
+            for (let i = 0; i < 6; i++) fill('#add4db', (lane.seed * 13 + i * 97) % W, y + 6 + ((i * 13) % 30), 4, 3);
+            ripples(lane, y, '#d6edf0', 4, 0.15);
         } else if (t === 'boats') {
-            fill(alt ? '#2f86b8' : '#2c7fb0', 0, y, W, CELL);
-            ripples(lane, y, '#6cb3dc', 6, 0.35);
+            fill(alt ? '#4f84b0' : '#4b7eaa', 0, y, W, CELL);
+            ripples(lane, y, '#a1c0d6', 6, 0.35);
         } else if (t === 'riptide') {
-            fill(alt ? '#1f5f8f' : '#1d5886', 0, y, W, CELL);
-            fill('#164a73', 0, y, W, 4);
+            fill(alt ? '#2c4f80' : '#2a4b7a', 0, y, W, CELL);
+            fill('#223e66', 0, y, W, 4);
             const drift = time * lane.dir * lane.speed * 0.9;
             for (let i = 0; i < 9; i++) {
                 const rx = ((((lane.seed * 23 + i * 71 + drift) % (W + 40)) + (W + 40)) % (W + 40)) - 20;
@@ -1020,12 +1068,12 @@
             }
         } else if (t === 'sharks' || t === 'orcas') {
             const arctic = t === 'orcas';
-            fill(arctic ? (alt ? '#1d4a6e' : '#1b466a') : (alt ? '#245f86' : '#225a80'), 0, y, W, CELL);
-            ripples(lane, y, arctic ? '#4e7ea3' : '#4f8fbb', 5, 0.2);
+            fill(arctic ? (alt ? '#1d4a6e' : '#1b466a') : (alt ? '#4a4f82' : '#464b7c'), 0, y, W, CELL);
+            ripples(lane, y, arctic ? '#4e7ea3' : '#8f8fc0', 5, 0.2);
             expressCue(lane, y);
         } else if (t === 'nets') {
-            fill(alt ? '#3a8fb8' : '#378ab2', 0, y, W, CELL);
-            ripples(lane, y, '#76bde0', 5, 0.3);
+            fill(alt ? '#5c95b8' : '#588fb2', 0, y, W, CELL);
+            ripples(lane, y, '#add4db', 5, 0.3);
         } else if (t === 'floes') {
             fill(alt ? '#173d5c' : '#163a57', 0, y, W, CELL);
             fill('#0f2c45', 0, y, W, 4);
@@ -1234,13 +1282,14 @@
         fill('#000000', dir > 0 ? head - 14 : head + 10, y + 20, 3, 3);
     }
 
+    /* Everything solid is inked; nets stay thin, they're a mesh. */
     function drawThings(lane, y) {
-        if (lane.cat === 'safe') lane.blocked.forEach(function (kind, c) { drawDecor(kind, colX(c), y); });
-        lane.coins.forEach(function (c) { drawCoin(colX(c), y); });
-        if (lane.cat === 'traffic') lane.items.forEach(function (it) { drawVehicle(it, y, lane.dir); });
-        else if (lane.cat === 'river') lane.items.forEach(function (it) { drawRaft(it, y); });
+        if (lane.cat === 'safe') lane.blocked.forEach(function (kind, c) { inked(function () { drawDecor(kind, colX(c), y); }); });
+        lane.coins.forEach(function (c) { inked(function () { drawCoin(colX(c), y); }); });
+        if (lane.cat === 'traffic') lane.items.forEach(function (it) { inked(function () { drawVehicle(it, y, lane.dir); }); });
+        else if (lane.cat === 'river') lane.items.forEach(function (it) { inked(function () { drawRaft(it, y); }); });
         else if (lane.cat === 'net') lane.items.forEach(function (it) { drawNet(it, y); });
-        else if (lane.cat === 'express' && lane.express.rider) drawRider(lane.express.rider, y, lane.dir);
+        else if (lane.cat === 'express' && lane.express.rider) inked(function () { drawRider(lane.express.rider, y, lane.dir); });
     }
 
     function footY(row) {
@@ -1298,7 +1347,7 @@
     }
 
     function drawWhale(x, feet, sx, sy, rot, alpha, facing) {
-        const s = sprite;
+        const s = inkPass ? inkOf(sprite) : sprite;
         ctx.save();
         ctx.globalAlpha = alpha;
         ctx.translate(Math.round(x), Math.round(feet));
@@ -1322,7 +1371,9 @@
             ctx.beginPath();
             ctx.rect(0, 0, W, surface);
             ctx.clip();
-            drawWhale(pose.x, pose.fy - pose.lift + (swimming ? 4 + Math.round(Math.sin(time * 3) * 2) : 0), pose.sx, pose.sy, pose.rot, pose.alpha, p.facing);
+            inked(function () {
+                drawWhale(pose.x, pose.fy - pose.lift + (swimming ? 4 + Math.round(Math.sin(time * 3) * 2) : 0), pose.sx, pose.sy, pose.rot, pose.alpha, p.facing);
+            });
             ctx.restore();
             if (swimming) {
                 const wob = Math.round(Math.sin(time * 4) * 2);
@@ -1331,7 +1382,7 @@
             }
         } else {
             drawShadow(pose.x, pose.fy - 3, 24 * (1 - 0.35 * (pose.lift / 14)));
-            drawWhale(pose.x, pose.fy - pose.lift, pose.sx, pose.sy, pose.rot, pose.alpha, p.facing);
+            inked(function () { drawWhale(pose.x, pose.fy - pose.lift, pose.sx, pose.sy, pose.rot, pose.alpha, p.facing); });
         }
 
         if (p.alive && p.shield) {
@@ -1370,20 +1421,22 @@
             const u = Math.min(1, (gull.t - 0.45) / 0.8);
             gx = lerp(wx, viewX - 80, u * u);
             gy = lerp(wy - 6, -120, u);
-            drawWhale(gx, gy + 6 + sprite.height, 1, 1, -0.25, 1, p.facing);
+            inked(function () { drawWhale(gx, gy + 6 + sprite.height, 1, 1, -0.25, 1, p.facing); });
         }
         const flap = Math.floor(time * 14) % 2 === 0;
-        ctx.save();
-        ctx.translate(Math.round(gx), Math.round(gy));
-        ctx.scale(2, 2);
-        fill('#c9ced4', -16, -2, 7, 5);
-        fill('#f4f4f4', -10, -4, 20, 9);
-        fill('#f4f4f4', 8, -9, 8, 8);
-        fill('#f2a33a', 16, -6, 6, 3);
-        fill('#111111', 12, -7, 2, 2);
-        if (flap) fill('#9aa3ad', -8, -15, 14, 11);
-        else fill('#9aa3ad', -8, 3, 14, 8);
-        ctx.restore();
+        inked(function () {
+            ctx.save();
+            ctx.translate(Math.round(gx), Math.round(gy));
+            ctx.scale(2, 2);
+            fill('#c9ced4', -16, -2, 7, 5);
+            fill('#f4f4f4', -10, -4, 20, 9);
+            fill('#f4f4f4', 8, -9, 8, 8);
+            fill('#f2a33a', 16, -6, 6, 3);
+            fill('#111111', 12, -7, 2, 2);
+            if (flap) fill('#9aa3ad', -8, -15, 14, 11);
+            else fill('#9aa3ad', -8, 3, 14, 8);
+            ctx.restore();
+        });
     }
 
     function drawDashTrail() {
@@ -1403,7 +1456,7 @@
     function draw() {
         ctx.setTransform(k, 0, 0, k, -Math.round(viewX * k), 0);
         ctx.imageSmoothingEnabled = false;
-        fill('#0c1a2a', 0, 0, W, VH);
+        fill('#1d1b20', 0, 0, W, VH);
         if (!sim) return;
 
         const p = sim.player;

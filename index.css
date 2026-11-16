@@ -4,7 +4,65 @@
    collections.
    ============================================================ */
 
-.Floor, .Pair, .Collections { margin-top: clamp(2.5rem, 6vw, 4.5rem); }
+.About, .Floor, .Pair, .Collections { margin-top: clamp(2.5rem, 6vw, 4.5rem); }
+
+/* ------------------------------------------------------------
+   Together We Whale — four pillars, four backdrop colours
+   ------------------------------------------------------------ */
+
+.Pillars {
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: clamp(1rem, 2vw, 1.5rem);
+    list-style: none;
+}
+
+.Pillar {
+    --card: var(--bg-turquoise);
+    position: relative;
+    padding: 1.4rem 1.25rem 1.5rem;
+    background: var(--card);
+    border: var(--line) solid var(--ink);
+    border-radius: var(--radius);
+    box-shadow: var(--pop);
+    transform: rotate(-0.8deg);
+    transition: transform 0.15s ease, box-shadow 0.15s ease;
+}
+
+.Pillar:nth-child(2) { --card: var(--bg-lightblue); transform: rotate(0.8deg); }
+.Pillar:nth-child(3) { --card: var(--bg-coral); }
+.Pillar:nth-child(4) { --card: var(--bg-purple); transform: rotate(0.8deg); }
+
+.Pillar:hover { transform: translate(-3px, -3px) rotate(0); box-shadow: var(--pop-lg); }
+
+.Pillar-icon {
+    display: grid;
+    place-items: center;
+    width: 3.25rem;
+    height: 3.25rem;
+    margin-bottom: 0.9rem;
+    font-size: 1.6rem;
+    line-height: 1;
+    background: var(--paper);
+    border: var(--line) solid var(--ink);
+    border-radius: 50%;
+    box-shadow: var(--pop-sm);
+}
+
+.Pillar h3 {
+    margin-bottom: 0.45rem;
+    font-family: var(--font-display);
+    font-size: 1.5rem;
+    font-weight: 400;
+    line-height: 1.1;
+    color: var(--ink);
+}
+
+.Pillar p { font-size: 0.95rem; font-weight: 600; line-height: 1.6; color: var(--ink); }
+
+.About-source { margin-top: 1.5rem; font-size: 0.8rem; font-weight: 700; color: var(--ink-3); }
+.About-source a { color: var(--ink); text-decoration: underline; text-decoration-thickness: 2px; text-underline-offset: 3px; }
+.About-source a:hover { color: var(--accent); }
 
 /* ------------------------------------------------------------
    Hero — the title on the left, the pod of whales on the right
@@ -409,6 +467,7 @@
    ------------------------------------------------------------ */
 
 @media (max-width: 1000px) {
+    .Pillars { grid-template-columns: repeat(2, minmax(0, 1fr)); }
     .Pair { grid-template-columns: 1fr; }
     .Spotlight-frame { max-width: 360px; }
 
@@ -441,6 +500,7 @@
     .Floor-stats > div { min-width: 0; flex: 1 1 6rem; }
     .Collection { grid-template-columns: 1fr 1fr; }
     .Collection > .OG-Whales a { font-size: 1.3rem; }
+    .Pillars { grid-template-columns: 1fr; }
     .Collection a { font-size: 0.95rem; padding: 0.6rem 0.6rem 0.8rem; }
     .Hero-actions .Btn { flex: 1 1 auto; }
 }

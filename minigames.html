@@ -27,19 +27,22 @@
         <div class="Boot-bar"><span></span></div>
     </div>
 </div>
-<div class="Watercolor" data-watercolor data-cursor="true" data-color1="#0e3a63" data-color2="#5ba3c9" data-opacity="0.26" aria-hidden="true"></div>
 
 <header>
 
-    <nav>
-        <a href="index.html">Home</a>
-        <a href="history.html">Whalestory</a>
-        <a href="meme.html">Meme</a>
-        <a href="idcard.html">ID Generator</a>
-        <a href="minigames.html" aria-current="page">Minigames</a>
-        <a class="Nav-logo" href="index.html">
-            <img src="images/OG_logo-nav.webp" alt="Secret Society of Whales &mdash; home" width="34" height="29">
+    <nav class="Nav" aria-label="Main">
+        <a class="Nav-logo" href="index.html" aria-label="Secret Society of Whales — home">
+            <img src="images/OG_logo-nav.webp" alt="" width="46" height="39">
+            <span class="Nav-brand" aria-hidden="true">SSoW</span>
         </a>
+        <div class="Nav-links">
+            <a href="index.html">Home</a>
+            <a href="history.html">Whalestory</a>
+            <a href="meme.html">Meme</a>
+            <a href="idcard.html">ID Generator</a>
+            <a href="minigames.html" aria-current="page">Minigames</a>
+        </div>
+        <a class="Nav-cta" href="game.html">Play Whale Road</a>
     </nav>
 
 </header>
@@ -67,6 +70,7 @@
                     <span class="Game-by">by @deeznuts.ron</span>
                 </span>
                 <span class="Game-top" data-game-top hidden></span>
+                <span class="Game-play" aria-hidden="true">Play</span>
             </a>
         </li>
         <li>
@@ -89,7 +93,6 @@
 <script defer src="strokeText.js"></script>
 <script defer src="game-config.js"></script>
 <script defer src="minigames.js"></script>
-<script defer src="watercolor.js"></script>
 <script defer src="footer.js"></script>
 <script defer src="data/gold.js"></script>
 <script defer src="easteregg.js"></script>

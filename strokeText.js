@@ -3,11 +3,19 @@
    Draws each letter's outline, then fills it with a wipe.
 
    Usage:  <h1 data-stroke-text>Secret Society of Whales</h1>
+           <h1 data-stroke-text data-stroke-lines="Secret Society|of Whales">
+               Secret Society of Whales</h1>
+           (data-stroke-lines breaks the drawn title at each "|"; the
+           heading's own text stays the accessible name)
 
    Progressive enhancement: the heading is plain styled text until
    this script runs, so it still reads correctly if JS or the GSAP
    CDN fails. Options come from data-* attributes; colours default
-   to the page's --accent so it stays on theme.
+   to the heading's --title-fill and --title-ink custom properties
+   (then --accent), so each page sets its own in CSS.
+
+   Drawn cartoon-logo style: a hard ink shadow, the fill, and the
+   ink outline on top of both.
    ============================================================ */
 
 (function () {
@@ -16,7 +24,8 @@
     const SVG_NS = 'http://www.w3.org/2000/svg';
 
     const DEFAULTS = {
-        strokeWidth: 1.4,
+        strokeWidth: 7,
+        shadow: 0.06,          // offset as a share of fontSize; 0 = none
         drawDuration: 1.6,
         fillDelay: 0.2,
         stagger: 0.05,
@@ -24,8 +33,9 @@
         trigger: 'mount',      // mount | hover | loop
         fillMode: 'wipe',      // wipe | fade | none
         fontSize: 128,
-        fontWeight: 800,
-        letterSpacing: -4,
+        fontWeight: 400,
+        letterSpacing: 1,
+        lineHeight: 1.0,       // for data-stroke-lines, in fontSize units
         reverse: false
     };
 
@@ -40,12 +50,15 @@
         const d = el.dataset;
         const cs = getComputedStyle(el);
         const accent = cs.getPropertyValue('--accent').trim() || cs.color;
+        const fill = cs.getPropertyValue('--title-fill').trim() || accent;
+        const ink = cs.getPropertyValue('--title-ink').trim() || accent;
 
         return {
             text: (d.strokeTextValue || el.textContent || '').trim(),
             fontFamily: cs.fontFamily,
-            strokeColor: d.strokeColor || accent,
-            fillColor: d.fillColor || accent,
+            strokeColor: d.strokeColor || ink,
+            fillColor: d.fillColor || fill,
+            shadow: num(d.shadow, DEFAULTS.shadow),
             strokeWidth: num(d.strokeWidth, DEFAULTS.strokeWidth),
             drawDuration: num(d.drawDuration, DEFAULTS.drawDuration),
             fillDelay: num(d.fillDelay, DEFAULTS.fillDelay),
@@ -54,8 +67,9 @@
             trigger: d.strokeTrigger || DEFAULTS.trigger,
             fillMode: d.fillMode || DEFAULTS.fillMode,
             fontSize: num(d.fontSize, DEFAULTS.fontSize),
-            fontWeight: num(d.fontWeight, DEFAULTS.fontWeight),
+            fontWeight: num(d.fontWeight, num(cs.fontWeight, DEFAULTS.fontWeight)),
             letterSpacing: num(d.letterSpacing, DEFAULTS.letterSpacing),
+            lineHeight: num(d.lineHeight, DEFAULTS.lineHeight),
             reverse: d.reverse === 'true'
         };
     }
@@ -75,9 +89,18 @@
         text.style.fontWeight = opts.fontWeight;
         text.style.letterSpacing = opts.letterSpacing + 'px';
 
+        /* "\n" starts a new line: the next letter goes back to x=0,
+           one line lower. It gets no tspan of its own. */
+        let newLine = false;
         chars.forEach(char => {
+            if (char === '\n') { newLine = true; return; }
             const tspan = document.createElementNS(SVG_NS, 'tspan');
             tspan.textContent = char;
+            if (newLine) {
+                tspan.setAttribute('x', '0');
+                tspan.setAttribute('dy', opts.fontSize * opts.lineHeight);
+                newLine = false;
+            }
             text.appendChild(tspan);
         });
 
@@ -88,7 +111,10 @@
         const opts = readOptions(el);
         if (!opts.text) return;
 
-        const chars = Array.from(opts.text);
+        const lines = el.dataset.strokeLines
+            ? el.dataset.strokeLines.split('|').map(l => l.trim())
+            : [opts.text];
+        const chars = Array.from(lines.join('\n'));
         const id = 'stroke-text-wipe-' + (uid++);
         const useWipe = opts.fillMode === 'wipe';
 
@@ -99,7 +125,7 @@
 
         const svg = document.createElementNS(SVG_NS, 'svg');
         svg.setAttribute('class', 'stroke-text__svg');
-        svg.setAttribute('preserveAspectRatio', 'xMidYMid meet');
+        svg.setAttribute('preserveAspectRatio', 'xMinYMid meet');
         svg.setAttribute('aria-hidden', 'true');
 
         /* wipe clip */
@@ -128,8 +154,24 @@
         fillText.setAttribute('stroke', 'none');
         if (useWipe) fillText.setAttribute('clip-path', 'url(#' + id + ')');
 
-        svg.appendChild(strokeText);
+        /* the hard offset shadow: an ink copy, outline included, nudged
+           down-right. It arrives with the fill (same wipe, or same fade). */
+        let shadowText = null;
+        if (opts.shadow > 0) {
+            const off = opts.fontSize * opts.shadow;
+            shadowText = buildText(chars, opts, 'stroke-text__shadow');
+            shadowText.setAttribute('fill', opts.strokeColor);
+            shadowText.setAttribute('stroke', opts.strokeColor);
+            shadowText.setAttribute('stroke-width', opts.strokeWidth);
+            shadowText.setAttribute('stroke-linejoin', 'round');
+            shadowText.setAttribute('transform', 'translate(' + off + ' ' + off + ')');
+            if (useWipe) shadowText.setAttribute('clip-path', 'url(#' + id + ')');
+            svg.appendChild(shadowText);
+        }
+
+        /* fill under the outline, so the ink line keeps its full width */
         svg.appendChild(fillText);
+        svg.appendChild(strokeText);
         wrap.appendChild(svg);
 
         el.textContent = '';
@@ -146,15 +188,21 @@
             }
             if (!bbox || !bbox.width) return;
 
-            const pad = Math.max(opts.strokeWidth, opts.fontSize * 0.1);
+            /* Room for the outline all round, plus the shadow on the
+               right and bottom only — so the title's left edge lines up
+               with the text under it. */
+            const ink = opts.strokeWidth;
+            const shadow = opts.fontSize * opts.shadow;
             const box = {
-                x: bbox.x - pad,
-                y: bbox.y - pad,
-                width: bbox.width + pad * 2,
-                height: bbox.height + pad * 2
+                x: bbox.x - ink,
+                y: bbox.y - ink,
+                width: bbox.width + ink * 2 + shadow,
+                height: bbox.height + ink * 2 + shadow
             };
 
             svg.setAttribute('viewBox', box.x + ' ' + box.y + ' ' + box.width + ' ' + box.height);
+            /* CSS can size the title by height with this (see .Intro h1) */
+            wrap.style.setProperty('--ratio', (box.width / box.height).toFixed(4));
 
             if (wipeRect) {
                 wipeRect.setAttribute('x', box.x);
@@ -162,7 +210,7 @@
                 wipeRect.setAttribute('height', box.height);
             }
 
-            animate(wrap, strokeText, fillText, wipeRect, box, opts);
+            animate(wrap, strokeText, fillText, shadowText, wipeRect, box, opts);
         };
 
         if (document.fonts && document.fonts.ready) {
@@ -172,9 +220,11 @@
         }
     }
 
-    function animate(root, strokeText, fillText, wipeRect, box, opts) {
+    function animate(root, strokeText, fillText, shadowText, wipeRect, box, opts) {
         const strokes = Array.from(strokeText.querySelectorAll('tspan'));
-        const fills = Array.from(fillText.querySelectorAll('tspan'));
+        /* the shadow's letters behave exactly like the fill's */
+        const fills = Array.from(fillText.querySelectorAll('tspan'))
+            .concat(shadowText ? Array.from(shadowText.querySelectorAll('tspan')) : []);
         if (!strokes.length) return;
 
         const dash = Math.max(opts.fontSize * 7, 200);

@@ -9,7 +9,10 @@
     <!-- whales load from IPFS; open that connection before any script asks -->
     <link rel="preconnect" href="https://gateway.pinata.cloud" crossorigin>
     <link rel="stylesheet" href="base.css">
+    <link rel="stylesheet" href="studio.css">
     <link rel="stylesheet" href="idcard.css">
+    <!-- the card itself is drawn in Syne; the rest of the site no longer loads it -->
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Syne:wght@800&display=swap">
     <script>
         /* Runs before <body> paints: if the boot screen already played
            this session, mark the document so CSS skips it outright.
@@ -29,19 +32,22 @@
         <div class="Boot-bar"><span></span></div>
     </div>
 </div>
-<div class="Watercolor" data-watercolor data-cursor="true" data-color1="#0e3a63" data-color2="#5ba3c9" data-opacity="0.26" aria-hidden="true"></div>
 
 <header>
 
-    <nav>
-        <a href="index.html">Home</a>
-        <a href="history.html">Whalestory</a>
-        <a href="meme.html">Meme</a>
-        <a href="idcard.html" aria-current="page">ID Generator</a>
-        <a href="minigames.html">Minigames</a>
-        <a class="Nav-logo" href="index.html">
-            <img src="images/OG_logo-nav.webp" alt="Secret Society of Whales &mdash; home" width="34" height="29">
+    <nav class="Nav" aria-label="Main">
+        <a class="Nav-logo" href="index.html" aria-label="Secret Society of Whales — home">
+            <img src="images/OG_logo-nav.webp" alt="" width="46" height="39">
+            <span class="Nav-brand" aria-hidden="true">SSoW</span>
         </a>
+        <div class="Nav-links">
+            <a href="index.html">Home</a>
+            <a href="history.html">Whalestory</a>
+            <a href="meme.html">Meme</a>
+            <a href="idcard.html" aria-current="page">ID Generator</a>
+            <a href="minigames.html">Minigames</a>
+        </div>
+        <a class="Nav-cta" href="game.html">Play Whale Road</a>
     </nav>
 
 </header>
@@ -169,7 +175,6 @@
 <script defer src="whale.js"></script>
 <script defer src="chain.js"></script>
 <script defer src="idcard.js"></script>
-<script defer src="watercolor.js"></script>
 <script defer src="footer.js"></script>
 <script defer src="data/gold.js"></script>
 <script defer src="easteregg.js"></script>

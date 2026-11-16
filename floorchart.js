@@ -150,8 +150,8 @@
                 '<svg class="Floor-svg" viewBox="0 0 ' + VB_W + ' ' + VB_H + '" role="img" ' +
                      'aria-label="Lowest daily sale price in ETH over the last 90 days">' +
                     '<defs><linearGradient id="floorFill" x1="0" y1="0" x2="0" y2="1">' +
-                        '<stop offset="0%" stop-color="#4ce0c4" stop-opacity="0.28"/>' +
-                        '<stop offset="100%" stop-color="#4ce0c4" stop-opacity="0"/>' +
+                        '<stop offset="0%" stop-color="#83c7b3" stop-opacity="0.75"/>' +
+                        '<stop offset="100%" stop-color="#83c7b3" stop-opacity="0.08"/>' +
                     '</linearGradient></defs>' +
                     grid + yLabels + xLabels +
                     '<path class="Floor-area" d="' + area + '"/>' +

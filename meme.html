@@ -9,6 +9,7 @@
     <!-- whales load from IPFS; open that connection before any script asks -->
     <link rel="preconnect" href="https://gateway.pinata.cloud" crossorigin>
     <link rel="stylesheet" href="base.css">
+    <link rel="stylesheet" href="studio.css">
     <link rel="stylesheet" href="meme.css">
     <script>
         /* Runs before <body> paints: if the boot screen already played
@@ -29,19 +30,22 @@
         <div class="Boot-bar"><span></span></div>
     </div>
 </div>
-<div class="Watercolor" data-watercolor data-cursor="true" data-color1="#0e3a63" data-color2="#5ba3c9" data-opacity="0.26" aria-hidden="true"></div>
 
 <header>
 
-    <nav>
-        <a href="index.html">Home</a>
-        <a href="history.html">Whalestory</a>
-        <a href="meme.html" aria-current="page">Meme</a>
-        <a href="idcard.html">ID Generator</a>
-        <a href="minigames.html">Minigames</a>
-        <a class="Nav-logo" href="index.html">
-            <img src="images/OG_logo-nav.webp" alt="Secret Society of Whales &mdash; home" width="34" height="29">
+    <nav class="Nav" aria-label="Main">
+        <a class="Nav-logo" href="index.html" aria-label="Secret Society of Whales — home">
+            <img src="images/OG_logo-nav.webp" alt="" width="46" height="39">
+            <span class="Nav-brand" aria-hidden="true">SSoW</span>
         </a>
+        <div class="Nav-links">
+            <a href="index.html">Home</a>
+            <a href="history.html">Whalestory</a>
+            <a href="meme.html" aria-current="page">Meme</a>
+            <a href="idcard.html">ID Generator</a>
+            <a href="minigames.html">Minigames</a>
+        </div>
+        <a class="Nav-cta" href="game.html">Play Whale Road</a>
     </nav>
 
 </header>
@@ -100,7 +104,7 @@
                     <label for="fontFamily">Font</label>
                     <select id="fontFamily" name="fontFamily">
                         <option value="impact">Impact (classic meme)</option>
-                        <option value="display">Syne (on brand)</option>
+                        <option value="display">Lilita One (on brand)</option>
                         <option value="mono">JetBrains Mono</option>
                     </select>
                 </div>
@@ -174,7 +178,6 @@
 <script defer src="whale.js"></script>
 <script defer src="captions.js"></script>
 <script defer src="meme.js"></script>
-<script defer src="watercolor.js"></script>
 <script defer src="footer.js"></script>
 <script defer src="data/gold.js"></script>
 <script defer src="easteregg.js"></script>

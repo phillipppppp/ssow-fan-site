@@ -841,6 +841,16 @@
 
     if (document.fonts && document.fonts.ready) {
         document.fonts.ready.then(render).catch(function () {});
+        /* Nothing on the page itself is set in Syne any more, and a
+           browser only fetches a web font once something uses it — so
+           ask for the card's fonts by name, then redraw. */
+        if (document.fonts.load) {
+            Promise.all([
+                document.fonts.load('800 20px Syne'),
+                document.fonts.load('400 12px "JetBrains Mono"'),
+                document.fonts.load('600 12px "JetBrains Mono"')
+            ]).then(render).catch(function () {});
+        }
     }
 
     /* idcard.html?id=3955 — deep-link straight to a whale, so a card

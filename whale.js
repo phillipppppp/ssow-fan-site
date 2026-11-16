@@ -92,8 +92,34 @@
         });
     }
 
+    /* The eleven Background traits, as the art paints them (sampled
+       from the images). The site uses the same colours as its palette,
+       so a whale shown on its own backdrop looks at home. */
+    const BACKGROUNDS = {
+        'Turquoise':  '#83c7b3',
+        'Light Blue': '#add4db',
+        'Green':      '#c1dbb6',
+        'Blue':       '#a1c0d6',
+        'Purple':     '#ab9abf',
+        'Coral':      '#e0887a',
+        'Orange':     '#e28537',
+        'Wood':       '#ba976a',
+        'Army':       '#496342',
+        'Gray':       '#94989c',
+        'Light Gray': '#bec4c3'
+    };
+
     window.WhaleSource = {
         SUPPLY: SUPPLY,
+        BACKGROUNDS: BACKGROUNDS,
+
+        /* The hex behind this whale, or null for a 1/1 without one. */
+        backgroundOf: function (whale) {
+            const t = (whale && whale.traits || []).find(function (a) {
+                return a.trait_type === 'Background';
+            });
+            return (t && BACKGROUNDS[t.value]) || null;
+        },
 
         isValidId: function (id) {
             const n = Number(id);

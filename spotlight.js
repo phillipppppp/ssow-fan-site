@@ -68,7 +68,7 @@
     async function randomRemote() {
         const id = Math.floor(Math.random() * SUPPLY) + 1;
         const whale = await window.WhaleSource.load(id);
-        return { id: whale.id, src: whale.image };
+        return { id: whale.id, src: whale.image, bg: window.WhaleSource.backgroundOf(whale) };
     }
 
     /* Resolves once the image is downloaded AND decoded, so handing it to
@@ -125,6 +125,9 @@
                 link.href = 'https://opensea.io/item/ethereum/' + CONTRACT + '/' + whale.id;
             }
             root.classList.remove('is-empty');
+            /* the card takes on the whale's backdrop colour */
+            if (whale.bg) root.style.setProperty('--whale-bg', whale.bg);
+            else root.style.removeProperty('--whale-bg');
         }, reduced ? 0 : FADE_MS);
     }
 

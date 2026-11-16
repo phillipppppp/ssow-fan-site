@@ -1,9 +1,9 @@
 /* ============================================================
    Whalestory — loads after base.css
 
-   A long document, so this sheet is mostly typography and a
-   left-hand time rule. Chapters are plain blocks divided by
-   hairlines, not cards.
+   A long document, so this sheet is mostly typography. Each month
+   is a card hung on an ink time-line down the left; topics inside
+   it are headed by small sticker tags.
    ============================================================ */
 
 main { max-width: 1100px; }
@@ -12,207 +12,200 @@ main { max-width: 1100px; }
    Intro
    ------------------------------------------------------------ */
 
-.Intro {
-    padding: clamp(4rem, 10vw, 8rem) 0 clamp(2.5rem, 5vw, 4rem);
-    text-align: left;
-}
-
-.Intro h1 {
-    font-family: var(--font-display);
-    font-size: clamp(2.75rem, 12vw, 8rem);
-    font-weight: 800;
-    line-height: 0.88;
-    letter-spacing: -0.035em;
-    color: var(--ink);
-}
-
-.Intro h1 .stroke-text { display: block; width: 100%; margin: 0; line-height: 0; }
-.Intro h1 .stroke-text__svg { display: block; width: 100%; height: auto; overflow: visible; }
+.Intro h1 { --title-fill: var(--bg-orange); }
 
 .Intro > p {
-    max-width: 40rem;
-    margin: clamp(1.5rem, 3vw, 2.5rem) 0 0 auto;
-    padding: 0;
-    text-align: left;
-    font-size: clamp(0.95rem, 1.3vw, 1.08rem);
+    max-width: 42rem;
+    margin: clamp(1rem, 2vw, 1.5rem) 0 0;
+    font-size: clamp(1rem, 1.35vw, 1.1rem);
+    font-weight: 600;
     line-height: 1.75;
     color: var(--ink-2);
-    background: none;
-    border: 0;
 }
 
 /* year jump links */
 .Chapters {
     display: flex;
     flex-wrap: wrap;
-    gap: 0.4rem;
-    justify-content: flex-start;
-    margin-top: 2.5rem;
-    padding-top: 2.5rem;
-    border-top: 1px solid var(--rule);
+    gap: 0.6rem;
+    margin-top: 2rem;
 }
 
 .Chapters a {
-    padding: 0.45rem 1rem;
-    font-family: var(--font-mono);
-    font-size: 0.72rem;
-    letter-spacing: 0.12em;
-    color: var(--ink-3);
+    padding: 0.4rem 1.2rem;
+    font-family: var(--font-display);
+    font-size: 1.15rem;
+    color: var(--ink);
     text-decoration: none;
-    background: none;
-    border: 1px solid var(--rule);
-    transition: all 0.18s ease;
+    background: var(--paper);
+    border: var(--line-thin) solid var(--ink);
+    border-radius: 999px;
+    box-shadow: 3px 3px 0 var(--ink);
+    transition: background 0.15s ease, transform 0.12s ease;
 }
+
+.Chapters a:nth-child(5n + 1) { background: var(--bg-turquoise); }
+.Chapters a:nth-child(5n + 2) { background: var(--bg-coral); }
+.Chapters a:nth-child(5n + 3) { background: var(--bg-lightblue); }
+.Chapters a:nth-child(5n + 4) { background: var(--bg-purple); }
+.Chapters a:nth-child(5n + 5) { background: var(--bg-green); }
 
 .Chapters a:hover,
-.Chapters a:focus-visible {
-    color: var(--bg);
-    background: var(--ink);
-    border-color: var(--ink);
-}
+.Chapters a:focus-visible { background: var(--gold); transform: translate(-1px, -1px); }
 
 /* ------------------------------------------------------------
-   Year — a big mono numeral with the time rule running past it
+   Year — a big numeral, then the time-line runs down from it
    ------------------------------------------------------------ */
 
 .Year {
     position: relative;
-    margin: clamp(3rem, 7vw, 6rem) 0 0;
-    padding-left: clamp(0px, 4vw, 3.5rem);
+    margin: clamp(3rem, 7vw, 5rem) 0 0;
+    padding-left: clamp(1.75rem, 4vw, 3.5rem);
+    scroll-margin-top: 110px;
 }
 
 .Year::before {
     content: "";
     position: absolute;
-    top: 9rem;
+    top: 7rem;
     bottom: 0;
-    left: 0;
-    width: 1px;
-    background: var(--rule);
+    left: calc(clamp(1.75rem, 4vw, 3.5rem) / 2 - 2px);
+    width: 4px;
+    background: var(--ink);
+    border-radius: 2px;
 }
 
 .Year > h2 {
-    margin: 0 0 clamp(2rem, 4vw, 3rem) calc(-1 * clamp(0px, 4vw, 3.5rem));
-    padding-bottom: 1.25rem;
-    font-family: var(--font-mono);
-    font-size: clamp(3rem, 11vw, 7rem);
-    font-weight: 600;
-    line-height: 0.9;
-    letter-spacing: -0.02em;
-    color: var(--ink);
-    text-align: left;
-    border-bottom: 1px solid var(--rule);
+    display: inline-block;
+    margin: 0 0 clamp(1.75rem, 4vw, 2.5rem) calc(-1 * clamp(1.75rem, 4vw, 3.5rem));
+    font-family: var(--font-display);
+    font-size: clamp(3.5rem, 11vw, 6.5rem);
+    font-weight: 400;
+    line-height: 0.95;
+    color: var(--paper);
+    -webkit-text-stroke: 3px var(--ink);
+    paint-order: stroke fill;
+    text-shadow: 6px 6px 0 var(--ink);
 }
 
 .Year > h2::after { content: none; }
 
 /* ------------------------------------------------------------
-   Chapter — a block, not a card
+   Chapter — a card on the line
    ------------------------------------------------------------ */
 
 .Chapter {
     position: relative;
-    margin: 0 0 clamp(2.5rem, 5vw, 4rem);
-    padding: 0 0 clamp(2.5rem, 5vw, 4rem);
-    background: none;
-    border: 0;
-    border-bottom: 1px solid var(--rule-soft);
+    margin: 0 0 clamp(1.75rem, 4vw, 2.5rem);
+    padding: clamp(1.25rem, 3vw, 2rem);
+    background: var(--paper);
+    border: var(--line) solid var(--ink);
+    border-radius: var(--radius);
+    box-shadow: var(--pop);
+    scroll-margin-top: 100px;
 }
 
-/* the tick on the time rule */
+/* the knot on the time-line */
 .Chapter::before {
     content: "";
     position: absolute;
-    top: 0.85rem;
-    left: calc(-1 * clamp(0px, 4vw, 3.5rem));
-    width: 9px;
-    height: 1px;
-    background: var(--accent);
+    top: 1.6rem;
+    left: calc(-1 * clamp(1.75rem, 4vw, 3.5rem) / 2 - 11px);
+    width: 16px;
+    height: 16px;
+    background: var(--gold);
+    border: var(--line) solid var(--ink);
+    border-radius: 50%;
 }
 
-.Chapter:hover { background: none; box-shadow: none; }
-
 .Chapter > h3 {
-    margin-bottom: 1.75rem;
-    padding-bottom: 0;
+    margin-bottom: 1.25rem;
     font-family: var(--font-display);
-    font-size: clamp(1.15rem, 2.4vw, 1.75rem);
-    font-weight: 800;
-    line-height: 1.25;
-    letter-spacing: -0.02em;
+    font-size: clamp(1.4rem, 2.8vw, 2rem);
+    font-weight: 400;
+    line-height: 1.15;
     color: var(--ink);
-    border: 0;
 }
 
 .Chapter > h3 time {
-    display: block;
-    margin-bottom: 0.5rem;
-    font-family: var(--font-mono);
-    font-size: 0.66rem;
-    font-weight: 400;
-    letter-spacing: 0.22em;
+    display: table;
+    margin-bottom: 0.55rem;
+    padding: 0.15rem 0.7rem;
+    font-family: var(--font-body);
+    font-size: 0.72rem;
+    font-weight: 900;
+    letter-spacing: 0.08em;
     text-transform: uppercase;
-    color: var(--ink-4);
+    color: var(--ink);
+    background: var(--bg-lightblue);
+    border: var(--line-thin) solid var(--ink);
+    border-radius: 999px;
 }
 
 /* ------------------------------------------------------------
    Topic — a labelled section inside a chapter
    ------------------------------------------------------------ */
 
-.Topic { margin-bottom: 2rem; }
+.Topic { margin-bottom: 1.5rem; }
+.Topic:last-child { margin-bottom: 0; }
 
 .Topic > h4 {
-    margin-bottom: 0.75rem;
-    padding-left: 0;
-    font-family: var(--font-mono);
-    font-size: 0.66rem;
-    font-weight: 400;
-    letter-spacing: 0.2em;
+    display: inline-block;
+    margin-bottom: 0.6rem;
+    padding: 0.12rem 0.7rem;
+    font-size: 0.7rem;
+    font-weight: 900;
+    letter-spacing: 0.08em;
     text-transform: uppercase;
-    color: var(--accent);
-    border: 0;
+    color: var(--ink);
+    background: var(--bg-green);
+    border: var(--line-thin) solid var(--ink);
+    border-radius: 999px;
 }
+
+.Topic:nth-of-type(4n + 2) > h4 { background: var(--bg-coral); }
+.Topic:nth-of-type(4n + 3) > h4 { background: var(--bg-purple); }
+.Topic:nth-of-type(4n + 4) > h4 { background: var(--bg-turquoise); }
 
 .Topic p { margin-bottom: 0.8rem; color: var(--ink-2); line-height: 1.75; }
 
-.Topic ul { margin-top: 0.6rem; padding-left: 1.4rem; list-style: none; }
+.Topic ul { margin-top: 0.4rem; padding-left: 1.4rem; list-style: none; }
 
 .Topic li {
     position: relative;
-    margin-bottom: 0.55rem;
+    margin-bottom: 0.45rem;
     color: var(--ink-2);
-    line-height: 1.75;
+    line-height: 1.7;
 }
 
 .Topic li::before {
     content: "";
     position: absolute;
-    left: -1.4rem;
-    top: 0.75em;
-    width: 6px;
-    height: 1px;
-    background: var(--ink-4);
-    opacity: 1;
-    font-size: inherit;
-    line-height: normal;
+    left: -1.2rem;
+    top: 0.62em;
+    width: 7px;
+    height: 7px;
+    background: var(--ink);
+    border-radius: 50%;
 }
 
-.Topic strong { font-weight: 700; color: var(--ink); }
+.Topic strong { font-weight: 800; color: var(--ink); }
 
 .Topic a {
     color: var(--ink);
-    font-weight: 500;
-    text-decoration: none;
-    border-bottom: 1px solid var(--accent-line);
-    transition: all 0.18s ease;
+    font-weight: 800;
+    text-decoration: underline;
+    text-decoration-color: var(--accent);
+    text-decoration-thickness: 2px;
+    text-underline-offset: 3px;
 }
-.Topic a:hover { color: var(--accent); border-bottom-color: var(--accent); }
+.Topic a:hover { color: var(--accent); }
 
 /* ------------------------------------------------------------
    Gallery
    ------------------------------------------------------------ */
 
-.Gallery { display: flex; flex-wrap: wrap; gap: 1px; margin: 1.75rem 0; }
+.Gallery { display: flex; flex-wrap: wrap; gap: 0.75rem; margin: 1.5rem 0; }
 
 .Gallery:empty::before {
     content: "photos to be added";
@@ -221,56 +214,61 @@ main { max-width: 1100px; }
     justify-content: center;
     width: 100%;
     height: 80px;
-    font-family: var(--font-mono);
-    font-size: 0.62rem;
-    letter-spacing: 0.16em;
-    text-transform: uppercase;
-    color: var(--ink-4);
-    background: var(--surface);
-    border: 1px solid var(--rule-soft);
+    font-size: 0.8rem;
+    font-weight: 800;
+    color: var(--ink-3);
+    background: var(--paper-2);
+    border: var(--line-thin) dashed var(--rule-soft);
+    border-radius: var(--radius-sm);
 }
 
 .Gallery img {
     width: 168px;
     height: 168px;
     object-fit: cover;
-    border: 0;
-    filter: grayscale(1) contrast(1.05);
-    transition: filter 0.3s ease;
+    background: var(--paper-2);
+    border: var(--line) solid var(--ink);
+    border-radius: var(--radius-sm);
+    box-shadow: var(--pop-sm);
+    transition: transform 0.15s ease, box-shadow 0.15s ease;
 }
 
-.Gallery img:hover { filter: none; transform: none; box-shadow: none; }
+.Gallery img:nth-child(odd):hover  { transform: rotate(-2deg) scale(1.04); box-shadow: var(--pop); }
+.Gallery img:nth-child(even):hover { transform: rotate(2deg) scale(1.04); box-shadow: var(--pop); }
 
 /* ------------------------------------------------------------
-   Closing note
+   Closing note — a speech bubble
    ------------------------------------------------------------ */
 
 .Closing {
-    margin-top: 1.75rem;
-    padding: 1.1rem 0 1.1rem 1.25rem;
-    font-size: 0.95rem;
+    position: relative;
+    margin-top: 1.5rem;
+    padding: 1rem 1.25rem;
+    font-size: 0.98rem;
+    font-weight: 700;
     font-style: normal;
-    line-height: 1.75;
-    color: var(--ink-3);
-    background: none;
-    border-left: 1px solid var(--accent);
+    line-height: 1.7;
+    color: var(--ink);
+    background: var(--bg-lightblue);
+    border: var(--line-thin) solid var(--ink);
+    border-radius: var(--radius-sm);
 }
 
 /* ------------------------------------------------------------
-   Sources — the log tail
+   Sources — the small print
    ------------------------------------------------------------ */
 
-.Sources { margin-top: 1.75rem; padding-top: 1.25rem; border-top: 1px solid var(--rule-soft); }
+.Sources { margin-top: 1.5rem; padding-top: 1rem; border-top: var(--line-thin) dashed var(--rule-soft); }
 
 .Sources ul {
     display: grid;
     grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
     gap: 0.2rem 1.5rem;
     list-style: none;
-    font-family: var(--font-mono);
-    font-size: 0.68rem;
+    font-size: 0.76rem;
+    font-weight: 600;
     line-height: 1.8;
-    color: var(--ink-4);
+    color: var(--ink-3);
 }
 
 /* ------------------------------------------------------------
@@ -278,42 +276,44 @@ main { max-width: 1100px; }
    ------------------------------------------------------------ */
 
 .Today {
-    margin-top: clamp(3rem, 7vw, 6rem);
-    padding: clamp(2.5rem, 5vw, 4rem) 0 0;
+    margin-top: clamp(3rem, 7vw, 5rem);
+    padding: clamp(1.5rem, 4vw, 2.75rem);
     text-align: left;
-    background: none;
-    border: 0;
-    border-top: 1px solid var(--rule);
+    background: var(--bg-turquoise);
+    border: var(--line) solid var(--ink);
+    border-radius: var(--radius);
+    box-shadow: var(--pop-lg);
 }
 
 .Today h2 {
-    margin-bottom: 1rem;
+    margin-bottom: 0.75rem;
     font-family: var(--font-display);
-    font-size: clamp(1.75rem, 5vw, 3rem);
-    font-weight: 800;
-    letter-spacing: -0.03em;
+    font-size: clamp(2rem, 5vw, 3.25rem);
+    font-weight: 400;
+    line-height: 1;
     color: var(--ink);
 }
 
-.Today p { max-width: 40rem; color: var(--ink-2); }
+.Today p { max-width: 40rem; font-weight: 600; color: var(--ink); }
 
 .Today a {
     display: inline-block;
-    margin-top: 1.75rem;
-    padding: 0.7rem 1.5rem;
-    font-family: var(--font-mono);
-    font-size: 0.66rem;
-    letter-spacing: 0.16em;
-    text-transform: uppercase;
-    color: var(--bg);
+    margin-top: 1.5rem;
+    padding: 0.65rem 1.5rem;
+    font-family: var(--font-display);
+    font-size: 1.1rem;
+    letter-spacing: 0.02em;
+    color: var(--ink);
     text-decoration: none;
-    background: var(--accent);
-    border: 1px solid var(--accent);
-    transition: all 0.18s ease;
+    background: var(--gold);
+    border: var(--line-thin) solid var(--ink);
+    border-radius: 999px;
+    box-shadow: 3px 3px 0 var(--ink);
+    transition: transform 0.12s ease, background 0.15s ease;
 }
 
 .Today a:hover,
-.Today a:focus-visible { background: var(--accent-bright); border-color: var(--accent-bright); }
+.Today a:focus-visible { background: var(--gold-bright); transform: translate(-1px, -1px); }
 
 /* ------------------------------------------------------------
    Small screens
@@ -321,7 +321,8 @@ main { max-width: 1100px; }
 
 @media (max-width: 600px) {
     .Sources ul { grid-template-columns: 1fr; }
-    .Gallery img { width: 132px; height: 132px; }
+    .Gallery { gap: 0.5rem; }
+    .Gallery img { width: calc(50% - 0.25rem); height: auto; aspect-ratio: 1; }
 }
 
 /* ------------------------------------------------------------
@@ -330,8 +331,10 @@ main { max-width: 1100px; }
 
 @media print {
     body { background: #fff; color: #000; }
-    nav, .Chapters, .Watercolor, .Boot, .Golden { display: none; }
-    .Chapter { break-inside: avoid; border-bottom: 1px solid #999; }
-    .Chapter > h3, .Year > h2, .Today h2 { color: #000; }
+    .Nav, .Chapters, .Boot, .Golden, .Footer { display: none; }
+    .Chapter { break-inside: avoid; box-shadow: none; border: 1px solid #999; }
+    .Chapter::before, .Year::before { display: none; }
+    .Year > h2 { color: #000; -webkit-text-stroke: 0; text-shadow: none; }
+    .Chapter > h3, .Today h2 { color: #000; }
     .Topic p, .Topic li, .Sources ul { color: #333; }
 }

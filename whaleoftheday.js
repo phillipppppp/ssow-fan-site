@@ -97,9 +97,13 @@
                    '<span class="Daily-traitValue">' + t.value + '</span></li>';
         }).join('');
 
+        /* the panel wears the whale's own backdrop colour */
+        const bg = window.WhaleSource.backgroundOf(whale);
+        const tint = bg ? ' style="--whale-bg: ' + bg + '"' : '';
+
         root.innerHTML =
             '<h2 class="Daily-heading">Whale of the Day</h2>' +
-            '<div class="Daily-panel">' +
+            '<div class="Daily-panel"' + tint + '>' +
                 '<div class="Daily-art">' +
                     '<img src="' + whale.image + '" alt="Secret Society of Whales #' + whale.id + '">' +
                 '</div>' +

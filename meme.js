@@ -13,7 +13,7 @@
 
     const FONTS = {
         impact: 'Impact, "Arial Black", sans-serif',
-        display: "'Syne', 'Trebuchet MS', sans-serif",
+        display: "'Lilita One', 'Arial Rounded MT Bold', sans-serif",
         mono: "'JetBrains Mono', ui-monospace, monospace"
     };
 
@@ -198,7 +198,8 @@
         if (!text) return;
 
         const size = Number(els.fontSize.value);
-        const weight = els.fontFamily.value === 'impact' ? '400' : '800';
+        /* Impact and Lilita One come in one weight; the mono is drawn bold */
+        const weight = els.fontFamily.value === 'mono' ? '600' : '400';
         ctx.font = weight + ' ' + size + 'px ' + FONTS[els.fontFamily.value];
         ctx.textAlign = 'center';
         ctx.lineJoin = 'round';    /* stops spikes on sharp glyph corners */

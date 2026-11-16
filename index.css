@@ -1,194 +1,299 @@
 /* ============================================================
    Home — loads after base.css
-   Hero, floor panel, whale of the day, spotlight, collections.
+   Hero and the pod, floor card, whale of the day + spotlight,
+   collections.
    ============================================================ */
 
-/* every block separated by a hairline, nothing floats */
-.Floor, .Daily, .Spotlight, .Collection {
-    padding: clamp(3rem, 7vw, 6rem) 0;
-    border-top: 1px solid var(--rule);
-}
+.Floor, .Pair, .Collections { margin-top: clamp(2.5rem, 6vw, 4.5rem); }
 
 /* ------------------------------------------------------------
-   Hero — the type is the design
+   Hero — the title on the left, the pod of whales on the right
    ------------------------------------------------------------ */
 
-.Intro {
-    padding: clamp(4rem, 11vw, 9rem) 0 clamp(3rem, 7vw, 6rem);
-    text-align: left;
+.Hero {
+    display: grid;
+    grid-template-columns: minmax(0, 1.1fr) minmax(0, 1fr);
+    gap: clamp(1.5rem, 4vw, 4rem);
+    align-items: center;
 }
 
-.Intro h1 {
+/* the two-line title fills its column's width instead (a huge
+   --title-h means the width cap always wins) */
+.Hero h1 { --title-h: 100rem; }
+.Hero h1 .stroke-text { max-width: 720px; }
+
+.Hero-actions { display: flex; flex-wrap: wrap; gap: 0.9rem; margin-top: 1.75rem; }
+
+.Btn--gold {
     font-family: var(--font-display);
-    font-size: clamp(2.75rem, 11vw, 9rem);
-    font-weight: 800;
-    line-height: 0.88;
-    letter-spacing: -0.035em;
-    color: var(--ink);
+    font-size: 1.1rem;
+    font-weight: 400;
+    letter-spacing: 0.03em;
+    text-transform: none;
+    background: var(--gold);
 }
 
-.Intro h1 .stroke-text { display: block; width: 100%; margin: 0; line-height: 0; }
-.Intro h1 .stroke-text__svg { display: block; width: 100%; height: auto; overflow: visible; }
+.Btn--gold:hover:not(:disabled),
+.Btn--gold:focus-visible:not(:disabled) { background: var(--gold-bright); }
 
-/* tagline offset right — the asymmetry is the point */
-.Intro .Tagline {
-    max-width: 34rem;
-    margin: clamp(1.5rem, 3vw, 2.5rem) 0 0 auto;
-    font-size: clamp(0.95rem, 1.3vw, 1.1rem);
-    line-height: 1.65;
-    color: var(--ink-2);
+/* The pod: round stickers, each on its own trait colour (the art
+   carries its backdrop, so the circle crop does the rest). */
+.Pod {
+    position: relative;
+    width: 100%;
+    max-width: 560px;
+    aspect-ratio: 1;
+    margin-left: auto;
+}
+
+.Pod-whale {
+    position: absolute;
+    left: calc(var(--x) - var(--s) / 2);
+    top: calc(var(--y) - var(--s) / 2);
+    width: var(--s);
+    height: auto;
+    aspect-ratio: 1;
+    object-fit: cover;
+    border: var(--line) solid var(--ink);
+    border-radius: 50%;
+    box-shadow: var(--pop);
+    background: var(--paper-2);
+    animation: podBob 5s ease-in-out var(--d) infinite;
+}
+
+@keyframes podBob {
+    0%, 100% { transform: translateY(0) rotate(0); }
+    50%      { transform: translateY(-8px) rotate(-2deg); }
 }
 
 /* ------------------------------------------------------------
-   Floor — the number is enormous, the chart is a footnote
+   Floor — a card: the number big, the chart under it
    ------------------------------------------------------------ */
+
+.Floor {
+    position: relative;
+    padding: clamp(1.25rem, 3vw, 2.25rem);
+    background: var(--paper);
+    border: var(--line) solid var(--ink);
+    border-radius: var(--radius);
+    box-shadow: var(--pop-lg);
+}
 
 .Floor-head {
     display: grid;
     grid-template-columns: 1fr auto;
     gap: 2rem;
     align-items: end;
-    margin-bottom: 2.5rem;
+    margin-bottom: 1.75rem;
 }
+
+.Floor-label { background: var(--bg-turquoise); margin-bottom: 1rem; }
 
 .Floor-hero {
-    font-family: var(--font-mono);
-    font-size: clamp(3rem, 9vw, 7rem);
-    font-weight: 600;
+    font-family: var(--font-display);
+    font-size: clamp(3rem, 9vw, 6.5rem);
+    font-weight: 400;
     line-height: 0.9;
-    letter-spacing: -0.03em;
-    color: var(--accent);
+    color: var(--ink);
+    text-shadow: 4px 4px 0 var(--bg-turquoise);
 }
 
-.Floor-unit { font-size: 0.22em; letter-spacing: 0.18em; color: var(--ink-3); }
+.Floor-unit { font-size: 0.32em; letter-spacing: 0.04em; color: var(--ink-3); text-shadow: none; }
 
-.Floor-stats { display: flex; gap: clamp(1.5rem, 4vw, 4rem); }
-.Floor-stats dt { font-family: var(--font-mono); font-size: 0.6rem;
-                  letter-spacing: 0.18em; text-transform: uppercase; color: var(--ink-4); }
-.Floor-stats dd { font-family: var(--font-mono); font-size: 1.05rem; color: var(--ink-2); }
+.Floor-stats { display: flex; flex-wrap: wrap; gap: 0.75rem; }
+
+.Floor-stats > div {
+    min-width: 7.5rem;
+    padding: 0.6rem 0.9rem;
+    background: var(--bg);
+    border: var(--line-thin) solid var(--ink);
+    border-radius: var(--radius-sm);
+}
+
+.Floor-stats dt { font-size: 0.66rem; font-weight: 900; letter-spacing: 0.08em;
+                  text-transform: uppercase; color: var(--ink-3); }
+.Floor-stats dd { font-family: var(--font-display); font-size: 1.35rem; line-height: 1.2; color: var(--ink); }
 
 .Floor-figure { position: relative; margin: 0; }
 .Floor-svg { display: block; width: 100%; height: auto; overflow: visible; }
 
-.Floor-grid    { stroke: var(--rule-soft); stroke-width: 1; }
-.Floor-axis    { fill: var(--ink-4); font-family: var(--font-mono); font-size: 10px; }
-.Floor-area    { fill: url(#floorFill); opacity: 0.5; }
-.Floor-line    { fill: none; stroke: var(--accent); stroke-width: 2; }
-.Floor-dot     { fill: var(--accent); }
-.Floor-dot.is-edge { stroke: var(--bg); stroke-width: 2; }
-.Floor-callout { fill: var(--ink-2); font-family: var(--font-mono); font-size: 10px; }
-.Floor-cross   { stroke: var(--rule); stroke-width: 1; stroke-dasharray: 3 3; }
+.Floor-grid    { stroke: var(--rule-soft); stroke-width: 1; stroke-dasharray: 4 4; }
+.Floor-axis    { fill: var(--ink-3); font-family: var(--font-body); font-weight: 800; font-size: 11px; }
+.Floor-area    { fill: url(#floorFill); }
+.Floor-line    { fill: none; stroke: var(--ink); stroke-width: 3; stroke-linejoin: round; stroke-linecap: round; }
+.Floor-dot     { fill: var(--gold); stroke: var(--ink); stroke-width: 1.5; }
+.Floor-dot.is-edge { fill: var(--ember); stroke: var(--ink); stroke-width: 2; }
+.Floor-callout { fill: var(--ink); font-family: var(--font-body); font-weight: 900; font-size: 11px; }
+.Floor-cross   { stroke: var(--ink); stroke-width: 1.5; stroke-dasharray: 3 3; }
 
-.Floor-caption { margin-top: 1rem; max-width: 44rem; font-size: 0.72rem;
-                 line-height: 1.6; color: var(--ink-4); }
+.Floor-caption { margin-top: 1rem; max-width: 44rem; font-size: 0.78rem;
+                 font-weight: 600; line-height: 1.6; color: var(--ink-3); }
 
 .Floor-tip {
     position: absolute;
     z-index: 5;
     transform: translate(-50%, -140%);
-    padding: 0.4rem 0.65rem;
+    padding: 0.4rem 0.75rem;
     white-space: nowrap;
     pointer-events: none;
-    background: var(--bg);
-    border: 1px solid var(--accent-line);
+    background: var(--paper);
+    border: var(--line-thin) solid var(--ink);
+    border-radius: var(--radius-sm);
+    box-shadow: var(--pop-sm);
 }
 .Floor-tip[hidden] { display: none; }
-.Floor-tip strong { display: block; font-family: var(--font-mono); font-size: 0.8rem; color: var(--accent); }
-.Floor-tip span   { font-family: var(--font-mono); font-size: 0.65rem; color: var(--ink-4); }
+.Floor-tip strong { display: block; font-family: var(--font-display); font-weight: 400;
+                    font-size: 1rem; color: var(--ink); }
+.Floor-tip span   { font-size: 0.7rem; font-weight: 700; color: var(--ink-3); }
 
-.Floor-data { margin-top: 1rem; font-size: 0.78rem; color: var(--ink-3); }
-.Floor-data summary { cursor: pointer; font-family: var(--font-mono); font-size: 0.64rem;
-                      letter-spacing: 0.16em; text-transform: uppercase; color: var(--ink-4); }
-.Floor-data table { width: 100%; margin-top: 1rem; border-collapse: collapse;
-                    font-family: var(--font-mono); font-size: 0.72rem; }
+.Floor-data { margin-top: 1rem; font-size: 0.82rem; color: var(--ink-2); }
+.Floor-data summary { display: inline-block; cursor: pointer; font-size: 0.72rem; font-weight: 900;
+                      letter-spacing: 0.06em; text-transform: uppercase; color: var(--ink);
+                      text-decoration: underline; text-decoration-thickness: 2px;
+                      text-underline-offset: 3px; }
+.Floor-data table { width: 100%; margin-top: 1rem; border-collapse: collapse; font-size: 0.8rem; }
 .Floor-data th, .Floor-data td { padding: 0.35rem 0.5rem; text-align: left;
                                  border-bottom: 1px solid var(--rule-soft); }
-.Floor-data th { color: var(--ink-4); font-weight: 400; }
+.Floor-data th { color: var(--ink-3); font-weight: 900; }
 
-.Floor-empty { padding: 2rem 0; font-family: var(--font-mono); font-size: 0.7rem;
-               letter-spacing: 0.16em; text-transform: uppercase; color: var(--ink-4); }
+.Floor-empty { padding: 2rem 0; font-size: 0.8rem; font-weight: 800; color: var(--ink-3); }
 
 /* ------------------------------------------------------------
-   Whale of the Day — image hard left, data hard right
+   Whale of the Day + Spotlight, side by side
    ------------------------------------------------------------ */
 
-.Daily-heading { color: var(--amethyst); }
+.Pair {
+    display: grid;
+    grid-template-columns: minmax(0, 2fr) minmax(0, 1fr);
+    gap: clamp(1.25rem, 3vw, 2.5rem);
+    align-items: stretch;
+}
+
+/* ------------------------------------------------------------
+   Whale of the Day — a card painted in the whale's own backdrop
+   ------------------------------------------------------------ */
+
+.Daily { display: flex; flex-direction: column; align-items: flex-start; }
+
+.Daily-heading { background: var(--gold); }
 
 .Daily-panel {
     display: grid;
-    grid-template-columns: minmax(200px, 320px) 1fr;
-    gap: clamp(1.5rem, 4vw, 3.5rem);
+    grid-template-columns: minmax(180px, 300px) 1fr;
+    gap: clamp(1.25rem, 3vw, 2.25rem);
     align-items: start;
+    width: 100%;
+    flex: 1;
+    padding: clamp(1.1rem, 2.5vw, 1.75rem);
+    background: var(--whale-bg, var(--bg-lightblue));
+    border: var(--line) solid var(--ink);
+    border-radius: var(--radius);
+    box-shadow: var(--pop-lg);
+    transition: background 0.4s ease;
 }
 
-.Daily-panel.is-loading { grid-template-columns: 1fr; min-height: 140px; }
+.Daily-panel.is-loading {
+    grid-template-columns: 1fr;
+    place-items: center;
+    min-height: 260px;
+    background: var(--paper);
+}
 
-.Daily-loading { font-family: var(--font-mono); font-size: 0.68rem;
-                 letter-spacing: 0.16em; text-transform: uppercase; color: var(--ink-4); }
+.Daily-loading { font-size: 0.85rem; font-weight: 900; letter-spacing: 0.04em; color: var(--ink-3); }
 
-.Daily-art img { display: block; width: 100%; aspect-ratio: 1;
-                 object-fit: cover; filter: grayscale(0.15); }
+.Daily-art img {
+    display: block;
+    width: 100%;
+    aspect-ratio: 1;
+    object-fit: cover;
+    border: var(--line) solid var(--ink);
+    border-radius: var(--radius-sm);
+    box-shadow: var(--pop);
+    background: var(--paper);
+}
 
-.Daily-date { font-family: var(--font-mono); font-size: 0.64rem;
-              letter-spacing: 0.2em; color: var(--ink-4); }
+.Daily-info {
+    min-width: 0;
+    padding: clamp(0.9rem, 2vw, 1.25rem);
+    background: var(--paper);
+    border: var(--line) solid var(--ink);
+    border-radius: var(--radius-sm);
+}
+
+.Daily-date { font-size: 0.7rem; font-weight: 900; letter-spacing: 0.08em; color: var(--ink-3); }
 
 .Daily-id {
-    margin: 0.1rem 0 1.5rem;
-    font-family: var(--font-mono);
-    font-size: clamp(2.5rem, 7vw, 5.5rem);
-    font-weight: 600;
-    line-height: 0.9;
-    letter-spacing: -0.03em;
+    margin: 0.1rem 0 1rem;
+    font-family: var(--font-display);
+    font-size: clamp(2.75rem, 6vw, 4.5rem);
+    font-weight: 400;
+    line-height: 0.95;
     color: var(--ink);
 }
 
-/* cells divided by rules rather than floating chips */
-.Daily-traits { display: flex; flex-wrap: wrap; list-style: none;
-                margin-bottom: 2rem; border-top: 1px solid var(--rule-soft); }
+/* traits as little tags */
+.Daily-traits { display: flex; flex-wrap: wrap; gap: 0.4rem; list-style: none; margin-bottom: 1.25rem; }
 
-.Daily-trait { display: flex; flex-direction: column; gap: 0.15rem;
-               padding: 0.7rem 1.1rem 0.7rem 0; margin-right: 1.1rem;
-               border-right: 1px solid var(--rule-soft); }
+.Daily-trait {
+    display: flex;
+    flex-direction: column;
+    padding: 0.3rem 0.7rem 0.35rem;
+    background: var(--bg);
+    border: var(--line-thin) solid var(--ink);
+    border-radius: var(--radius-sm);
+}
 
-.Daily-traitType { font-family: var(--font-mono); font-size: 0.55rem;
-                   letter-spacing: 0.16em; text-transform: uppercase; color: var(--ink-4); }
-.Daily-traitValue { font-size: 0.85rem; font-weight: 500; color: var(--ink-2); }
+.Daily-traitType { font-size: 0.6rem; font-weight: 900; letter-spacing: 0.08em;
+                   text-transform: uppercase; color: var(--ink-3); }
+.Daily-traitValue { font-size: 0.88rem; font-weight: 800; line-height: 1.3; color: var(--ink); }
 
-.Daily-actions { display: flex; flex-wrap: wrap; gap: 0.75rem; margin-bottom: 1.25rem; }
+.Daily-actions { display: flex; flex-wrap: wrap; gap: 0.75rem; margin-bottom: 1rem; }
 
 .Daily-link {
-    padding: 0.7rem 1.5rem;
-    font-family: var(--font-mono);
-    font-size: 0.66rem;
-    letter-spacing: 0.16em;
-    text-transform: uppercase;
-    color: var(--bg);
+    display: inline-flex;
+    align-items: center;
+    padding: 0.6rem 1.2rem;
+    font-family: var(--font-display);
+    font-size: 1rem;
+    letter-spacing: 0.02em;
+    color: var(--ink);
     text-decoration: none;
-    background: var(--accent);
-    border: 1px solid var(--accent);
-    transition: background 0.18s ease, color 0.18s ease;
+    background: var(--gold);
+    border: var(--line-thin) solid var(--ink);
+    border-radius: 999px;
+    box-shadow: 3px 3px 0 var(--ink);
+    transition: transform 0.12s ease, box-shadow 0.12s ease, background 0.15s ease;
 }
-.Daily-link:hover { background: var(--accent-bright); border-color: var(--accent-bright); }
-.Daily-link--ghost { color: var(--ink); background: none; border-color: var(--rule); }
-.Daily-link--ghost:hover { color: var(--bg); background: var(--ink); border-color: var(--ink); }
+.Daily-link:hover, .Daily-link:focus-visible {
+    background: var(--gold-bright);
+    transform: translate(-1px, -1px);
+    box-shadow: 4px 4px 0 var(--ink);
+}
+.Daily-link--ghost { background: var(--paper); }
+.Daily-link--ghost:hover, .Daily-link--ghost:focus-visible { background: var(--bg-lightblue); }
 
-.Daily-next { font-family: var(--font-mono); font-size: 0.64rem;
-              letter-spacing: 0.16em; color: var(--ink-4); }
-.Daily-clock { color: var(--amethyst); }
+.Daily-next { font-size: 0.72rem; font-weight: 900; letter-spacing: 0.06em; color: var(--ink-3); }
+.Daily-clock { font-family: var(--font-code); font-weight: 600; color: var(--ink); }
 
 /* ------------------------------------------------------------
-   Spotlight — a square, not a porthole
+   Spotlight — a tilted card that keeps changing colour
    ------------------------------------------------------------ */
 
-.Spotlight { text-align: left; }
+.Spotlight { display: flex; flex-direction: column; align-items: flex-start; text-align: left; }
+
+.Spotlight h2 { background: var(--bg-purple); transform: rotate(1.5deg); }
 
 .Spotlight-frame {
     position: relative;
-    width: clamp(220px, 26vw, 340px);
+    width: 100%;
     aspect-ratio: 1;
-    background: var(--surface);
-    border: 1px solid var(--rule);
     overflow: hidden;
+    background: var(--whale-bg, var(--paper-2));
+    border: var(--line) solid var(--ink);
+    border-radius: var(--radius);
+    box-shadow: var(--pop-lg);
+    transform: rotate(-1.5deg);
+    transition: background 0.5s ease;
 }
 
 .Spotlight-img { position: absolute; inset: 0; width: 100%; height: 100%;
@@ -198,64 +303,132 @@
 .Spotlight-empty {
     position: absolute; inset: 0;
     display: none; align-items: center; justify-content: center;
-    font-family: var(--font-mono); font-size: 0.64rem;
-    letter-spacing: 0.16em; text-transform: uppercase; color: var(--ink-4);
+    font-size: 0.8rem; font-weight: 900; color: var(--ink-3);
 }
 .Spotlight.is-empty .Spotlight-empty { display: flex; }
 
-.Spotlight-meta { margin-top: 1.1rem; }
-.Spotlight-link { font-family: var(--font-mono); font-size: 1.3rem; font-weight: 600;
-                  letter-spacing: 0.04em; color: var(--ink); text-decoration: none; }
+/* the first whale takes a few seconds over IPFS — say so */
+.Spotlight:not(.is-empty) .Spotlight-frame:has(.Spotlight-img:not(.is-visible))::after {
+    content: "fetching a whale\2026";
+    position: absolute;
+    inset: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 0.85rem;
+    font-weight: 900;
+    color: var(--ink-3);
+    animation: spotPulse 1.4s ease-in-out infinite;
+}
+
+@keyframes spotPulse { 50% { opacity: 0.4; } }
+
+.Spotlight-meta { display: flex; flex-wrap: wrap; align-items: baseline; gap: 0.25rem 0.75rem; margin-top: 1.25rem; }
+.Spotlight-link { font-family: var(--font-display); font-size: 1.8rem; line-height: 1;
+                  color: var(--ink); text-decoration: none; }
 .Spotlight-link:hover { color: var(--accent); }
+.Spotlight-note { font-size: 0.78rem; font-weight: 700; color: var(--ink-3); }
 
 /* ------------------------------------------------------------
-   Collections — a hard grid of squares, the gap IS the rule
+   Collections — chunky cards, each in a backdrop colour
    ------------------------------------------------------------ */
 
+.Section-title {
+    font-family: var(--font-display);
+    font-size: clamp(2rem, 5vw, 3.25rem);
+    font-weight: 400;
+    line-height: 1;
+    color: var(--ink);
+}
+
+.Section-lede { margin: 0.5rem 0 1.75rem; font-weight: 600; color: var(--ink-2); }
+
+/* Seven cards: the OG collection is the big one (2 x 2), and the six
+   others fill the three columns beside it, so no card sits alone. */
 .Collection {
     display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
-    gap: 1px;
-    background: var(--rule-soft);
-    border: 1px solid var(--rule-soft);
+    grid-template-columns: repeat(5, minmax(0, 1fr));
+    gap: clamp(1rem, 2vw, 1.5rem);
 }
 
-.Collection > div { padding: 1.5rem; text-align: left; background: var(--bg);
-                    transition: background 0.2s ease; }
-.Collection > div:hover, .Collection > div:focus-within { background: var(--surface-2); }
+.Collection > .OG-Whales { grid-column: span 2; grid-row: span 2; }
+.Collection > .OG-Whales a { font-size: clamp(1.4rem, 2.4vw, 2rem); padding: 1rem 1rem 1.2rem; }
 
-.Collection a { display: block; font-family: var(--font-display); font-size: 0.95rem;
-                font-weight: 800; line-height: 1.25; color: var(--ink); text-decoration: none; }
-.Collection a:hover { color: var(--accent); }
+.Collection > div {
+    --card: var(--bg-lightblue);
+    background: var(--card);
+    border: var(--line) solid var(--ink);
+    border-radius: var(--radius);
+    box-shadow: var(--pop);
+    transition: transform 0.15s ease, box-shadow 0.15s ease;
+}
+
+.Collection > div:nth-child(7n + 1) { --card: var(--bg-orange); }
+.Collection > div:nth-child(7n + 2) { --card: var(--bg-blue); }
+.Collection > div:nth-child(7n + 3) { --card: var(--bg-green); }
+.Collection > div:nth-child(7n + 4) { --card: var(--bg-purple); }
+.Collection > div:nth-child(7n + 5) { --card: var(--bg-coral); }
+.Collection > div:nth-child(7n + 6) { --card: var(--bg-lightblue); }
+.Collection > div:nth-child(7n + 7) { --card: var(--bg-turquoise); }
+
+.Collection > div:hover,
+.Collection > div:focus-within { transform: translate(-3px, -3px) rotate(-0.6deg); box-shadow: var(--pop-lg); }
+
+/* the image comes first on screen, the name under it */
+.Collection a {
+    display: flex;
+    flex-direction: column-reverse;
+    justify-content: flex-end;
+    gap: 0.8rem;
+    height: 100%;
+    padding: 0.8rem 0.8rem 1rem;
+    font-family: var(--font-display);
+    font-size: 1.12rem;
+    line-height: 1.15;
+    color: var(--ink);
+    text-decoration: none;
+}
+
+.Collection a:focus-visible { outline: none; }
 
 .Collection img {
-    display: block; width: 100%; height: auto; aspect-ratio: 1;
-    margin: 1.25rem 0 0; object-fit: cover;
-    filter: grayscale(1) contrast(1.05);
-    transition: filter 0.3s ease;
+    display: block;
+    width: 100%;
+    height: auto;
+    aspect-ratio: 1;
+    object-fit: cover;
+    background: var(--paper);
+    border: var(--line) solid var(--ink);
+    border-radius: var(--radius-sm);
 }
-.Collection > div:hover img { filter: none; }
 
 .Collection img[src=""], .Collection img:not([src]) { display: none; }
-
-.Collection > div:has(img[src=""])::after,
-.Collection > div:has(img:not([src]))::after {
-    content: "art pending";
-    display: flex; align-items: center; justify-content: center;
-    width: 100%; aspect-ratio: 1; margin-top: 1.25rem;
-    font-family: var(--font-mono); font-size: 0.62rem;
-    letter-spacing: 0.16em; text-transform: uppercase; color: var(--ink-4);
-    background: var(--surface); border: 1px solid var(--rule-soft);
-}
 
 /* ------------------------------------------------------------
    Small screens
    ------------------------------------------------------------ */
 
-@media (max-width: 900px) {
+@media (max-width: 1000px) {
+    .Pair { grid-template-columns: 1fr; }
+    .Spotlight-frame { max-width: 360px; }
+
+    /* three columns: the OG card becomes a wide banner on top
+       (picture left, name right), then two rows of three */
+    .Collection { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+    .Collection > .OG-Whales { grid-column: 1 / -1; grid-row: auto; }
+    .Collection > .OG-Whales a { flex-direction: row-reverse; align-items: center; justify-content: flex-end; gap: 1.25rem; }
+    .Collection > .OG-Whales img { width: min(40%, 220px); }
+}
+
+@media (max-width: 860px) {
+    .Hero { grid-template-columns: 1fr; }
+    .Pod { max-width: 440px; margin: 0.5rem auto 0; }
+}
+
+@media (max-width: 700px) {
     .Daily-panel { grid-template-columns: 1fr; }
     .Daily-art img { max-width: 300px; }
-    .Floor-head { grid-template-columns: 1fr; align-items: start; gap: 1.5rem; }
+    .Floor-head { grid-template-columns: 1fr; align-items: start; gap: 1.25rem; }
 }
 
 @media (max-width: 620px) {
@@ -264,5 +437,10 @@
     .Floor-axis    { font-size: 21px; }
     .Floor-callout { font-size: 22px; }
     .Floor-dot     { r: 4; }
-    .Floor-line    { stroke-width: 4; }
+    .Floor-line    { stroke-width: 5; }
+    .Floor-stats > div { min-width: 0; flex: 1 1 6rem; }
+    .Collection { grid-template-columns: 1fr 1fr; }
+    .Collection > .OG-Whales a { font-size: 1.3rem; }
+    .Collection a { font-size: 0.95rem; padding: 0.6rem 0.6rem 0.8rem; }
+    .Hero-actions .Btn { flex: 1 1 auto; }
 }

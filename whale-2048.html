@@ -1,0 +1,183 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Whale 2048 | Secret Society of Whales</title>
+    <meta name="description" content="Merge sea creatures up the food chain, from Krill to the King Whale. A Secret Society of Whales minigame.">
+    <link rel="icon" type="image/png" sizes="32x32" href="images/favicon-32.png">
+    <link rel="apple-touch-icon" sizes="180x180" href="images/favicon-180.png">
+    <link rel="stylesheet" href="base.css">
+    <link rel="stylesheet" href="arcade.css">
+    <link rel="stylesheet" href="whale-2048.css">
+    <script>
+        /* Runs before <body> paints: if the boot screen already played
+           this session, mark the document so CSS skips it outright.
+           Deferring this to a file would flash the intro on every page. */
+        try {
+            if (sessionStorage.getItem('ssow-booted')) {
+                document.documentElement.classList.add('booted');
+            }
+            sessionStorage.setItem('ssow-booted', '1');
+        } catch (e) { /* private mode - the intro just plays again */ }
+    </script>
+</head>
+<body>
+<div class="Boot" aria-hidden="true">
+    <div class="Boot-inner">
+        <p class="Boot-mark">Secret Society of Whales</p>
+        <div class="Boot-bar"><span></span></div>
+    </div>
+</div>
+
+<header>
+
+    <nav class="Nav" aria-label="Main">
+        <a class="Nav-logo" href="index.html" aria-label="Secret Society of Whales — home">
+            <img src="images/OG_logo-nav.webp" alt="" width="46" height="39">
+            <span class="Nav-brand" aria-hidden="true">SSoW</span>
+        </a>
+        <div class="Nav-links">
+            <a href="index.html">Home</a>
+            <a href="history.html">Whalestory</a>
+            <a href="meme.html">Meme</a>
+            <a href="idcard.html">ID Generator</a>
+            <a href="minigames.html" aria-current="page">Minigames</a>
+        </div>
+        <a class="Nav-cta" href="game.html">Play Whale Road</a>
+    </nav>
+
+</header>
+
+<main>
+    <div class="W2">
+        <section class="Intro W2-intro">
+            <p class="Crumbs"><a href="minigames.html">&larr; Minigames</a></p>
+            <h1 data-stroke-text>Whale 2048</h1>
+            <p class="Tagline">
+                Slide the sea, match two of a kind, and grow them up the food chain &mdash;
+                from a tiny Krill all the way to the King Whale.
+            </p>
+        </section>
+        <!-- ============ The game ============ -->
+        <section class="W2-game" aria-label="Whale 2048">
+            <div class="W2-bar">
+                <div class="Score">
+                    <span class="Score-label">Score</span>
+                    <strong id="score">0</strong>
+                    <span class="Score-pop" id="scorePop" aria-hidden="true"></span>
+                </div>
+                <div class="Score">
+                    <span class="Score-label">Best</span>
+                    <strong id="best">0</strong>
+                </div>
+                <button type="button" class="Btn Btn--primary W2-new" id="newGame">New game</button>
+                <button type="button" class="W2-mute" id="mute" aria-pressed="false" aria-label="Sound on — mute" title="Sound">&#x1F50A;</button>
+            </div>
+
+            <div class="W2-stage">
+                <div class="Discover" id="discover" aria-hidden="true"></div>
+                <div class="Board" id="board">
+                    <div class="Board-sea">
+                        <div class="Board-grid" id="grid" role="group" aria-label="Game board, 4 by 4">
+                            <div class="Board-cells" aria-hidden="true"></div>
+                            <div class="Board-tiles" id="tiles"></div>
+                        </div>
+                    </div>
+                    <p class="Board-wait" id="wait" hidden>Stirring up the sea&hellip;</p>
+                    <div class="Board-over" id="overlay" hidden>
+                        <div class="Over-card" role="dialog" aria-modal="false" aria-labelledby="overTitle">
+                            <div class="Over-art" id="overArt"></div>
+                            <h2 class="Over-title" id="overTitle"></h2>
+                            <p class="Over-text" id="overText"></p>
+                            <p class="Over-net" id="overNet"></p>
+                            <div class="Over-actions">
+                                <button type="button" class="Btn Btn--primary" id="keepGoing">Keep going</button>
+                                <button type="button" class="Btn Btn--primary" id="overNew">New game</button>
+                                <button type="button" class="Btn" id="overName">Put it on the board</button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <p class="W2-hint">
+                <span class="Only-touch">Swipe on the board to slide.</span>
+                <span class="Only-keys">Slide with the arrow keys or <kbd>W</kbd><kbd>A</kbd><kbd>S</kbd><kbd>D</kbd> &mdash; or drag on the board.</span>
+                Two of the same creature become the next one up.
+            </p>
+            <p class="W2-net" id="net" role="status" aria-live="polite"></p>
+        </section>
+
+        <!-- ============ Leaderboard + you ============ -->
+        <div class="W2-side">
+            <section class="Panel Lb" aria-labelledby="lbTitle">
+                <h2 id="lbTitle">Leaderboard</h2>
+                <ol class="Lb-list" id="lbList"></ol>
+                <p class="Lb-empty" id="lbEmpty" hidden></p>
+                <p class="Lb-you" id="lbYou" hidden></p>
+                <p class="Lb-note">Every score is replayed move by move on the server before it goes up.</p>
+            </section>
+
+            <section class="Panel You" id="you" aria-labelledby="youTitle">
+                <div class="You-head">
+                    <div class="You-preview"><img id="avatarPreview" src="images/pfp/whale-0.svg" alt="" width="120" height="120"></div>
+                    <div>
+                        <h2 id="youTitle">You on the board</h2>
+                        <p class="You-label">Playing as <strong id="avatarLabel">Blue whale</strong></p>
+                    </div>
+                </div>
+
+                <form class="Field Name-form" id="nameForm" novalidate>
+                    <label class="Field-label" for="w2Name">Your name <span class="Hint">2&ndash;16 letters, numbers, spaces, _ . -</span></label>
+                    <div class="Wallet-row">
+                        <input type="text" id="w2Name" maxlength="16" autocomplete="nickname" spellcheck="false" placeholder="deez">
+                        <button type="submit" class="Btn" id="nameSave">Save</button>
+                    </div>
+                    <p class="Wallet-status" id="nameStatus" role="status" aria-live="polite"></p>
+                </form>
+
+                <div class="Field">
+                    <span class="Field-label">Use my whale</span>
+                    <div class="Wallet-row">
+                        <input type="text" id="walletInput" placeholder="0x&hellip; your wallet" spellcheck="false" autocomplete="off" aria-label="Wallet address">
+                        <button type="button" class="Btn" id="walletLoad">Load</button>
+                    </div>
+                    <p class="Wallet-status" id="walletStatus" role="status" aria-live="polite"></p>
+                    <div class="Avatar-grid" id="walletGrid" hidden></div>
+                    <p class="Wallet-note">Your wallet stays in this browser. The leaderboard only shows your whale and your name &mdash; no signing needed.</p>
+                </div>
+
+                <div class="Field">
+                    <span class="Field-label">No whale? Pick a pfp</span>
+                    <div class="Avatar-row" id="pfpRow"></div>
+                </div>
+            </section>
+        </div>
+    </div>
+
+    <!-- ============ The ladder ============ -->
+    <section class="Ladder" aria-labelledby="ladderTitle">
+        <h2 class="Label" id="ladderTitle">Up the food chain</h2>
+        <ol class="Ladder-list" id="ladder"></ol>
+    </section>
+
+    <p class="Sr-only" id="announce" aria-live="polite"></p>
+</main>
+
+<footer class="Footer" data-footer></footer>
+
+<script defer src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/gsap.min.js"></script>
+<script defer src="strokeText.js"></script>
+<script defer src="game-config.js"></script>
+<script defer src="whale-2048-sim.js"></script>
+<script defer src="whale-2048-art.js"></script>
+<script defer src="arcade-sound.js"></script>
+<script defer src="whale-2048-sound.js"></script>
+<script defer src="poker-avatar.js"></script>
+<script defer src="whale-2048.js"></script>
+<script defer src="footer.js"></script>
+<script defer src="data/gold.js"></script>
+<script defer src="easteregg.js"></script>
+</body>
+</html>

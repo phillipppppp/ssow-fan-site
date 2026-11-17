@@ -423,3 +423,7 @@ verify_jwt = false
 # their own keys, so skip the gateway JWT check here as well.
 [functions.poker]
 verify_jwt = false
+
+# Whale 2048 too: players are checked by their own browser key.
+[functions.whale-2048]
+verify_jwt = false

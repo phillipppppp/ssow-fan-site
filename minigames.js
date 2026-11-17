@@ -1,30 +1,38 @@
 /* ============================================================
    Minigames hub — puts each game's current #1 on its card.
 
-   Reads the same public leaderboard the game shows (one POST to the
-   whale-road function). If the backend isn't configured or doesn't
-   answer, the card simply goes without the line.
+   Reads the same public leaderboards the games show (one POST to
+   each game's function). If a backend isn't configured or doesn't
+   answer, its card simply keeps its usual line.
    ============================================================ */
 
 (function () {
     'use strict';
 
-    const line = document.querySelector('[data-game-top]');
     const cfg = window.WHALE_ROAD_CONFIG || {};
-    if (!line || !cfg.functionUrl) return;
 
-    fetch(cfg.functionUrl, {
-        method: 'POST',
-        headers: { 'content-type': 'application/json' },
-        body: JSON.stringify({ action: 'board' })
-    })
-        .then(function (res) { return res.ok ? res.json() : null; })
-        .then(function (data) {
-            const top = data && data.rows && data.rows[0];
-            line.textContent = top
-                ? '\u{1F3C6} #1 ' + top.username + ' · ' + top.score
-                : '\u{1F3C6} No scores yet — be the first';
-            line.hidden = false;
+    function top(line, url, pick) {
+        if (!line || !url) return;
+        fetch(url, {
+            method: 'POST',
+            headers: { 'content-type': 'application/json' },
+            body: JSON.stringify({ action: 'board' })
         })
-        .catch(function () { /* no line, no fuss */ });
+            .then(function (res) { return res.ok ? res.json() : null; })
+            .then(function (data) {
+                if (!data) return;
+                const row = data.rows && data.rows[0];
+                line.textContent = row
+                    ? '\u{1F3C6} #1 ' + pick(row) + ' · ' + Number(row.score).toLocaleString('en-US')
+                    : '\u{1F3C6} No scores yet — be the first';
+                line.hidden = false;
+            })
+            .catch(function () { /* the card keeps its usual line */ });
+    }
+
+    top(document.querySelector('[data-game-top="whale-road"]'), cfg.functionUrl,
+        function (r) { return r.username; });
+    top(document.querySelector('[data-game-top="whale-2048"]'),
+        cfg.supabaseUrl ? cfg.supabaseUrl + '/functions/v1/whale-2048' : '',
+        function (r) { return r.name; });
 })();

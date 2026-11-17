@@ -1,5 +1,6 @@
 /* ============================================================
-   LoungeAvatar — "Your whale" for the Cigar Lounge.
+   LoungeAvatar — "Your whale" for the Cigar Lounge, and for the
+   Whale 2048 leaderboard (same markup, same remembered choice).
 
    Paste a wallet, press Load: the poker function asks OpenSea
    (with a key only the server has) which OG whales it holds, and

@@ -53,6 +53,9 @@ a.Game-card:focus-visible { transform: translate(-3px, -3px) rotate(-0.6deg); bo
     transition: transform 0.35s ease;
 }
 
+/* drawn (not pixel) art scales smoothly */
+.Game-art--smooth img { image-rendering: auto; }
+
 a.Game-card:hover .Game-art img,
 a.Game-card:focus-visible .Game-art img { transform: scale(1.05); }
 

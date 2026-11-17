@@ -1,0 +1,609 @@
+/* ============================================================
+   Whale 2048. Shared chrome lives in base.css; the "you" panel
+   (fields, wallet, avatar picks) in arcade.css.
+
+   The board is dressed like the Cigar Lounge table: a wood rail
+   round turquoise felt with the SSoW crest printed in it. Tiles
+   are chunky inked stickers, one OG backdrop colour per creature.
+   ============================================================ */
+
+main { max-width: 1240px; }
+
+.Intro h1 { --title-fill: var(--bg-lightblue); }
+
+.Sr-only {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip: rect(0 0 0 0);
+    white-space: nowrap;
+}
+
+/* ------------------------------------------------------------
+   Layout: the game, then the leaderboard and you
+   ------------------------------------------------------------ */
+
+/* On a laptop the board comes first, right under the nav, so the whole
+   board fits on the first screen; the title and the leaderboard sit
+   beside it. On phones: title, board, leaderboard. */
+.W2 {
+    --slide: 110ms;
+    display: grid;
+    grid-template-columns: minmax(0, 560px) minmax(300px, 1fr);
+    grid-template-areas: "game intro" "game side";
+    grid-template-rows: auto 1fr;
+    column-gap: clamp(1.5rem, 3.5vw, 3rem);
+    row-gap: 1.5rem;
+    align-items: start;
+    padding-top: clamp(1.25rem, 3vw, 2rem);
+}
+
+.W2-intro { grid-area: intro; padding: 0; }
+.W2-intro h1 { --title-h: clamp(3.4rem, 6.5vw, 5.4rem); }
+.W2-intro .Tagline { margin-top: 0.6rem; }
+.W2-game { grid-area: game; display: grid; gap: 1rem; min-width: 0; }
+.W2-side { grid-area: side; display: grid; gap: 1.5rem; min-width: 0; }
+
+/* ------------------------------------------------------------
+   Score bar
+   ------------------------------------------------------------ */
+
+.W2-bar { display: flex; align-items: stretch; gap: 0.6rem; }
+
+.Score {
+    position: relative;
+    flex: 1 1 0;
+    min-width: 0;
+    display: grid;
+    align-content: center;
+    padding: 0.35rem 0.85rem 0.4rem;
+    background: var(--paper);
+    border: var(--line) solid var(--ink);
+    border-radius: var(--radius-sm);
+    box-shadow: var(--pop-sm);
+}
+
+.Score-label {
+    font-size: 0.66rem;
+    font-weight: 900;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--ink-3);
+}
+
+.Score strong {
+    overflow: hidden;
+    font-family: var(--font-display);
+    font-size: clamp(1.35rem, 3.6vw, 1.9rem);
+    font-weight: 400;
+    line-height: 1.05;
+    white-space: nowrap;
+    text-overflow: ellipsis;
+}
+
+.Score-pop {
+    position: absolute;
+    right: 0.6rem;
+    top: 0.3rem;
+    font-family: var(--font-display);
+    font-size: 1rem;
+    color: var(--accent);
+    opacity: 0;
+    pointer-events: none;
+}
+.Score-pop.is-on { animation: scorePop 0.75s ease-out; }
+
+@keyframes scorePop {
+    0%   { opacity: 0; transform: translateY(8px); }
+    20%  { opacity: 1; transform: none; }
+    100% { opacity: 0; transform: translateY(-20px); }
+}
+
+.W2-new { flex: 0 0 auto; width: auto; padding-inline: 1.15rem; }
+
+.W2-mute {
+    flex: 0 0 auto;
+    display: grid;
+    place-items: center;
+    align-self: center;
+    width: 2.75rem;
+    height: 2.75rem;
+    padding: 0;
+    font-size: 1.15rem;
+    line-height: 1;
+    background: var(--paper);
+    border: var(--line-thin) solid var(--ink);
+    border-radius: 50%;
+    box-shadow: var(--pop-sm);
+    cursor: pointer;
+}
+.W2-mute:hover, .W2-mute:focus-visible { background: var(--gold); }
+.W2-mute[aria-pressed="true"] { background: var(--bg-lightgray); }
+
+/* ------------------------------------------------------------
+   The board: wood rail, felt, 16 slots
+   ------------------------------------------------------------ */
+
+.W2-stage { position: relative; padding-top: 0.4rem; }
+
+.Board {
+    position: relative;
+    padding: clamp(0.55rem, 2.2vw, 0.9rem);
+    background:
+        repeating-linear-gradient(100deg, rgba(29, 27, 32, 0.07) 0 3px, transparent 3px 14px),
+        var(--bg-wood);
+    border: 4px solid var(--ink);
+    border-radius: 26px;
+    box-shadow: var(--pop-lg);
+    touch-action: none;                  /* a swipe here is a move, never a scroll */
+    -webkit-user-select: none;
+    user-select: none;
+    -webkit-touch-callout: none;
+    overscroll-behavior: contain;
+}
+
+.Board-sea {
+    position: relative;
+    padding: 3.2%;
+    background:
+        radial-gradient(rgba(29, 27, 32, 0.08) 1px, transparent 1.6px) 0 0 / 16px 16px,
+        radial-gradient(ellipse at 50% 40%, #9ad6c4 0%, var(--bg-turquoise) 55%, #6eb19d 100%);
+    border: var(--line) solid var(--ink);
+    border-radius: 18px;
+    box-shadow: inset 0 0 0 6px rgba(255, 250, 241, 0.18);
+}
+
+/* the SSoW crest, printed into the felt like the Lounge table */
+.Board-sea::before {
+    content: "";
+    position: absolute;
+    left: 50%;
+    top: 50%;
+    width: 62%;
+    aspect-ratio: 200 / 169;
+    transform: translate(-50%, -50%);
+    background: url("images/cards/ssow-badge.webp") center / contain no-repeat;
+    opacity: 0.14;
+    pointer-events: none;
+}
+@supports ((mask-image: url("")) or (-webkit-mask-image: url(""))) {
+    .Board-sea::before {
+        opacity: 1;
+        background: rgba(23, 105, 90, 0.24);
+        -webkit-mask: url("images/cards/ssow-badge.webp") center / contain no-repeat;
+        mask: url("images/cards/ssow-badge.webp") center / contain no-repeat;
+    }
+}
+
+/* Four slots of 22.75% and three gaps of 3% make 100%. Slots and
+   tiles sit at x * 25.75%; a tile's own translate is in its own
+   size, so that's x * 113.19%. */
+.Board-grid {
+    position: relative;
+    aspect-ratio: 1;
+    container-type: inline-size;
+}
+
+.Board-cells, .Board-tiles { position: absolute; inset: 0; }
+
+.Cell {
+    position: absolute;
+    left: calc(var(--x) * 25.75%);
+    top: calc(var(--y) * 25.75%);
+    width: 22.75%;
+    height: 22.75%;
+    background: rgba(29, 27, 32, 0.07);
+    border: 2px dashed rgba(29, 27, 32, 0.32);
+    border-radius: 16%;
+}
+
+.Board-grid.is-nudge-L { animation: nudgeL 0.16s ease; }
+.Board-grid.is-nudge-R { animation: nudgeR 0.16s ease; }
+.Board-grid.is-nudge-U { animation: nudgeU 0.16s ease; }
+.Board-grid.is-nudge-D { animation: nudgeD 0.16s ease; }
+@keyframes nudgeL { 50% { transform: translateX(-5px); } }
+@keyframes nudgeR { 50% { transform: translateX(5px); } }
+@keyframes nudgeU { 50% { transform: translateY(-5px); } }
+@keyframes nudgeD { 50% { transform: translateY(5px); } }
+
+/* ------------------------------------------------------------
+   Tiles
+   ------------------------------------------------------------ */
+
+.Tile {
+    position: absolute;
+    left: 0;
+    top: 0;
+    z-index: 1;
+    width: 22.75%;
+    height: 22.75%;
+    transform: translate(calc(var(--x) * 113.187%), calc(var(--y) * 113.187%));
+    transition: transform var(--slide) ease-in-out;
+}
+
+.Tile-in {
+    position: absolute;
+    inset: 0;
+    background: var(--tile);
+    border: var(--line) solid var(--ink);
+    border-radius: 16%;
+    box-shadow: 3px 3px 0 var(--ink);
+}
+
+.Tile-art {
+    position: absolute;
+    left: 7%;
+    top: 9%;
+    width: 86%;
+    height: 86%;
+    pointer-events: none;
+}
+
+.Tile-n {
+    position: absolute;
+    left: 4%;
+    top: 4%;
+    z-index: 1;
+    padding: 0 0.38em;
+    font-family: var(--font-display);
+    font-size: 0.8rem;
+    font-size: clamp(0.68rem, 3.9cqw, 1.05rem);
+    line-height: 1.3;
+    color: var(--ink);
+    background: var(--paper);
+    border: 2px solid var(--ink);
+    border-radius: 999px;
+}
+.Tile-n.is-long { font-size: clamp(0.6rem, 3.2cqw, 0.9rem); }
+
+/* a new tile drops in; a merge bumps; a first-ever creature (this game) bursts */
+.Tile.is-new .Tile-in { animation: tileIn 0.18s ease-out 0.04s backwards; }
+.Tile.is-merged { z-index: 2; }
+.Tile.is-merged .Tile-in { animation: tileMerge 0.22s ease-out; }
+.Tile.is-first { z-index: 3; }
+.Tile.is-first .Tile-in { animation: tileFirst 0.6s cubic-bezier(0.2, 1.5, 0.4, 1); }
+.Tile.is-first::after {
+    content: "";
+    position: absolute;
+    inset: -6%;
+    border: 4px solid var(--gold);
+    border-radius: 22%;
+    opacity: 0;
+    pointer-events: none;
+    animation: tileRing 0.7s ease-out;
+}
+
+@keyframes tileIn    { from { transform: scale(0.2); opacity: 0; } to { transform: none; opacity: 1; } }
+@keyframes tileMerge { 0% { transform: scale(1); } 45% { transform: scale(1.16); } 100% { transform: scale(1); } }
+@keyframes tileFirst {
+    0%   { transform: scale(0.6) rotate(-8deg); }
+    45%  { transform: scale(1.3) rotate(6deg); }
+    100% { transform: none; }
+}
+@keyframes tileRing {
+    0%   { opacity: 1; transform: scale(0.85); }
+    100% { opacity: 0; transform: scale(1.35); }
+}
+
+/* ------------------------------------------------------------
+   "New creature!" — a sticker that pops over the board
+   ------------------------------------------------------------ */
+
+.Discover {
+    position: absolute;
+    left: 50%;
+    top: -1.1rem;
+    z-index: 12;
+    display: flex;
+    align-items: center;
+    gap: 0.45rem;
+    padding: 0.25rem 1rem 0.25rem 0.35rem;
+    background: var(--gold);
+    border: var(--line) solid var(--ink);
+    border-radius: 999px;
+    box-shadow: var(--pop);
+    opacity: 0;
+    transform: translateX(-50%) scale(0.6);
+    pointer-events: none;
+    white-space: nowrap;
+}
+.Discover:empty { display: none; }
+.Discover.is-on { animation: discover 2s ease forwards; }
+.Discover-art {
+    width: 2.6rem;
+    height: 2.6rem;
+    background: var(--paper);
+    border: var(--line-thin) solid var(--ink);
+    border-radius: 50%;
+}
+.Discover-words { display: grid; line-height: 1.05; }
+.Discover-words small { font-size: 0.66rem; font-weight: 900; letter-spacing: 0.06em; text-transform: uppercase; }
+.Discover-words strong { font-family: var(--font-display); font-size: 1.25rem; font-weight: 400; }
+
+@keyframes discover {
+    0%   { opacity: 0; transform: translateX(-50%) translateY(10px) scale(0.5) rotate(-6deg); }
+    12%  { opacity: 1; transform: translateX(-50%) scale(1.08) rotate(2deg); }
+    20%  { transform: translateX(-50%) scale(1) rotate(-1deg); }
+    85%  { opacity: 1; transform: translateX(-50%) scale(1) rotate(-1deg); }
+    100% { opacity: 0; transform: translateX(-50%) translateY(-8px) scale(0.96) rotate(-1deg); }
+}
+
+/* ------------------------------------------------------------
+   Waiting for a game, King Whale, game over
+   ------------------------------------------------------------ */
+
+.Board-wait {
+    position: absolute;
+    left: 50%;
+    top: 50%;
+    z-index: 5;
+    transform: translate(-50%, -50%);
+    padding: 0.5rem 1.1rem;
+    font-family: var(--font-display);
+    font-size: 1.15rem;
+    background: var(--paper);
+    border: var(--line-thin) solid var(--ink);
+    border-radius: 999px;
+    box-shadow: var(--pop-sm);
+    animation: bob 1.2s ease-in-out infinite;
+}
+.Board-wait[hidden] { display: none; }
+@keyframes bob { 50% { transform: translate(-50%, calc(-50% - 5px)); } }
+
+.Board-over {
+    position: absolute;
+    inset: 0;
+    z-index: 10;
+    display: grid;
+    place-items: center;
+    padding: 1rem;
+    background: rgba(247, 240, 227, 0.86);
+    border-radius: 22px;
+    animation: fadeIn 0.35s ease;
+    touch-action: manipulation;
+}
+.Board-over[hidden] { display: none; }
+.Board.is-won .Board-over {
+    background:
+        repeating-conic-gradient(from 0deg at 50% 38%, rgba(244, 183, 64, 0.32) 0deg 10deg, transparent 10deg 20deg),
+        rgba(255, 246, 222, 0.9);
+}
+
+@keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+
+.Over-card { display: grid; justify-items: center; gap: 0.35rem; max-width: 26rem; text-align: center; }
+
+.Over-art {
+    width: clamp(5.5rem, 26%, 9rem);
+    aspect-ratio: 1;
+    padding: 6%;
+    background: var(--tile, var(--paper));
+    border: var(--line) solid var(--ink);
+    border-radius: 18%;
+    box-shadow: var(--pop);
+    animation: overArt 0.7s cubic-bezier(0.2, 1.5, 0.4, 1);
+}
+.Over-icon { display: block; width: 100%; height: 100%; }
+@keyframes overArt { from { transform: scale(0.3) rotate(-12deg); } to { transform: none; } }
+
+.Over-title {
+    margin-top: 0.4rem;
+    font-family: var(--font-display);
+    font-size: clamp(1.6rem, 6cqw, 2.4rem);
+    font-weight: 400;
+    line-height: 1.05;
+    color: var(--gold);
+    -webkit-text-stroke: 3px var(--ink);
+    paint-order: stroke fill;
+    text-shadow: 3px 3px 0 var(--ink);
+}
+.Board.is-over .Over-title { color: var(--bg-coral); }
+
+.Over-text { font-weight: 800; color: var(--ink-2); }
+.Over-net { min-height: 1.3em; font-size: 0.85rem; font-weight: 800; color: var(--accent); }
+.Over-net:empty { display: none; }
+
+.Over-actions { display: flex; flex-wrap: wrap; justify-content: center; gap: 0.6rem; margin-top: 0.5rem; }
+.Over-actions .Btn { width: auto; }
+.Over-actions .Btn[hidden] { display: none; }
+
+/* ------------------------------------------------------------
+   Under the board
+   ------------------------------------------------------------ */
+
+.W2-hint { font-size: 0.85rem; font-weight: 700; color: var(--ink-3); text-align: center; }
+.W2-hint kbd {
+    display: inline-block;
+    min-width: 1.5em;
+    margin: 0 0.08em;
+    padding: 0 0.3em;
+    font-family: var(--font-code);
+    font-size: 0.75rem;
+    text-align: center;
+    background: var(--paper);
+    border: 1.5px solid var(--ink);
+    border-radius: 6px;
+    box-shadow: 1px 1px 0 var(--ink);
+}
+.Only-touch { display: none; }
+@media (hover: none) and (pointer: coarse) {
+    .Only-touch { display: inline; }
+    .Only-keys { display: none; }
+}
+
+.W2-net { min-height: 1.3em; font-size: 0.85rem; font-weight: 800; color: var(--ink-2); text-align: center; }
+.W2-net:empty { display: none; }
+.W2-net.is-ok { color: var(--accent); }
+.W2-net.is-warn { color: var(--warn); }
+
+/* ------------------------------------------------------------
+   Side panels
+   ------------------------------------------------------------ */
+
+.W2 .Panel {
+    padding: clamp(1.1rem, 2.5vw, 1.5rem);
+    background: var(--paper);
+    border: var(--line) solid var(--ink);
+    border-radius: var(--radius);
+    box-shadow: var(--pop-lg);
+}
+.W2 .Panel h2 { font-family: var(--font-display); font-size: 1.75rem; font-weight: 400; line-height: 1.1; }
+
+.W2 .Panel input[type="text"] {
+    width: 100%;
+    padding: 0.65rem 0.85rem;
+    font-family: var(--font-body);
+    font-size: 1rem;
+    font-weight: 800;
+    color: var(--ink);
+    background: var(--bg);
+    border: var(--line-thin) solid var(--ink);
+    border-radius: var(--radius-sm);
+}
+.W2 .Panel input[type="text"]:focus { outline: none; box-shadow: 0 0 0 3px var(--bg-turquoise); }
+.W2 .Panel #walletInput { font-family: var(--font-code); font-size: 0.85rem; font-weight: 400; }
+
+.You .You-head h2 { font-size: 1.6rem; }
+.You-preview { width: 4.6rem; height: 4.6rem; }
+.Name-form { margin-top: 1.1rem; }
+
+/* the leaderboard */
+.Lb-list { display: grid; gap: 0.3rem; margin-top: 0.8rem; list-style: none; }
+
+.Lb-row {
+    display: grid;
+    grid-template-columns: 1.7rem 2.3rem minmax(0, 1fr) 2rem auto;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.28rem 0.55rem 0.28rem 0.3rem;
+    border: 2px solid transparent;
+    border-radius: 14px;
+}
+.Lb-row:nth-child(odd) { background: rgba(29, 27, 32, 0.035); }
+.Lb-row.is-you { background: var(--accent-wash); border-color: var(--ink); }
+
+.Lb-rank {
+    display: grid;
+    place-items: center;
+    width: 1.7rem;
+    height: 1.7rem;
+    font-family: var(--font-display);
+    font-size: 0.95rem;
+    border-radius: 50%;
+}
+.is-medal-1 .Lb-rank { background: var(--gold); border: 2px solid var(--ink); }
+.is-medal-2 .Lb-rank { background: var(--bg-lightgray); border: 2px solid var(--ink); }
+.is-medal-3 .Lb-rank { background: var(--bg-wood); border: 2px solid var(--ink); }
+
+.Lb-pic {
+    display: block;
+    width: 2.3rem;
+    height: 2.3rem;
+    object-fit: cover;
+    background: var(--seat-bg, var(--paper));
+    border: 2px solid var(--ink);
+    border-radius: 50%;
+}
+.Lb-name { overflow: hidden; font-weight: 900; white-space: nowrap; text-overflow: ellipsis; }
+.Lb-top { display: block; width: 2rem; height: 2rem; }
+.Lb-art { display: block; width: 100%; height: 100%; }
+.Lb-score { font-family: var(--font-code); font-size: 0.92rem; font-weight: 600; text-align: right; }
+
+.Lb-empty, .Lb-you { margin-top: 0.8rem; font-weight: 800; color: var(--ink-2); }
+.Lb-empty[hidden], .Lb-you[hidden] { display: none; }
+.Lb-note { margin-top: 0.9rem; font-size: 0.78rem; font-weight: 700; color: var(--ink-3); }
+
+/* ------------------------------------------------------------
+   The ladder
+   ------------------------------------------------------------ */
+
+.Ladder { margin-top: clamp(2.5rem, 6vw, 4rem); }
+
+.Ladder-list {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(5.6rem, 1fr));
+    gap: 1rem 0.75rem;
+    list-style: none;
+}
+
+.Ladder-item { display: grid; justify-items: center; gap: 0.4rem; text-align: center; }
+
+.Ladder-tile {
+    position: relative;
+    width: 100%;
+    aspect-ratio: 1;
+    background: var(--tile);
+    border: var(--line) solid var(--ink);
+    border-radius: 18%;
+    box-shadow: var(--pop-sm);
+    transition: opacity 0.3s ease, filter 0.3s ease, transform 0.2s ease;
+}
+.Ladder-art { position: absolute; left: 7%; top: 9%; width: 86%; height: 86%; }
+.Ladder-n {
+    position: absolute;
+    left: 5%;
+    top: 5%;
+    padding: 0 0.35em;
+    font-family: var(--font-display);
+    font-size: 0.72rem;
+    line-height: 1.3;
+    background: var(--paper);
+    border: 2px solid var(--ink);
+    border-radius: 999px;
+}
+.Ladder-name { font-size: 0.8rem; font-weight: 900; line-height: 1.15; }
+
+/* not reached this game: faded; where you are now: lifted, gold ring */
+.Ladder-item:not(.is-reached) .Ladder-tile { opacity: 0.5; filter: saturate(0.55); }
+.Ladder-item:not(.is-reached) .Ladder-name { color: var(--ink-4); }
+.Ladder-item.is-top .Ladder-tile { box-shadow: 0 0 0 3px var(--gold), 4px 4px 0 3px var(--ink); transform: translateY(-3px); }
+.Ladder-item.is-top::after,
+.Ladder-item.is-best::after {
+    padding: 0 0.55em;
+    font-size: 0.6rem;
+    font-weight: 900;
+    letter-spacing: 0.06em;
+    line-height: 1.6;
+    text-transform: uppercase;
+    white-space: nowrap;
+    border: 2px solid var(--ink);
+    border-radius: 999px;
+}
+.Ladder-item.is-top::after { content: "You\2019re here"; background: var(--gold); }
+.Ladder-item.is-best::after { content: "Your best"; background: var(--paper); }
+
+/* ------------------------------------------------------------
+   Smaller screens: the board first, full width
+   ------------------------------------------------------------ */
+
+@media (max-width: 900px) {
+    .W2 {
+        grid-template-columns: minmax(0, 1fr);
+        grid-template-areas: "intro" "game" "side";
+        grid-template-rows: none;
+    }
+    .W2-intro, .W2-game, .W2-side { max-width: 560px; width: 100%; justify-self: center; }
+    .W2-intro h1 { --title-h: clamp(3rem, 13vw, 4.4rem); }
+}
+
+@media (max-width: 600px) {
+    .W2 { row-gap: 1.1rem; padding-top: 1rem; }
+    .W2-bar { gap: 0.45rem; }
+    .Score { padding: 0.25rem 0.6rem 0.3rem; }
+    .W2-new { padding-inline: 0.8rem; font-size: 0.95rem; }
+    .W2-mute { width: 2.4rem; height: 2.4rem; font-size: 1rem; }
+    .Board { padding: 0.4rem; border-radius: 20px; }
+    .Board-sea { padding: 2.4%; border-radius: 14px; }
+    .Tile-in { box-shadow: 2px 2px 0 var(--ink); border-width: 2.5px; }
+    .Tile-n { border-width: 1.5px; }
+    .Ladder-list { grid-template-columns: repeat(auto-fill, minmax(4.4rem, 1fr)); gap: 0.85rem 0.55rem; }
+    .Ladder-name { font-size: 0.72rem; }
+    .Discover-words strong { font-size: 1.05rem; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .W2 { --slide: 0ms; }
+    .Tile .Tile-in, .Tile::after, .Discover.is-on, .Over-art, .Board-wait { animation: none !important; }
+    .Discover.is-on { opacity: 1; transform: translateX(-50%); }
+}

@@ -286,6 +286,7 @@ main { max-width: 1500px; }
 }
 
 .Felt {
+    position: relative;
     width: 100%;
     height: 100%;
     background:
@@ -309,19 +310,33 @@ main { max-width: 1500px; }
     z-index: 1;
 }
 
-/* the SSoW crest on the felt, over the pot */
-.Badge {
-    display: grid;
-    place-items: center;
-    width: clamp(46px, 5.5vw, 88px);
-    aspect-ratio: 1;
-    padding: clamp(5px, 0.7vw, 10px);
-    background: var(--paper);
-    border: var(--line) solid var(--ink);
-    border-radius: 50%;
-    box-shadow: var(--pop-sm);
+/* The SSoW crest, printed into the felt: dead centre of the felt itself
+   (not the page), about half its height, in a slightly darker shade of
+   the felt. It lives in the felt's own layer, so the cards, pot and chips
+   all sit on top of it, and it can't be clicked. Browsers that can't use
+   the logo as a stencil show it faintly instead. */
+.Felt::before {
+    content: "";
+    position: absolute;
+    left: 50%;
+    top: 50%;
+    height: 52%;
+    aspect-ratio: 200 / 169;
+    max-width: 64%;
+    transform: translate(-50%, -50%);
+    background: url("images/cards/ssow-badge.webp") center / contain no-repeat;
+    opacity: 0.16;
+    pointer-events: none;
 }
-.Badge img { display: block; width: 100%; height: auto; }
+
+@supports ((mask-image: url("")) or (-webkit-mask-image: url(""))) {
+    .Felt::before {
+        opacity: 1;
+        background: rgba(23, 105, 90, 0.26);
+        -webkit-mask: url("images/cards/ssow-badge.webp") center / contain no-repeat;
+        mask: url("images/cards/ssow-badge.webp") center / contain no-repeat;
+    }
+}
 
 .Pot {
     padding: 0.15rem 0.9rem;
@@ -407,9 +422,11 @@ main { max-width: 1500px; }
 /* the back: our whale medallion on purple stripes */
 .Card.is-back { background: url("images/cards/back.svg") center / 100% 100% no-repeat, var(--bg-purple); }
 
+/* an empty board spot: just a dashed outline, so the crest printed in
+   the felt shows through */
 .Card.is-slot {
-    background: rgba(255, 250, 241, 0.2);
-    border: 2px dashed rgba(29, 27, 32, 0.35);
+    background: transparent;
+    border: 2px dashed rgba(29, 27, 32, 0.3);
     box-shadow: none;
 }
 
@@ -972,7 +989,6 @@ html.lounge-full { overflow: hidden; }
     .Lounge.is-full .Seat-style { display: none; }
     .Lounge.is-full .Seat-stack { font-size: 0.68rem; }
     .Lounge.is-full .Card { --cw: 34px; }
-    .Lounge.is-full .Badge { width: 38px; }
     .Lounge.is-full .Bar { position: static; align-self: center; padding: 0.6rem; }
     .Lounge.is-full .Bar-main { flex-direction: column; }
     .Lounge.is-full .Act { width: 100%; min-width: 0; padding-block: 0.5rem; }

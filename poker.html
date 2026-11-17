@@ -1,0 +1,244 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Cigar Lounge | Secret Society of Whales</title>
+    <link rel="icon" type="image/png" sizes="32x32" href="images/favicon-32.png">
+    <link rel="apple-touch-icon" sizes="180x180" href="images/favicon-180.png">
+    <link rel="stylesheet" href="base.css">
+    <link rel="stylesheet" href="poker.css">
+    <script>
+        /* Runs before <body> paints: if the boot screen already played
+           this session, mark the document so CSS skips it outright.
+           Deferring this to a file would flash the intro on every page. */
+        try {
+            if (sessionStorage.getItem('ssow-booted')) {
+                document.documentElement.classList.add('booted');
+            }
+            sessionStorage.setItem('ssow-booted', '1');
+        } catch (e) { /* private mode - the intro just plays again */ }
+    </script>
+</head>
+<body>
+<div class="Boot" aria-hidden="true">
+    <div class="Boot-inner">
+        <p class="Boot-mark">Secret Society of Whales</p>
+        <div class="Boot-bar"><span></span></div>
+    </div>
+</div>
+
+<header>
+
+    <nav class="Nav" aria-label="Main">
+        <a class="Nav-logo" href="index.html" aria-label="Secret Society of Whales — home">
+            <img src="images/OG_logo-nav.webp" alt="" width="46" height="39">
+            <span class="Nav-brand" aria-hidden="true">SSoW</span>
+        </a>
+        <div class="Nav-links">
+            <a href="index.html">Home</a>
+            <a href="history.html">Whalestory</a>
+            <a href="meme.html">Meme</a>
+            <a href="idcard.html">ID Generator</a>
+            <a href="minigames.html" aria-current="page">Minigames</a>
+        </div>
+        <a class="Nav-cta" href="game.html">Play Whale Road</a>
+    </nav>
+
+</header>
+
+<main>
+    <section class="Intro">
+        <p class="Crumbs"><a href="minigames.html">&larr; Minigames</a></p>
+        <h1 data-stroke-text>Cigar Lounge</h1>
+        <p class="Tagline">
+            Texas Hold&rsquo;em with the pod. Practise against the bot whales &mdash; each
+            one plays the way it looks &mdash; or host a table and play your friends.
+        </p>
+    </section>
+
+    <div class="Modes" role="tablist" aria-label="How to play">
+        <button type="button" role="tab" class="Mode" id="tabPractice" aria-selected="true" aria-controls="setup">Practice vs bots</button>
+        <button type="button" role="tab" class="Mode" id="tabOnline" aria-selected="false" aria-controls="online">Play with friends</button>
+    </div>
+
+    <!-- ============ Set up a practice table ============ -->
+    <section class="Setup" id="setup" aria-labelledby="setupTitle">
+        <h2 id="setupTitle">Practice table</h2>
+        <p class="Setup-lede">You and up to five bot whales. Everyone starts with the same chips;
+            the blinds keep going up; the last whale with chips wins.</p>
+
+        <div class="Setup-grid">
+            <label class="Field">
+                <span class="Field-label">Starting chips</span>
+                <input type="number" id="startChips" value="1500" min="200" max="100000" step="100" inputmode="numeric">
+            </label>
+
+            <label class="Field">
+                <span class="Field-label">Bot whales</span>
+                <select id="botCount">
+                    <option value="1">1 &mdash; heads-up</option>
+                    <option value="2">2</option>
+                    <option value="3">3</option>
+                    <option value="4">4</option>
+                    <option value="5" selected>5 &mdash; full table</option>
+                </select>
+            </label>
+
+            <fieldset class="Field Speeds">
+                <legend class="Field-label">Blinds go up</legend>
+                <label><input type="radio" name="speed" value="turbo"> <span>Turbo<small>every 5 hands</small></span></label>
+                <label><input type="radio" name="speed" value="regular" checked> <span>Regular<small>every 8 hands</small></span></label>
+                <label><input type="radio" name="speed" value="slow"> <span>Slow<small>every 12 hands</small></span></label>
+            </fieldset>
+        </div>
+
+        <button type="button" class="Btn Btn--primary Setup-go" id="deal">Take a seat</button>
+    </section>
+
+    <!-- ============ Play with friends: host or join ============ -->
+    <section class="Online" id="online" aria-label="Play with friends" hidden>
+        <div class="Panel Online-you">
+            <h2>You at the table</h2>
+            <label class="Field">
+                <span class="Field-label">Your name <span class="Hint">2&ndash;16 letters, numbers, spaces, _ . -</span></span>
+                <input type="text" id="playerName" maxlength="16" autocomplete="nickname" spellcheck="false" placeholder="deez">
+            </label>
+            <fieldset class="Field Whales" id="whalePick">
+                <legend class="Field-label">Play as</legend>
+                <div class="Whales-row" id="whaleStickers"></div>
+                <label class="Whales-own">
+                    <span>or your own whale #</span>
+                    <input type="number" id="whaleOwn" min="1" max="10000" step="1" inputmode="numeric" placeholder="3955">
+                </label>
+            </fieldset>
+        </div>
+
+        <div class="Online-pair">
+            <div class="Panel Online-host">
+                <h2>Host a table</h2>
+                <p class="Setup-lede">Pick the rules, get a link, send it to the pod.</p>
+                <div class="Setup-grid">
+                    <label class="Field">
+                        <span class="Field-label">Starting chips</span>
+                        <input type="number" id="hostChips" value="1500" min="200" max="100000" step="100" inputmode="numeric">
+                    </label>
+                    <label class="Field">
+                        <span class="Field-label">Seats</span>
+                        <select id="hostSeats">
+                            <option value="2">2 &mdash; heads-up</option>
+                            <option value="3">3</option>
+                            <option value="4">4</option>
+                            <option value="5">5</option>
+                            <option value="6" selected>6 &mdash; full table</option>
+                        </select>
+                    </label>
+                    <fieldset class="Field Speeds">
+                        <legend class="Field-label">Blinds go up</legend>
+                        <label><input type="radio" name="hostSpeed" value="turbo"> <span>Turbo<small>every 5 min</small></span></label>
+                        <label><input type="radio" name="hostSpeed" value="regular" checked> <span>Regular<small>every 8 min</small></span></label>
+                        <label><input type="radio" name="hostSpeed" value="slow"> <span>Slow<small>every 12 min</small></span></label>
+                    </fieldset>
+                </div>
+                <button type="button" class="Btn Btn--primary Setup-go" id="hostGo">Open the table</button>
+            </div>
+
+            <div class="Panel Online-join">
+                <h2>Join a table</h2>
+                <p class="Setup-lede">Got a link? Open it. Got a code? Type it here.</p>
+                <label class="Field">
+                    <span class="Field-label">Table code</span>
+                    <input type="text" id="joinCode" maxlength="7" autocomplete="off" spellcheck="false" placeholder="K7Q2XM" class="Code-input">
+                </label>
+                <button type="button" class="Btn Btn--primary Setup-go" id="joinGo">Take a seat</button>
+            </div>
+        </div>
+
+        <p class="Online-status" id="onlineStatus" role="status" aria-live="polite"></p>
+        <p class="Online-note">Play chips only &mdash; no money, crypto or NFTs are ever at stake.</p>
+    </section>
+
+    <!-- ============ The table ============ -->
+    <section class="Lounge" id="lounge" aria-label="Poker table" hidden>
+        <div class="Room" id="room" hidden>
+            <div class="Room-code">
+                <span class="Field-label">Table</span>
+                <strong id="roomCode"></strong>
+            </div>
+            <div class="Room-share">
+                <input type="text" id="roomLink" readonly aria-label="Link to this table">
+                <button type="button" class="Btn" id="roomCopy">Copy link</button>
+            </div>
+            <p class="Room-status" id="roomStatus" aria-live="polite"></p>
+            <div class="Room-actions">
+                <button type="button" class="Btn Btn--primary" id="roomStart" hidden>Start the game</button>
+                <button type="button" class="Btn" id="roomBack" hidden>I&rsquo;m back</button>
+                <button type="button" class="Btn" id="roomLeave">Leave</button>
+            </div>
+        </div>
+
+        <div class="Table" id="table">
+            <div class="Rail"><div class="Felt"></div></div>
+            <div class="Center">
+                <p class="Pot" id="pot">Pot 0</p>
+                <div class="Board" id="board" aria-label="Board cards"></div>
+                <p class="Say" id="say" aria-live="polite"></p>
+            </div>
+            <!-- seats and bet chips are added by poker.js -->
+
+            <div class="Over" id="over" hidden>
+                <p class="Over-kicker" id="overKicker">Cigar Lounge</p>
+                <p class="Over-title" id="overTitle"></p>
+                <p class="Over-text" id="overText"></p>
+                <div class="Over-actions">
+                    <button type="button" class="Btn Btn--primary" id="again">Play again</button>
+                    <button type="button" class="Btn" id="change">Change settings</button>
+                    <button type="button" class="Btn Btn--primary" id="overLobby" hidden>Back to the lobby</button>
+                </div>
+            </div>
+        </div>
+
+        <div class="Bar" id="bar">
+            <p class="Bar-status" id="status" aria-live="polite"></p>
+            <div class="Bar-actions" id="actions" hidden>
+                <div class="Bar-main">
+                    <button type="button" class="Btn Act Act--fold" id="fold">Fold</button>
+                    <button type="button" class="Btn Act Act--call" id="call">Check</button>
+                    <button type="button" class="Btn Act Act--raise" id="raise">Raise</button>
+                </div>
+                <div class="Raise" id="raiseBox">
+                    <input type="range" id="raiseRange" aria-label="Raise amount">
+                    <div class="Raise-presets">
+                        <button type="button" data-size="min">Min</button>
+                        <button type="button" data-size="half">&frac12; Pot</button>
+                        <button type="button" data-size="pot">Pot</button>
+                        <button type="button" data-size="all">All-in</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="Info">
+            <p class="Blinds" id="blindsInfo"></p>
+            <p class="Keys-hint">Keys: <kbd>F</kbd> fold &middot; <kbd>C</kbd> check / call &middot; <kbd>R</kbd> raise</p>
+            <ol class="Log" id="log" aria-label="Hand history"></ol>
+        </div>
+    </section>
+</main>
+
+<footer class="Footer" data-footer></footer>
+
+<script defer src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/gsap.min.js"></script>
+<script defer src="strokeText.js"></script>
+<script defer src="whale.js"></script>
+<script defer src="game-config.js"></script>
+<script defer src="poker-engine.js"></script>
+<script defer src="poker-bots.js"></script>
+<script defer src="poker-table.js"></script>
+<script defer src="poker.js"></script>
+<script defer src="poker-online.js"></script>
+<script defer src="footer.js"></script>
+<script defer src="data/gold.js"></script>
+<script defer src="easteregg.js"></script>
+</body>
+</html>

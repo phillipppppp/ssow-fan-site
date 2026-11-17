@@ -418,3 +418,8 @@ enabled = true
 # it does its own session checks, so skip the gateway JWT check.
 [functions.whale-road]
 verify_jwt = false
+
+# The Cigar Lounge pages call this directly too; seats are checked by
+# their own keys, so skip the gateway JWT check here as well.
+[functions.poker]
+verify_jwt = false

@@ -4,7 +4,8 @@
        node tools/sync-backend.js
 
    The server replays runs with the exact game-sim.js the page
-   plays, so the two copies must never drift. Run this before
+   plays, and deals poker with the exact poker-engine.js the
+   practice table uses, so the copies must never drift. Run this before
    every `supabase functions deploy`; it also refuses to let a
    stale copy sit there unnoticed (`--check`).
    ============================================================ */
@@ -14,7 +15,8 @@ const path = require('path');
 
 const ROOT = path.join(__dirname, '..');
 const SHARED = path.join(ROOT, 'supabase', 'functions', '_shared');
-const FILES = ['game-sim.js', 'game-rules.js'];
+/* game-sim/game-rules: Whale Road's replays; poker-engine: the Cigar Lounge dealer */
+const FILES = ['game-sim.js', 'game-rules.js', 'poker-engine.js'];
 const checkOnly = process.argv.includes('--check');
 
 fs.mkdirSync(SHARED, { recursive: true });

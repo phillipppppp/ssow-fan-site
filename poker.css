@@ -1,0 +1,746 @@
+/* ============================================================
+   Cigar Lounge — the poker room. Shared chrome lives in base.css.
+
+   A wood rail and turquoise felt (two of the OG backdrops), cards
+   drawn like the art with an ink edge, and the whales seated round
+   it as stickers on their own backdrop colours.
+   ============================================================ */
+
+main { max-width: 1240px; }
+
+.Intro h1 { --title-fill: var(--bg-wood); }
+
+/* ------------------------------------------------------------
+   Setup card
+   ------------------------------------------------------------ */
+
+.Setup, .Panel {
+    max-width: 760px;
+    padding: clamp(1.25rem, 3vw, 2rem);
+    background: var(--paper);
+    border: var(--line) solid var(--ink);
+    border-radius: var(--radius);
+    box-shadow: var(--pop-lg);
+}
+
+.Setup[hidden], .Online[hidden] { display: none; }
+
+.Setup h2, .Panel h2 { font-family: var(--font-display); font-size: 2rem; font-weight: 400; line-height: 1.1; }
+.Setup-lede { margin: 0.4rem 0 1.5rem; font-weight: 600; color: var(--ink-2); }
+
+.Setup-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 1.1rem 1.25rem; }
+
+.Field { display: block; min-width: 0; border: 0; }
+
+.Field-label {
+    display: block;
+    margin-bottom: 0.4rem;
+    padding: 0;
+    font-size: 0.7rem;
+    font-weight: 900;
+    letter-spacing: 0.07em;
+    text-transform: uppercase;
+    color: var(--ink-3);
+}
+
+.Setup input[type="number"],
+.Setup select,
+.Panel input[type="number"],
+.Panel input[type="text"],
+.Panel select {
+    width: 100%;
+    padding: 0.65rem 0.85rem;
+    font-family: var(--font-body);
+    font-size: 1rem;
+    font-weight: 800;
+    color: var(--ink);
+    background: var(--bg);
+    border: var(--line-thin) solid var(--ink);
+    border-radius: var(--radius-sm);
+}
+
+.Setup input:focus, .Setup select:focus,
+.Panel input:focus, .Panel select:focus { outline: none; box-shadow: 0 0 0 3px var(--bg-turquoise); }
+
+.Speeds { grid-column: 1 / -1; display: flex; flex-wrap: wrap; gap: 0.6rem; }
+.Speeds legend { width: 100%; }
+.Speeds label { flex: 1 1 9rem; cursor: pointer; }
+.Speeds input { position: absolute; opacity: 0; pointer-events: none; }
+.Speeds span {
+    display: block;
+    padding: 0.6rem 0.9rem;
+    font-family: var(--font-display);
+    font-size: 1.15rem;
+    line-height: 1.1;
+    background: var(--bg);
+    border: var(--line-thin) solid var(--ink);
+    border-radius: var(--radius-sm);
+    transition: background 0.15s ease, transform 0.12s ease;
+}
+.Speeds small { display: block; font-family: var(--font-body); font-size: 0.75rem; font-weight: 700; color: var(--ink-3); }
+.Speeds input:checked + span { background: var(--gold); box-shadow: var(--pop-sm); transform: translate(-1px, -1px); }
+.Speeds input:focus-visible + span { outline: 3px solid var(--ink); outline-offset: 2px; }
+
+.Setup-go { margin-top: 1.5rem; max-width: 20rem; font-size: 1.25rem; padding-block: 0.85rem; }
+
+/* ------------------------------------------------------------
+   Practice or friends — two big tabs
+   ------------------------------------------------------------ */
+
+.Modes { display: flex; flex-wrap: wrap; gap: 0.75rem; margin-bottom: 1.5rem; }
+
+.Mode {
+    padding: 0.6rem 1.3rem;
+    font-family: var(--font-display);
+    font-size: 1.2rem;
+    color: var(--ink);
+    background: var(--paper);
+    border: var(--line-thin) solid var(--ink);
+    border-radius: 999px;
+    cursor: pointer;
+    transition: background 0.15s ease, transform 0.12s ease;
+}
+
+.Mode:hover, .Mode:focus-visible { background: var(--bg-lightblue); }
+.Mode[aria-selected="true"] { background: var(--gold); box-shadow: 3px 3px 0 var(--ink); transform: translate(-1px, -1px); }
+
+/* ------------------------------------------------------------
+   Play with friends: you, host, join
+   ------------------------------------------------------------ */
+
+.Online { display: grid; gap: 1.5rem; max-width: 1000px; }
+.Online .Panel { max-width: none; }
+.Online-pair { display: grid; grid-template-columns: 1fr 1fr; gap: 1.5rem; align-items: start; }
+.Online-join .Field { margin-bottom: 0.25rem; }
+
+.Hint { font-size: 0.68rem; font-weight: 700; letter-spacing: 0; text-transform: none; color: var(--ink-4); }
+
+.Whales { margin-top: 1.1rem; }
+.Whales-row { display: flex; flex-wrap: wrap; gap: 0.55rem; }
+
+.Whale-pick {
+    width: 3.6rem;
+    height: 3.6rem;
+    padding: 0;
+    overflow: hidden;
+    background: var(--seat-bg, var(--paper));
+    border: var(--line-thin) solid var(--ink);
+    border-radius: 50%;
+    cursor: pointer;
+    transition: transform 0.12s ease, box-shadow 0.12s ease;
+}
+
+.Whale-pick img { display: block; width: 100%; height: 100%; object-fit: cover; }
+.Whale-pick:hover, .Whale-pick:focus-visible { transform: translate(-1px, -1px) rotate(-4deg); }
+.Whale-pick[aria-pressed="true"] { box-shadow: 0 0 0 3px var(--gold), 3px 3px 0 3px var(--ink); transform: translate(-1px, -1px); }
+
+.Whales-own { display: flex; flex-wrap: wrap; align-items: center; gap: 0.6rem; margin-top: 0.9rem; font-weight: 800; color: var(--ink-2); }
+.Whales-own input { width: 8rem !important; }
+
+.Code-input { font-family: var(--font-code) !important; letter-spacing: 0.2em; text-transform: uppercase; }
+
+.Online-status { min-height: 1.3em; font-weight: 800; color: var(--ink-2); }
+.Online-status.is-error { color: var(--error); }
+.Online-status.is-warn { color: var(--warn); }
+.Online-note { font-size: 0.8rem; font-weight: 700; color: var(--ink-3); }
+
+/* ------------------------------------------------------------
+   The room bar: code, link, start
+   ------------------------------------------------------------ */
+
+.Room {
+    grid-area: room;
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 0.75rem 1.25rem;
+    padding: 0.8rem 1rem;
+    background: var(--bg-turquoise);
+    border: var(--line) solid var(--ink);
+    border-radius: var(--radius);
+    box-shadow: var(--pop);
+}
+
+.Room[hidden] { display: none; }
+.Room-code { display: grid; }
+.Room-code .Field-label { margin: 0; color: var(--ink-2); }
+.Room-code strong { font-family: var(--font-code); font-size: 1.4rem; letter-spacing: 0.15em; line-height: 1.1; }
+.Room-share { display: flex; gap: 0.5rem; flex: 1 1 18rem; min-width: 0; }
+.Room-share input {
+    flex: 1;
+    min-width: 0;
+    padding: 0.5rem 0.75rem;
+    font-family: var(--font-code);
+    font-size: 0.78rem;
+    color: var(--ink);
+    background: var(--paper);
+    border: var(--line-thin) solid var(--ink);
+    border-radius: var(--radius-sm);
+}
+.Room-share .Btn, .Room-actions .Btn { width: auto; }
+.Room-status { flex: 1 1 12rem; font-weight: 800; }
+.Room-actions { display: flex; flex-wrap: wrap; gap: 0.5rem; }
+.Room-actions .Btn[hidden] { display: none; }
+
+/* ------------------------------------------------------------
+   The room: table and controls on the left, history on the right
+   ------------------------------------------------------------ */
+
+.Lounge {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) 290px;
+    grid-template-areas: "room room" "table info" "bar info";
+    gap: 1.25rem 2rem;
+    align-items: start;
+}
+
+.Lounge[hidden] { display: none; }
+
+.Table {
+    grid-area: table;
+    position: relative;
+    aspect-ratio: 16 / 10;
+    margin: 3.5rem 3rem 4.5rem;
+}
+
+.Rail {
+    position: absolute;
+    inset: 4% 3%;
+    padding: 1.1rem;
+    background:
+        repeating-linear-gradient(100deg, rgba(29, 27, 32, 0.07) 0 3px, transparent 3px 14px),
+        var(--bg-wood);
+    border: 4px solid var(--ink);
+    border-radius: 999px;
+    box-shadow: var(--pop-lg);
+}
+
+.Felt {
+    width: 100%;
+    height: 100%;
+    background:
+        radial-gradient(rgba(29, 27, 32, 0.08) 1px, transparent 1.6px) 0 0 / 16px 16px,
+        radial-gradient(ellipse at 50% 42%, #9ad6c4 0%, var(--bg-turquoise) 55%, #6eb19d 100%);
+    border: var(--line) solid var(--ink);
+    border-radius: 999px;
+    box-shadow: inset 0 0 0 7px rgba(255, 250, 241, 0.18);
+}
+
+.Center {
+    position: absolute;
+    left: 50%;
+    top: 50%;
+    transform: translate(-50%, -54%);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0.55rem;
+    width: 62%;
+    z-index: 1;
+}
+
+.Pot {
+    padding: 0.15rem 0.9rem;
+    font-family: var(--font-display);
+    font-size: 1.15rem;
+    background: var(--paper);
+    border: var(--line-thin) solid var(--ink);
+    border-radius: 999px;
+    box-shadow: var(--pop-sm);
+}
+
+.Board { display: flex; gap: 0.4rem; perspective: 700px; }
+
+.Say {
+    min-height: 1.4em;
+    font-size: 0.85rem;
+    font-weight: 900;
+    line-height: 1.3;
+    text-align: center;
+    color: var(--ink);
+}
+
+/* ------------------------------------------------------------
+   Cards — paper, ink edge, a hard little shadow
+   ------------------------------------------------------------ */
+
+.Card {
+    --cw: clamp(36px, 4.4vw, 58px);
+    position: relative;
+    display: inline-flex;
+    flex-direction: column;
+    justify-content: space-between;
+    width: var(--cw);
+    aspect-ratio: 5 / 7;
+    padding: calc(var(--cw) * 0.07) calc(var(--cw) * 0.1);
+    font-family: var(--font-display);
+    line-height: 1;
+    color: var(--ink);
+    background: #fffdf8;
+    border: 2px solid var(--ink);
+    border-radius: calc(var(--cw) * 0.14);
+    box-shadow: 2px 2px 0 var(--ink);
+    -webkit-user-select: none;
+    user-select: none;
+}
+
+.Card.is-red { color: var(--ember); }
+.Card-rank { font-size: calc(var(--cw) * 0.4); }
+.Card-suit { align-self: flex-end; font-family: var(--font-body); font-size: calc(var(--cw) * 0.5); }
+
+.Card.is-back {
+    background:
+        repeating-linear-gradient(45deg, rgba(255, 250, 241, 0.25) 0 3px, transparent 3px 8px),
+        var(--bg-purple);
+    box-shadow: inset 0 0 0 3px #fffdf8, 2px 2px 0 var(--ink);
+}
+
+.Card.is-slot {
+    background: rgba(255, 250, 241, 0.2);
+    border: 2px dashed rgba(29, 27, 32, 0.35);
+    box-shadow: none;
+}
+
+.Card.is-mucked { opacity: 0.45; }
+
+.Card.is-dealt { animation: cardDeal 0.38s cubic-bezier(0.3, 1.4, 0.5, 1) calc(var(--i, 0) * 110ms) both; }
+.Card.is-flip  { animation: cardFlip 0.45s ease-out calc(var(--i, 0) * 140ms) both; }
+
+@keyframes cardDeal { from { opacity: 0; transform: translateY(-28px) rotate(-14deg) scale(0.6); } }
+@keyframes cardFlip { from { transform: rotateY(90deg); } }
+
+/* ------------------------------------------------------------
+   Seats — whale stickers round the rail
+   ------------------------------------------------------------ */
+
+.Seat {
+    position: absolute;
+    z-index: 2;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    width: 8.5rem;
+    transform: translate(-50%, -50%);
+    transition: opacity 0.3s ease;
+}
+
+.Seat[data-pos="0"] { left: 50%; top: 95%; }
+.Seat[data-pos="1"] { left: 7%;  top: 73%; }
+.Seat[data-pos="2"] { left: 7%;  top: 25%; }
+.Seat[data-pos="3"] { left: 50%; top: 4%;  }
+.Seat[data-pos="4"] { left: 93%; top: 25%; }
+.Seat[data-pos="5"] { left: 93%; top: 73%; }
+
+.Seat-cards {
+    position: relative;
+    z-index: 3;
+    display: flex;
+    gap: 3px;
+    min-height: 0.5rem;
+    margin-bottom: -0.9rem;
+    perspective: 600px;
+}
+
+.Seat .Card { --cw: 32px; }
+.Seat--you .Card { --cw: clamp(46px, 5vw, 62px); }
+.Seat--you .Seat-cards { margin-bottom: -0.7rem; gap: 5px; }
+
+.Seat-avatar {
+    width: 4.6rem;
+    height: 4.6rem;
+    overflow: hidden;
+    background: var(--seat-bg, var(--paper));
+    border: var(--line) solid var(--ink);
+    border-radius: 50%;
+    box-shadow: var(--pop-sm);
+    transition: box-shadow 0.2s ease;
+}
+
+.Seat-avatar img { display: block; width: 100%; height: 100%; object-fit: cover; }
+.Seat-avatar.is-logo img { object-fit: contain; padding: 16%; }
+
+.Seat-plate {
+    position: relative;
+    z-index: 2;
+    display: grid;
+    justify-items: center;
+    min-width: 6.6rem;
+    margin-top: -0.55rem;
+    padding: 0.2rem 0.6rem 0.25rem;
+    text-align: center;
+    background: var(--paper);
+    border: var(--line-thin) solid var(--ink);
+    border-radius: var(--radius-sm);
+    box-shadow: var(--pop-sm);
+    transition: background 0.2s ease;
+}
+
+.Seat-name { font-family: var(--font-display); font-size: 0.95rem; line-height: 1.15; white-space: nowrap; }
+.Seat-style { font-size: 0.58rem; font-weight: 900; letter-spacing: 0.06em; text-transform: uppercase; color: var(--ink-3); }
+.Seat-stack { font-family: var(--font-code); font-size: 0.78rem; font-weight: 600; }
+
+.Seat.is-turn .Seat-avatar {
+    box-shadow: 0 0 0 4px var(--gold), 0 0 0 7px var(--ink);
+    animation: turnPulse 1.1s ease-in-out infinite;
+}
+
+@keyframes turnPulse { 50% { box-shadow: 0 0 0 6px var(--gold), 0 0 0 9px var(--ink); } }
+
+.Seat.is-folded { opacity: 0.55; }
+.Seat.is-away .Seat-avatar { filter: grayscale(0.85); opacity: 0.6; }
+.Seat.is-away .Seat-plate::after,
+.Seat.is-sitting .Seat-plate::after {
+    content: "away";
+    font-size: 0.55rem;
+    font-weight: 900;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    color: var(--error);
+}
+.Seat.is-sitting .Seat-plate::after { content: "sitting out"; color: var(--warn); }
+
+/* time left to act, under the seat whose turn it is */
+.Seat-timer {
+    display: none;
+    width: 5.5rem;
+    height: 7px;
+    margin-top: 0.3rem;
+    overflow: hidden;
+    background: var(--paper);
+    border: 2px solid var(--ink);
+    border-radius: 999px;
+}
+.Seat.has-timer .Seat-timer { display: block; }
+.Seat-timer span {
+    display: block;
+    height: 100%;
+    background: var(--gold);
+    transform-origin: left center;
+    transform: scaleX(var(--from, 1));
+}
+@keyframes seatTimer {
+    from { transform: scaleX(var(--from, 1)); }
+    to   { transform: scaleX(0); background: var(--ember); }
+}
+.Seat.is-out { opacity: 0.35; filter: grayscale(1); }
+.Seat.is-winner .Seat-plate { background: var(--gold); }
+
+/* what a seat just did: "raises to 120", "+460" */
+.Seat-tag {
+    position: absolute;
+    top: -1.5rem;
+    z-index: 4;
+    padding: 0.12rem 0.6rem;
+    font-size: 0.72rem;
+    font-weight: 900;
+    white-space: nowrap;
+    color: var(--paper);
+    background: var(--ink);
+    border-radius: 999px;
+    pointer-events: none;
+}
+
+.Seat-tag[hidden] { display: none; }
+.Seat-tag.is-pop { animation: tagPop 2.6s ease forwards; }
+
+@keyframes tagPop {
+    0%   { opacity: 0; transform: translateY(6px) scale(0.8); }
+    10%  { opacity: 1; transform: none; }
+    80%  { opacity: 1; }
+    100% { opacity: 0; }
+}
+
+/* chips in front of a seat */
+.Bet {
+    position: absolute;
+    z-index: 1;
+    transform: translate(-50%, -50%);
+    padding: 0.08rem 0.55rem 0.08rem 1.45rem;
+    font-family: var(--font-code);
+    font-size: 0.78rem;
+    font-weight: 600;
+    background: var(--paper);
+    border: var(--line-thin) solid var(--ink);
+    border-radius: 999px;
+}
+
+.Bet::before {
+    content: "";
+    position: absolute;
+    left: 0.28rem;
+    top: 50%;
+    width: 0.85rem;
+    height: 0.85rem;
+    margin-top: -0.425rem;
+    background: repeating-conic-gradient(var(--gold) 0 12.5%, var(--paper) 0 25%);
+    border: 2px solid var(--ink);
+    border-radius: 50%;
+}
+
+.Bet[hidden] { display: none; }
+
+.Bet[data-pos="0"] { left: 50%; top: 73%; }
+.Bet[data-pos="1"] { left: 24%; top: 65%; }
+.Bet[data-pos="2"] { left: 24%; top: 34%; }
+.Bet[data-pos="3"] { left: 50%; top: 24%; }
+.Bet[data-pos="4"] { left: 76%; top: 34%; }
+.Bet[data-pos="5"] { left: 76%; top: 65%; }
+
+.Dealer {
+    position: absolute;
+    z-index: 2;
+    display: grid;
+    place-items: center;
+    width: 1.65rem;
+    height: 1.65rem;
+    font-family: var(--font-display);
+    font-size: 0.85rem;
+    background: var(--paper);
+    border: var(--line-thin) solid var(--ink);
+    border-radius: 50%;
+    box-shadow: var(--pop-sm);
+    transform: translate(-50%, -50%);
+    transition: left 0.45s ease, top 0.45s ease;
+}
+
+.Dealer[hidden] { display: none; }
+.Dealer[data-pos="0"] { left: 67%; top: 86%; }
+.Dealer[data-pos="1"] { left: 16%; top: 57%; }
+.Dealer[data-pos="2"] { left: 17%; top: 43%; }
+.Dealer[data-pos="3"] { left: 61%; top: 18%; }
+.Dealer[data-pos="4"] { left: 83%; top: 43%; }
+.Dealer[data-pos="5"] { left: 84%; top: 57%; }
+
+/* game over, over the felt */
+.Over {
+    position: absolute;
+    left: 50%;
+    top: 50%;
+    z-index: 10;
+    display: grid;
+    justify-items: center;
+    gap: 0.5rem;
+    width: min(26rem, 90%);
+    padding: 1.4rem 1.5rem;
+    text-align: center;
+    background: var(--paper);
+    border: var(--line) solid var(--ink);
+    border-radius: var(--radius);
+    box-shadow: var(--pop-lg);
+    transform: translate(-50%, -50%);
+}
+
+.Over[hidden] { display: none; }
+
+.Over-kicker {
+    padding: 0.15rem 0.8rem;
+    font-size: 0.7rem;
+    font-weight: 900;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    background: var(--bg-turquoise);
+    border: var(--line-thin) solid var(--ink);
+    border-radius: 999px;
+}
+
+.Over-title {
+    font-family: var(--font-display);
+    font-size: clamp(1.8rem, 4vw, 2.6rem);
+    line-height: 1;
+    color: var(--gold);
+    -webkit-text-stroke: 2px var(--ink);
+    paint-order: stroke fill;
+    text-shadow: 3px 3px 0 var(--ink);
+}
+
+.Over-text { font-weight: 700; color: var(--ink-2); }
+.Over-actions { display: flex; flex-wrap: wrap; justify-content: center; gap: 0.6rem; margin-top: 0.4rem; }
+.Over-actions .Btn { width: auto; }
+
+/* ------------------------------------------------------------
+   Your controls
+   ------------------------------------------------------------ */
+
+.Bar {
+    grid-area: bar;
+    display: grid;
+    gap: 0.75rem;
+    padding: 0.9rem 1rem;
+    background: var(--paper);
+    border: var(--line) solid var(--ink);
+    border-radius: var(--radius);
+    box-shadow: var(--pop);
+}
+
+.Bar-status { font-weight: 900; color: var(--ink-2); }
+
+.Bar-actions { display: flex; flex-wrap: wrap; align-items: center; gap: 0.9rem 1.25rem; }
+.Bar-actions[hidden] { display: none; }
+
+.Bar-main { display: flex; flex-wrap: wrap; gap: 0.6rem; }
+
+.Act {
+    min-width: 7.5rem;
+    font-family: var(--font-display);
+    font-size: 1.1rem;
+    font-weight: 400;
+    letter-spacing: 0.02em;
+    text-transform: none;
+}
+
+.Act[hidden] { display: none; }
+.Act--fold  { background: var(--bg-coral); }
+.Act--call  { background: var(--bg-lightblue); }
+.Act--raise { background: var(--gold); }
+.Act--fold:hover:not(:disabled), .Act--fold:focus-visible:not(:disabled)   { background: #e99d91; }
+.Act--call:hover:not(:disabled), .Act--call:focus-visible:not(:disabled)   { background: #c2e0e5; }
+.Act--raise:hover:not(:disabled), .Act--raise:focus-visible:not(:disabled) { background: var(--gold-bright); }
+
+.Raise { display: grid; gap: 0.45rem; flex: 1 1 15rem; min-width: 0; }
+.Raise[hidden] { display: none; }
+
+.Raise input[type="range"] {
+    width: 100%;
+    height: 12px;
+    -webkit-appearance: none;
+    appearance: none;
+    background: var(--bg);
+    border: var(--line-thin) solid var(--ink);
+    border-radius: 999px;
+    cursor: pointer;
+}
+.Raise input[type="range"]::-webkit-slider-thumb {
+    -webkit-appearance: none; appearance: none;
+    width: 24px; height: 24px;
+    background: var(--gold);
+    border: var(--line-thin) solid var(--ink);
+    border-radius: 50%;
+    box-shadow: var(--pop-sm);
+}
+.Raise input[type="range"]::-moz-range-thumb {
+    width: 20px; height: 20px;
+    background: var(--gold);
+    border: var(--line-thin) solid var(--ink);
+    border-radius: 50%;
+}
+
+.Raise-presets { display: flex; flex-wrap: wrap; gap: 0.35rem; }
+.Raise-presets button {
+    padding: 0.25rem 0.75rem;
+    font-family: var(--font-body);
+    font-size: 0.72rem;
+    font-weight: 900;
+    color: var(--ink);
+    background: var(--bg);
+    border: var(--line-thin) solid var(--ink);
+    border-radius: 999px;
+    cursor: pointer;
+}
+.Raise-presets button:hover, .Raise-presets button:focus-visible { background: var(--gold); }
+
+/* ------------------------------------------------------------
+   History
+   ------------------------------------------------------------ */
+
+.Info { grid-area: info; display: grid; gap: 0.75rem; }
+
+.Blinds {
+    padding: 0.5rem 0.8rem;
+    font-size: 0.82rem;
+    font-weight: 900;
+    background: var(--bg-turquoise);
+    border: var(--line-thin) solid var(--ink);
+    border-radius: var(--radius-sm);
+}
+
+.Keys-hint { font-size: 0.75rem; font-weight: 700; color: var(--ink-3); }
+.Keys-hint kbd {
+    padding: 0 0.35rem;
+    font-family: var(--font-display);
+    font-size: 0.75rem;
+    background: var(--paper);
+    border: 1.5px solid var(--ink);
+    border-bottom-width: 3px;
+    border-radius: 5px;
+}
+
+.Log {
+    max-height: 28rem;
+    overflow-y: auto;
+    padding: 0.4rem 0.8rem;
+    list-style: none;
+    background: var(--paper);
+    border: var(--line-thin) solid var(--ink);
+    border-radius: var(--radius-sm);
+}
+
+.Log:empty { display: none; }
+
+.Log li {
+    padding: 0.32rem 0;
+    font-size: 0.8rem;
+    font-weight: 700;
+    line-height: 1.4;
+    color: var(--ink-2);
+    border-bottom: 1px dashed var(--rule-soft);
+}
+
+.Log li:last-child { border-bottom: 0; }
+.Log .is-hand { font-family: var(--font-display); font-size: 0.95rem; font-weight: 400; color: var(--ink); }
+.Log .is-street { color: var(--accent); }
+.Log .is-win { color: var(--ink); font-weight: 900; }
+
+/* ------------------------------------------------------------
+   Smaller screens
+   ------------------------------------------------------------ */
+
+@media (max-width: 1000px) {
+    .Lounge { grid-template-columns: minmax(0, 1fr); grid-template-areas: "room" "table" "bar" "info"; }
+    .Online-pair { grid-template-columns: 1fr; }
+}
+
+@media (max-width: 640px) {
+    .Setup-grid { grid-template-columns: 1fr; }
+
+    /* phones: a tall table */
+    .Table { aspect-ratio: 3 / 4.1; margin: 3rem 0.4rem 3.4rem; }
+    .Rail { inset: 3% 9%; padding: 0.7rem; }
+    .Center { width: 76%; }
+    .Card { --cw: clamp(34px, 10vw, 44px); }
+    .Seat { width: 5.8rem; }
+    .Seat .Card { --cw: 22px; }
+    .Seat--you .Card { --cw: 46px; }
+    .Seat-avatar { width: 3.3rem; height: 3.3rem; }
+    .Seat-plate { min-width: 4.9rem; padding: 0.12rem 0.4rem 0.18rem; }
+    .Seat-name { font-size: 0.78rem; }
+    .Seat-style { font-size: 0.5rem; }
+    .Seat-stack { font-size: 0.7rem; }
+
+    .Seat[data-pos="0"] { left: 50%; top: 96%; }
+    .Seat[data-pos="1"] { left: 12%; top: 71%; }
+    .Seat[data-pos="2"] { left: 12%; top: 31%; }
+    .Seat[data-pos="3"] { left: 50%; top: 4%;  }
+    .Seat[data-pos="4"] { left: 88%; top: 31%; }
+    .Seat[data-pos="5"] { left: 88%; top: 71%; }
+
+    .Bet { font-size: 0.68rem; }
+    /* kept clear of the pot and board in the middle */
+    .Bet[data-pos="0"] { left: 50%; top: 76%; }
+    .Bet[data-pos="1"] { left: 30%; top: 68%; }
+    .Bet[data-pos="2"] { left: 30%; top: 30%; }
+    .Bet[data-pos="3"] { left: 50%; top: 20%; }
+    .Bet[data-pos="4"] { left: 70%; top: 30%; }
+    .Bet[data-pos="5"] { left: 70%; top: 68%; }
+
+    .Dealer[data-pos="0"] { left: 76%; top: 88%; }
+    .Dealer[data-pos="1"] { left: 25%; top: 56%; }
+    .Dealer[data-pos="2"] { left: 25%; top: 45%; }
+    .Dealer[data-pos="3"] { left: 70%; top: 12%; }
+    .Dealer[data-pos="4"] { left: 75%; top: 45%; }
+    .Dealer[data-pos="5"] { left: 75%; top: 56%; }
+
+    /* your buttons stay in reach */
+    .Bar { position: sticky; bottom: 0.5rem; z-index: 20; }
+    .Act { min-width: 0; flex: 1 1 0; }
+    .Bar-main { width: 100%; }
+}

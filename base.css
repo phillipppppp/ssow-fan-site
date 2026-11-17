@@ -114,10 +114,7 @@ body {
     font-size: 1rem;
     line-height: 1.6;
     color: var(--ink);
-    /* faint halftone dots, like a printed comic page */
-    background:
-        radial-gradient(rgba(29, 27, 32, 0.07) 1px, transparent 1.6px) 0 0 / 22px 22px,
-        var(--bg);
+    background: var(--bg);
     -webkit-font-smoothing: antialiased;
     font-variant-numeric: tabular-nums;
 }

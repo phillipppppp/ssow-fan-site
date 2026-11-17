@@ -62,6 +62,38 @@
         <button type="button" role="tab" class="Mode" id="tabOnline" aria-selected="false" aria-controls="online">Play with friends</button>
     </div>
 
+    <!-- ============ You: name and avatar, for both modes ============ -->
+    <section class="Panel You" id="you" aria-labelledby="youTitle">
+        <div class="You-head">
+            <div class="You-preview"><img id="avatarPreview" src="images/pfp/whale-0.svg" alt="" width="120" height="120"></div>
+            <div>
+                <h2 id="youTitle">You at the table</h2>
+                <p class="You-label">Playing as <strong id="avatarLabel">Blue whale</strong></p>
+            </div>
+        </div>
+
+        <label class="Field">
+            <span class="Field-label">Your name <span class="Hint">for tables with friends &middot; 2&ndash;16 letters, numbers, spaces, _ . -</span></span>
+            <input type="text" id="playerName" maxlength="16" autocomplete="nickname" spellcheck="false" placeholder="deez">
+        </label>
+
+        <div class="Field">
+            <span class="Field-label">Use my whale</span>
+            <div class="Wallet-row">
+                <input type="text" id="walletInput" placeholder="0x&hellip; your wallet" spellcheck="false" autocomplete="off" aria-label="Wallet address">
+                <button type="button" class="Btn" id="walletLoad">Load</button>
+            </div>
+            <p class="Wallet-status" id="walletStatus" role="status" aria-live="polite"></p>
+            <div class="Avatar-grid" id="walletGrid" hidden></div>
+            <p class="Wallet-note">Your wallet stays in this browser. Other players only see your whale and your name &mdash; no signing needed.</p>
+        </div>
+
+        <div class="Field">
+            <span class="Field-label">No whale? Pick a pfp</span>
+            <div class="Avatar-row" id="pfpRow"></div>
+        </div>
+    </section>
+
     <!-- ============ Set up a practice table ============ -->
     <section class="Setup" id="setup" aria-labelledby="setupTitle">
         <h2 id="setupTitle">Practice table</h2>
@@ -98,22 +130,6 @@
 
     <!-- ============ Play with friends: host or join ============ -->
     <section class="Online" id="online" aria-label="Play with friends" hidden>
-        <div class="Panel Online-you">
-            <h2>You at the table</h2>
-            <label class="Field">
-                <span class="Field-label">Your name <span class="Hint">2&ndash;16 letters, numbers, spaces, _ . -</span></span>
-                <input type="text" id="playerName" maxlength="16" autocomplete="nickname" spellcheck="false" placeholder="deez">
-            </label>
-            <fieldset class="Field Whales" id="whalePick">
-                <legend class="Field-label">Play as</legend>
-                <div class="Whales-row" id="whaleStickers"></div>
-                <label class="Whales-own">
-                    <span>or your own whale #</span>
-                    <input type="number" id="whaleOwn" min="1" max="10000" step="1" inputmode="numeric" placeholder="3955">
-                </label>
-            </fieldset>
-        </div>
-
         <div class="Online-pair">
             <div class="Panel Online-host">
                 <h2>Host a table</h2>
@@ -230,11 +246,11 @@
 
 <script defer src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/gsap.min.js"></script>
 <script defer src="strokeText.js"></script>
-<script defer src="whale.js"></script>
 <script defer src="game-config.js"></script>
 <script defer src="poker-engine.js"></script>
 <script defer src="poker-bots.js"></script>
 <script defer src="poker-table.js"></script>
+<script defer src="poker-avatar.js"></script>
 <script defer src="poker.js"></script>
 <script defer src="poker-online.js"></script>
 <script defer src="footer.js"></script>

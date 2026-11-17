@@ -13,6 +13,9 @@
        pass, so time-outs happen even if nobody clicks.
 
    Everything a player typed (names) goes on screen as plain text.
+   Avatars: this page sends only which one (an OG whale's number or one
+   of our pfps — see poker-avatar.js); the server finds the picture and
+   tells everyone its URL. No wallet ever reaches a table.
    ============================================================ */
 
 (function () {
@@ -27,23 +30,15 @@
     const LOCAL = params.get('backend') === 'local';
     const API = LOCAL ? 'http://localhost:8788' : (CONFIG.supabaseUrl ? CONFIG.supabaseUrl + '/functions/v1/poker' : '');
 
-    /* our ten whale stickers, and their backdrop colours */
-    const STICKERS = [
-        [1, '#83c7b3'], [127, '#add4db'], [777, '#496342'], [1784, '#bec4c3'], [2469, '#ab9abf'],
-        [2500, '#c1dbb6'], [2880, '#e0887a'], [4921, '#ba976a'], [6465, '#a1c0d6'], [9695, '#e28537']
-    ];
-    const STICKER_BG = {};
-    STICKERS.forEach(function (s) { STICKER_BG[s[0]] = s[1]; });
-
     const SEATS_STORE = 'ssow-lounge-seats';     /* { CODE: { key, seat } } */
-    const PROFILE_STORE = 'ssow-lounge-profile'; /* { name, whale } */
+    const PROFILE_STORE = 'ssow-lounge-profile'; /* { name } */
     const RESULT_MS = 4500;
     const SHOWDOWN_MS = 7000;
 
     const els = {
         tabPractice: $('tabPractice'), tabOnline: $('tabOnline'),
         setup: $('setup'), online: $('online'), lounge: $('lounge'),
-        name: $('playerName'), stickers: $('whaleStickers'), own: $('whaleOwn'),
+        you: $('you'), name: $('playerName'),
         hostChips: $('hostChips'), hostSeats: $('hostSeats'), hostGo: $('hostGo'),
         joinCode: $('joinCode'), joinGo: $('joinGo'), status: $('onlineStatus'),
         room: $('room'), roomCode: $('roomCode'), roomLink: $('roomLink'), roomCopy: $('roomCopy'),
@@ -78,7 +73,6 @@
     let clockTimer = null;
     let ticking = false;
     let present = null;      /* seats with a browser open (Realtime presence) */
-    let pickedWhale = 1;
 
     /* ---------------------------------------------------------
        Small helpers
@@ -128,53 +122,18 @@
        Lobby: who you are, host, join
        --------------------------------------------------------- */
 
-    function buildStickers() {
-        STICKERS.forEach(function (s) {
-            const b = document.createElement('button');
-            b.type = 'button';
-            b.className = 'Whale-pick';
-            b.dataset.whale = s[0];
-            b.style.setProperty('--seat-bg', s[1]);
-            b.setAttribute('aria-label', 'Whale #' + s[0]);
-            b.setAttribute('aria-pressed', 'false');
-            const img = document.createElement('img');
-            img.src = 'images/whales/' + s[0] + '.webp';
-            img.alt = '';
-            img.width = 64;
-            img.height = 64;
-            img.loading = 'lazy';
-            b.appendChild(img);
-            b.addEventListener('click', function () { pickWhale(s[0]); els.own.value = ''; });
-            els.stickers.appendChild(b);
-        });
-    }
-
-    function pickWhale(id) {
-        pickedWhale = id;
-        els.stickers.querySelectorAll('.Whale-pick').forEach(function (b) {
-            b.setAttribute('aria-pressed', Number(b.dataset.whale) === id ? 'true' : 'false');
-        });
-    }
-
     function profile() {
         const name = els.name.value.replace(/\s+/g, ' ').trim();
         if (name.length < 2 || name.length > 16) throw new Error('pick a name of 2 to 16 characters');
         if (!/^[\p{L}\p{N} _.\-]+$/u.test(name)) throw new Error('names can use letters, numbers, spaces and _ . -');
-        let whale = pickedWhale;
-        if (els.own.value.trim()) {
-            whale = Number(els.own.value);
-            if (!Number.isInteger(whale) || whale < 1 || whale > 10000) throw new Error('whale numbers go from 1 to 10000');
-        }
-        write(PROFILE_STORE, { name: name, whale: whale });
-        return { name: name, whale: whale };
+        write(PROFILE_STORE, { name: name });
+        const avatar = window.LoungeAvatar ? window.LoungeAvatar.payload() : { kind: 'alt', v: 0 };
+        return { name: name, avatar: avatar };
     }
 
     function loadProfile() {
         const p = read(PROFILE_STORE, null);
-        if (!p) { pickWhale(1); return; }
-        if (p.name) els.name.value = p.name;
-        if (STICKER_BG[p.whale]) pickWhale(p.whale);
-        else { pickWhale(1); if (p.whale) els.own.value = p.whale; }
+        if (p && p.name) els.name.value = p.name;
     }
 
     function remember(c, k, seat) {
@@ -203,7 +162,7 @@
         say('Opening a table…');
         try {
             const r = await api('create', {
-                name: me.name, whale: me.whale,
+                name: me.name, avatar: me.avatar,
                 chips: Number(els.hostChips.value),
                 seats: Number(els.hostSeats.value),
                 speed: (document.querySelector('input[name="hostSpeed"]:checked') || {}).value || 'regular'
@@ -226,7 +185,7 @@
         busy(true);
         say('Finding a seat…');
         try {
-            const r = await api('join', { code: c, name: me.name, whale: me.whale });
+            const r = await api('join', { code: c, name: me.name, avatar: me.avatar });
             remember(r.code, r.key, r.seat);
             say('');
             enter(r.code, r.key, r.seat, r.table);
@@ -477,41 +436,27 @@
        Drawing the public table
        --------------------------------------------------------- */
 
-    function whaleOf(p) {
-        if (STICKER_BG[p.whale]) return { img: 'images/whales/' + p.whale + '.webp', bg: STICKER_BG[p.whale] };
-        return { img: 'images/OG_logo-nav.webp', bg: '#fffaf1', logo: true, pending: p.whale };
-    }
-
-    /* a custom whale's art comes from IPFS (the same source as the rest of
-       the site); the seat shows the crystal whale until it arrives */
-    function fetchArt(seat, id) {
-        if (!window.WhaleSource) return;
-        window.WhaleSource.load(id).then(function (w) {
-            const bg = window.WhaleSource.backgroundOf(w);
-            const img = new Image();
-            img.onload = function () {
-                if (!active) return;
-                T.setImage(seat, w.image, bg);
-                const av = document.querySelector('#seat' + seat + ' .Seat-avatar');
-                if (av) av.classList.remove('is-logo');
-            };
-            img.src = w.image;
-        }).catch(function () { /* the crystal whale stays */ });
+    /* the picture the server picked for this player (never a link a
+       browser supplied), or our first pfp if it couldn't find one */
+    function avatarOf(p) {
+        const a = p.avatar || {};
+        if (a.kind === 'alt' && window.LoungeAvatar) return { img: window.LoungeAvatar.pfpImage(a.v), bg: window.LoungeAvatar.pfpColor(a.v) };
+        if (p.image) return { img: p.image, bg: '#fffaf1' };
+        return { img: 'images/pfp/whale-0.svg', bg: '#83c7b3' };
     }
 
     function seatPlayers(p) {
-        const sig = JSON.stringify(p.players.map(function (x) { return x && [x.name, x.whale]; })) + ':' + mySeat;
+        const sig = JSON.stringify(p.players.map(function (x) { return x && [x.name, x.image, x.avatar]; })) + ':' + mySeat;
         if (sig === rosterKey) return;
         rosterKey = sig;
         const who = p.players.map(function (x, s) {
             if (!x) return null;
-            const w = whaleOf(x);
-            return { name: x.name, img: w.img, bg: w.bg, logo: !!w.logo, pending: w.pending, style: s === p.host ? 'Host' : '' };
+            const w = avatarOf(x);
+            return { name: x.name, img: w.img, bg: w.bg, style: s === p.host ? 'Host' : '' };
         });
         /* you always sit at the bottom: turn the table round your seat */
         const turn = mySeat >= 0 ? mySeat : 0;
         T.setPlayers(who, mySeat, function (s) { return (s - turn + 6) % 6; });
-        who.forEach(function (w, s) { if (w && w.pending) fetchArt(s, w.pending); });
     }
 
     function onPublic(p) {
@@ -672,11 +617,6 @@
     els.hostGo.addEventListener('click', host);
     els.joinGo.addEventListener('click', function () { join(); });
     els.joinCode.addEventListener('input', function () { els.joinCode.value = cleanCode(els.joinCode.value); });
-    els.own.addEventListener('input', function () {
-        if (els.own.value.trim()) els.stickers.querySelectorAll('.Whale-pick').forEach(function (b) { b.setAttribute('aria-pressed', 'false'); });
-        else pickWhale(pickedWhale);
-    });
-
     els.roomCopy.addEventListener('click', function () {
         const done = function () { els.roomCopy.textContent = 'Copied!'; setTimeout(function () { els.roomCopy.textContent = 'Copy link'; }, 1500); };
         if (navigator.clipboard && navigator.clipboard.writeText) navigator.clipboard.writeText(els.roomLink.value).then(done, function () { els.roomLink.select(); });
@@ -700,7 +640,6 @@
     });
     els.overLobby.addEventListener('click', backToLobby);
 
-    buildStickers();
     loadProfile();
 
     const linked = cleanCode(params.get('table'));

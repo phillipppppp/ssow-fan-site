@@ -121,7 +121,13 @@
 
         who = [null, null, null, null, null, null];
         const players = [null, null, null, null, null, null];
-        who[YOU] = { name: 'You', img: 'images/OG_logo-nav.webp', bg: '#fffaf1', logo: true };
+        /* you sit as the whale (or pfp) picked in "You at the table" */
+        const me = window.LoungeAvatar ? window.LoungeAvatar.current() : { kind: 'alt', v: 0, image: 'images/pfp/whale-0.svg' };
+        who[YOU] = {
+            name: 'You',
+            img: me.image || 'images/pfp/whale-0.svg',
+            bg: me.kind === 'alt' && window.LoungeAvatar ? window.LoungeAvatar.pfpColor(me.v) : '#fffaf1'
+        };
         players[YOU] = { id: 'you', name: 'You', stack: settings.chips };
         LAYOUT[settings.bots].forEach(function (s, i) {
             const r = bots[i];
@@ -248,6 +254,7 @@
         if (!active) return;
         active = false;
         clearTimeout(timer);
+        document.dispatchEvent(new CustomEvent('lounge:mode', { detail: 'lobby' }));
         els.lounge.hidden = true;
         els.setup.hidden = false;
         els.setup.scrollIntoView({ block: 'start', behavior: 'smooth' });

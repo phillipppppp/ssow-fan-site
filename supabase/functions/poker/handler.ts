@@ -2,7 +2,8 @@
 // poker handler — the dealer for Cigar Lounge tables.
 //
 // One endpoint, POST { action, ... }:
-//   create  host a table: settings + your name and whale -> code, seat key
+//   wallet  a wallet's OG whales, from OpenSea (the key stays here)
+//   create  host a table: settings + your name and avatar -> code, seat key
 //   join    take a seat at a table that hasn't started
 //   leave   give your seat back (before the start only)
 //   start   host only, two or more seated
@@ -44,8 +45,20 @@ const SLOTS: Record<number, number[]> = { 2: [0, 3], 3: [0, 2, 4], 4: [1, 2, 4, 
 const CODE_CHARS = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
 const LOG_TAIL = 120;               // a hand's whole history, even a long raising war
 
-export function createHandler(db: Any, deps: { now?: () => number } = {}) {
+/* Avatars. A player picks either one of their OG whales (by token id)
+   or one of our own whale pfps. The browser only ever sends which one;
+   the server finds the picture itself, so nobody can slip in a link. */
+const OG = { contract: '0x88091012eedf8dba59d08e27ed7b22008f5d6fe5', slug: 'secretsocietyofwhales' };
+const ALT_PFPS = 6;                 // images/pfp/whale-0.svg .. whale-5.svg
+const WALLET_TTL_MS = 5 * 60 * 1000;
+const IMAGE_TTL_MS = 7 * 24 * 60 * 60 * 1000;
+const WALLET_PAGES = 5;             // 200 a page: plenty for any holder
+/* OpenSea's own image servers — the only hosts a whale picture may come from */
+const IMAGE_HOSTS = /^https:\/\/([a-z0-9-]+\.)*(seadn\.io|opensea\.io|openseauserdata\.com)\//;
+
+export function createHandler(db: Any, deps: { now?: () => number; opensea?: (path: string) => Promise<Any> } = {}) {
     const now = deps.now ?? (() => Date.now());
+    const opensea = deps.opensea ?? openseaGet;
 
     const CORS = {
         'Access-Control-Allow-Origin': '*',
@@ -110,10 +123,91 @@ export function createHandler(db: Any, deps: { now?: () => number } = {}) {
         return n;
     }
 
-    function cleanWhale(raw: unknown): number {
-        const n = Number(raw);
-        if (!Number.isInteger(n) || n < 1 || n > 10000) throw new Fail(400, 'whale numbers go from 1 to 10000');
-        return n;
+    /* { kind: 'og', id } or { kind: 'alt', v } — nothing else, and never a URL.
+       (An older page sent just { whale: id }; that still means an OG whale.) */
+    function cleanAvatar(b: Any) {
+        const a = b && b.avatar ? b.avatar : (b && b.whale !== undefined ? { kind: 'og', id: b.whale } : { kind: 'alt', v: 0 });
+        if (a.kind === 'og') {
+            const id = Number(a.id);
+            if (!Number.isInteger(id) || id < 1 || id > 10000) throw new Fail(400, 'that isn’t an OG whale number');
+            return { kind: 'og', id };
+        }
+        if (a.kind === 'alt') {
+            const v = Number(a.v);
+            if (!Number.isInteger(v) || v < 0 || v >= ALT_PFPS) throw new Fail(400, 'unknown pfp');
+            return { kind: 'alt', v };
+        }
+        throw new Fail(400, 'unknown avatar');
+    }
+
+    /* ---------- OpenSea, through a small cache ---------- */
+
+    async function cacheGet(k: string, ttl: number) {
+        const { data } = await db.from('pk_cache').select('data, fetched_at').eq('key', k).maybeSingle();
+        if (!data) return null;
+        const age = now() - new Date(data.fetched_at).getTime();
+        if (!(age >= 0 && age < ttl)) return null;
+        return typeof data.data === 'string' ? JSON.parse(data.data) : data.data;
+    }
+
+    async function cachePut(k: string, value: unknown) {
+        await db.rpc('pk_cache_put', { p_key: k, p_data: value });
+    }
+
+    function safeImage(url: unknown): string | null {
+        return typeof url === 'string' && IMAGE_HOSTS.test(url) ? url : null;
+    }
+
+    /* the picture for an avatar: ours for a pfp, OpenSea's for a whale */
+    async function avatarImage(a: Any): Promise<string | null> {
+        if (a.kind === 'alt') return 'images/pfp/whale-' + a.v + '.svg';
+        const k = 'img:og:' + a.id;
+        const hit = await cacheGet(k, IMAGE_TTL_MS);
+        if (hit && hit.image) return hit.image;
+        try {
+            const j = await opensea('/api/v2/chain/ethereum/contract/' + OG.contract + '/nfts/' + a.id);
+            const image = safeImage(j && j.nft && (j.nft.display_image_url || j.nft.image_url));
+            if (image) await cachePut(k, { image });
+            return image;
+        } catch {
+            return null;                 // the table shows a pfp until next time
+        }
+    }
+
+    async function wallet(b: Any) {
+        const address = String(b.address ?? '').trim().toLowerCase();
+        if (!/^0x[0-9a-f]{40}$/.test(address)) throw new Fail(400, 'that doesn’t look like a wallet address');
+        const k = 'wallet:' + await hash(address);
+        const hit = await cacheGet(k, WALLET_TTL_MS);
+        if (hit) return hit;
+        const whales: Any[] = [];
+        let next = '';
+        try {
+            for (let page = 0; page < WALLET_PAGES; page++) {
+                const j = await opensea('/api/v2/chain/ethereum/account/' + address + '/nfts?collection=' + OG.slug +
+                    '&limit=200' + (next ? '&next=' + encodeURIComponent(next) : ''));
+                for (const n of (j && j.nfts) || []) {
+                    const id = Number(n.identifier);
+                    if (n.collection !== OG.slug || !Number.isInteger(id)) continue;
+                    whales.push({ id, image: safeImage(n.display_image_url || n.image_url) });
+                }
+                next = j && j.next;
+                if (!next) break;
+            }
+        } catch (e) {
+            if (e instanceof Fail) throw e;
+            throw new Fail(502, 'OpenSea isn’t answering right now');
+        }
+        whales.sort((x, y) => x.id - y.id);
+        const out = { count: whales.length, whales };
+        await cachePut(k, out);
+        // each whale's picture is worth keeping too: joining a table then costs
+        // nothing. Saved 25 at a time, so a 100-whale wallet doesn't wait in line.
+        const pics = whales.filter((w) => w.image);
+        for (let i = 0; i < pics.length; i += 25) {
+            await Promise.all(pics.slice(i, i + 25).map((w) => cachePut('img:og:' + w.id, { image: w.image })));
+        }
+        return out;
     }
 
     function cleanSettings(b: Any) {
@@ -141,7 +235,13 @@ export function createHandler(db: Any, deps: { now?: () => number } = {}) {
             status: st.status,
             settings: st.settings,
             host: st.host,
-            players: st.players.map((p: Any) => p && { name: p.name, whale: p.whale, sittingOut: !!p.sittingOut }),
+            players: st.players.map((p: Any) => p && {
+                name: p.name,
+                avatar: p.avatar,
+                image: p.image || null,
+                whale: p.avatar && p.avatar.kind === 'og' ? p.avatar.id : 0,   // for pages from before avatars
+                sittingOut: !!p.sittingOut
+            }),
             startedAt: st.startedAt || 0,
             deadline: st.deadline || 0,
             resultAt: st.resultAt || 0,
@@ -243,11 +343,12 @@ export function createHandler(db: Any, deps: { now?: () => number } = {}) {
     async function create(b: Any) {
         const settings = cleanSettings(b);
         const name = cleanName(b.name);
-        const whale = cleanWhale(b.whale);
+        const avatar = cleanAvatar(b);
+        const image = await avatarImage(avatar);
         const key = newKey();
         const slot = SLOTS[settings.seats][0];
         const players = [null, null, null, null, null, null] as Any[];
-        players[slot] = { name, whale, keyHash: await hash(key), timeouts: 0, sittingOut: false };
+        players[slot] = { name, avatar, image, keyHash: await hash(key), timeouts: 0, sittingOut: false };
 
         // the odd old table goes when a new one opens
         await db.rpc('pk_cleanup', {});
@@ -268,7 +369,8 @@ export function createHandler(db: Any, deps: { now?: () => number } = {}) {
     async function join(b: Any) {
         const code = cleanCode(b.code);
         const name = cleanName(b.name);
-        const whale = cleanWhale(b.whale);
+        const avatar = cleanAvatar(b);
+        const image = await avatarImage(avatar);
         const key = newKey();
         const keyHash = await hash(key);
         const r = await mutate(code, (st: Any) => {
@@ -277,7 +379,7 @@ export function createHandler(db: Any, deps: { now?: () => number } = {}) {
             if (st.players.some((p: Any) => p && p.name.toLowerCase() === lower)) throw new Fail(409, 'someone at this table already uses that name');
             const slot = SLOTS[st.settings.seats].find((s: number) => !st.players[s]);
             if (slot === undefined) throw new Fail(409, 'this table is full');
-            st.players[slot] = { name, whale, keyHash, timeouts: 0, sittingOut: false };
+            st.players[slot] = { name, avatar, image, keyHash, timeouts: 0, sittingOut: false };
             return slot;
         });
         return { code, seat: r.out, key, table: publicView(r.st) };
@@ -385,7 +487,7 @@ export function createHandler(db: Any, deps: { now?: () => number } = {}) {
         return { table: publicView(row.state) };
     }
 
-    const ACTIONS: Record<string, (b: Any) => Promise<unknown>> = { create, join, leave, start, act, back, tick, me, state };
+    const ACTIONS: Record<string, (b: Any) => Promise<unknown>> = { wallet, create, join, leave, start, act, back, tick, me, state };
 
     return async function handle(req: Request): Promise<Response> {
         if (req.method === 'OPTIONS') return new Response('ok', { headers: CORS });
@@ -406,4 +508,18 @@ export function createHandler(db: Any, deps: { now?: () => number } = {}) {
             return reply(500, { error: 'something went wrong' });
         }
     };
+}
+
+/* OpenSea's API, with the key from the function's secrets. The key never
+   leaves the server: browsers only ever talk to this function. */
+async function openseaGet(path: string): Promise<Any> {
+    const key = Deno.env.get('OPENSEA_API_KEY');
+    if (!key) throw new Error('no OpenSea key configured');
+    const res = await fetch('https://api.opensea.io' + path, {
+        headers: { 'x-api-key': key, accept: 'application/json' },
+        signal: AbortSignal.timeout(10000)
+    });
+    if (res.status === 404) return { nfts: [], nft: null };
+    if (!res.ok) throw new Error('OpenSea ' + res.status);
+    return await res.json();
 }

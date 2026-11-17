@@ -297,6 +297,7 @@
         T.clearLog();
         T.say('');
         T.onAct(send);
+        T.hush(2500);          /* a table we join mid-hand catches up quietly */
 
         els.setup.hidden = true;
         els.online.hidden = true;
@@ -590,6 +591,7 @@
         if (!els.over.hidden) return;
         const winner = v.winner !== undefined && pub.players[v.winner] ? pub.players[v.winner].name : '';
         const mine = mySeat >= 0 ? v.seats[mySeat] : null;
+        if (mine) T.sound(v.winner === mySeat ? 'win' : 'lose', 0.4);
         if (mine && v.winner === mySeat) {
             els.overTitle.textContent = 'You win the Lounge!';
             els.overText.textContent = 'Last whale standing after ' + v.handNo + ' hands.';

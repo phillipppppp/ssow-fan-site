@@ -8,6 +8,12 @@
 
    Player names come from people at multiplayer tables, so every
    name goes on the page with textContent, never as HTML.
+
+   The deck is our own whale deck (images/cards): a big rank in the
+   corner with its suit under it, whale characters on the J, Q and
+   K, a whale on the Ace of Spades, a whale on the back. Sounds come
+   from poker-sound.js and are triggered from here, so practice and
+   multiplayer sound the same.
    ============================================================ */
 
 (function () {
@@ -29,6 +35,9 @@
         return n;
     }
 
+    /* whale art for the court cards and the Ace of Spades */
+    const ART = { 9: 'jack', 10: 'queen', 11: 'king' };
+
     function cardEl(c, extra) {
         const n = el('span', 'Card' + (extra ? ' ' + extra : ''));
         if (c === undefined || c === null || c < 0) {
@@ -36,11 +45,23 @@
             n.setAttribute('aria-label', 'face-down card');
             return n;
         }
+        const r = E.rankOf(c);
         const s = E.suitOf(c);
         if (s === 1 || s === 2) n.classList.add('is-red');
-        n.setAttribute('aria-label', RANK_NAME[E.rankOf(c)] + ' of ' + SUIT_NAME[s]);
-        n.appendChild(el('span', 'Card-rank', rankText(c)));
-        n.appendChild(el('span', 'Card-suit', SUIT[s]));
+        if (r === 8) n.classList.add('is-ten');
+        n.setAttribute('aria-label', RANK_NAME[r] + ' of ' + SUIT_NAME[s]);
+        const corner = el('span', 'Card-corner');
+        corner.appendChild(el('span', 'Card-rank', rankText(c)));
+        corner.appendChild(el('span', 'Card-pip', SUIT[s]));
+        n.appendChild(corner);
+        const art = ART[r] || (r === 12 && s === 0 ? 'ace-spades' : null);
+        if (art) {
+            n.classList.add('is-art');
+            const a = el('span', 'Card-art Card-art--' + art);
+            n.appendChild(a);
+        } else {
+            n.appendChild(el('span', 'Card-suit', SUIT[s]));
+        }
         return n;
     }
 
@@ -51,6 +72,15 @@
         let shownBoard = 0;
         let timerKey = '';
         let onAct = null;
+        let timerNow = null;          /* the running turn clock, for the last-5-seconds ticks */
+        let lastTick = 0;
+        let lastTurn = '';
+        let hushUntil = 0;            /* no sounds while a joined table catches up */
+
+        function sound(name, delay) {
+            if (Date.now() < hushUntil || !window.LoungeSound) return;
+            window.LoungeSound.play(name, delay);
+        }
 
         /* ---------- seats ---------- */
 
@@ -143,6 +173,7 @@
                 const key = showCards ? (h.no + ':' + holes.join(',') + (h.folded[s] ? ':f' : '')) : '';
                 if (newHand || cards.dataset.key !== key) {
                     const flip = !newHand && cards.dataset.key && key.indexOf('-1') < 0 && cards.dataset.key.indexOf('-1') >= 0;
+                    if (flip) sound('flip', 0.05 * s);
                     cards.innerHTML = '';
                     cards.dataset.key = key;
                     if (showCards) {
@@ -168,8 +199,17 @@
                 if (v.button >= 0) dealer.dataset.pos = posOf(v.button);
             }
 
+            if (newHand && h) {
+                sound('shuffle');
+                const cardsOut = Math.min(12, h.dealt.filter(Boolean).length * 2);
+                for (let i = 0; i < cardsOut; i++) sound('deal', 0.62 + i * 0.09);
+            }
+
             /* board: only new cards flip in */
             const board = h ? h.board : [];
+            if (!newHand && board.length > shownBoard) {
+                for (let i = shownBoard; i < board.length; i++) sound('flip', (i - shownBoard) * 0.14);
+            }
             if (newHand || board.length < shownBoard) { els.board.innerHTML = ''; shownBoard = 0; }
             for (let i = shownBoard; i < 5; i++) {
                 if (i < board.length) {
@@ -189,6 +229,7 @@
 
         /* the shrinking bar under whoever is acting */
         function renderTimer(t) {
+            timerNow = t || null;
             const key = t ? t.seat + ':' + t.endsAt : '';
             if (key === timerKey) return;
             timerKey = key;
@@ -227,6 +268,8 @@
             current = v;
             raiseLabel();
             els.call.focus({ preventScroll: true });
+            const turnKey = h.no + ':' + h.log.length;
+            if (turnKey !== lastTurn) { lastTurn = turnKey; sound('turn'); }
             return true;
         }
 
@@ -295,6 +338,69 @@
             else if (k === 'r' && !els.raise.hidden) { e.preventDefault(); els.raise.click(); }
         });
 
+        /* the last five seconds of YOUR clock tick */
+        setInterval(function () {
+            const t = timerNow;
+            if (!t || t.seat !== me || els.actions.hidden) return;
+            const left = t.endsAt - Date.now();
+            const sec = Math.ceil(left / 1000);
+            if (left > 0 && sec <= 5 && sec !== lastTick) { lastTick = sec; sound('tick'); }
+            if (sec > 5) lastTick = 0;
+        }, 200);
+
+        /* the speaker button on the table */
+        const mute = document.getElementById('loungeMute');
+        function showMute(m) {
+            if (!mute) return;
+            mute.setAttribute('aria-pressed', m ? 'true' : 'false');
+            mute.setAttribute('aria-label', m ? 'Sound off — turn it on' : 'Sound on — mute');
+            mute.title = m ? 'Sound off' : 'Sound on';
+            mute.textContent = m ? '🔇' : '🔊';
+        }
+        if (mute && window.LoungeSound) {
+            showMute(window.LoungeSound.isMuted());
+            mute.addEventListener('click', function () { showMute(window.LoungeSound.toggle()); });
+        }
+
+        /* full screen: the browser's own where it exists (desktop, Android),
+           otherwise the table just fills the page (iPhone Safari) */
+        const fullBtn = document.getElementById('loungeFull');
+        const lounge = document.getElementById('lounge');
+        function setFull(on) {
+            if (!lounge || !fullBtn) return;
+            lounge.classList.toggle('is-full', on);
+            document.documentElement.classList.toggle('lounge-full', on);
+            fullBtn.setAttribute('aria-pressed', on ? 'true' : 'false');
+            fullBtn.setAttribute('aria-label', on ? 'Leave full screen' : 'Full screen');
+            fullBtn.title = on ? 'Leave full screen (Esc)' : 'Full screen';
+        }
+        if (fullBtn && lounge) {
+            fullBtn.addEventListener('click', function () {
+                const on = !lounge.classList.contains('is-full');
+                setFull(on);
+                try {
+                    if (on && lounge.requestFullscreen && !document.fullscreenElement) lounge.requestFullscreen().catch(function () { /* page-filling is enough */ });
+                    if (!on && document.fullscreenElement && document.exitFullscreen) document.exitFullscreen().catch(function () {});
+                } catch (e) { /* page-filling is enough */ }
+            });
+            /* Esc (or the browser's own button) leaves full screen */
+            document.addEventListener('fullscreenchange', function () {
+                if (!document.fullscreenElement && lounge.classList.contains('is-full')) setFull(false);
+            });
+            document.addEventListener('keydown', function (e) {
+                if (e.key !== 'Escape' || !lounge.classList.contains('is-full')) return;
+                setFull(false);
+                if (document.fullscreenElement && document.exitFullscreen) document.exitFullscreen().catch(function () {});
+            });
+            /* back in the lobby: out of full screen */
+            document.addEventListener('lounge:mode', function (e) {
+                if (e.detail === 'lobby' && lounge.classList.contains('is-full')) {
+                    setFull(false);
+                    if (document.fullscreenElement && document.exitFullscreen) document.exitFullscreen().catch(function () {});
+                }
+            });
+        }
+
         /* ---------- words ---------- */
 
         function status(text) { els.status.textContent = text; }
@@ -331,6 +437,7 @@
             if (!what) return;
             log(nameOf(e.seat) + ' ' + what + auto);
             flash(e.seat, what);
+            sound(e.allIn ? 'allin' : e.type);
         }
 
         function flash(s, text) {
@@ -361,6 +468,7 @@
                 }
             });
             for (let s = 0; s < E.SEATS; s++) if (r.won[s]) flash(s, '+' + fmt(r.won[s]));
+            sound('push', r.showdown ? 0.5 : 0.15);
             say(lines[0] || '');
             return lines[0] || '';
         }
@@ -380,7 +488,9 @@
             entry: entry,
             result: result,
             flash: flash,
-            nameOf: nameOf
+            nameOf: nameOf,
+            hush: function (ms) { hushUntil = Date.now() + ms; },
+            sound: sound
         };
     }
 
@@ -389,5 +499,5 @@
     let shared = null;
     function get(els) { return shared || (shared = create(els)); }
 
-    window.PokerTable = { get: get, fmt: fmt, cardText: cardText };
+    window.PokerTable = { get: get, fmt: fmt, cardText: cardText, card: cardEl };
 })();

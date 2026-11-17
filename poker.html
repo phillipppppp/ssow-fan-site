@@ -195,7 +195,12 @@
 
         <div class="Table" id="table">
             <div class="Rail"><div class="Felt"></div></div>
+            <button type="button" class="Mute" id="loungeMute" aria-pressed="false" aria-label="Sound on — mute">&#x1F50A;</button>
+            <button type="button" class="Full" id="loungeFull" aria-pressed="false" aria-label="Full screen" title="Full screen">
+                <svg viewBox="0 0 24 24" aria-hidden="true"><path class="Full-in" d="M4 9V4h5M15 4h5v5M20 15v5h-5M9 20H4v-5"/><path class="Full-out" d="M9 4v5H4M20 9h-5V4M15 20v-5h5M4 15h5v5"/></svg>
+            </button>
             <div class="Center">
+                <span class="Badge"><img src="images/cards/ssow-badge.webp" alt="Secret Society of Whales" width="200" height="169"></span>
                 <p class="Pot" id="pot">Pot 0</p>
                 <div class="Board" id="board" aria-label="Board cards"></div>
                 <p class="Say" id="say" aria-live="polite"></p>
@@ -249,6 +254,7 @@
 <script defer src="game-config.js"></script>
 <script defer src="poker-engine.js"></script>
 <script defer src="poker-bots.js"></script>
+<script defer src="poker-sound.js"></script>
 <script defer src="poker-table.js"></script>
 <script defer src="poker-avatar.js"></script>
 <script defer src="poker.js"></script>

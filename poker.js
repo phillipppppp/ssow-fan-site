@@ -232,6 +232,7 @@
         const won = table.finished && table.winner === YOU;
         const seated = table.seats.filter(Boolean).length;
         els.overTitle.textContent = won ? 'You win the Lounge!' : 'You finished ' + ordinal(me.place || seated);
+        T.sound(won ? 'win' : 'lose', 0.4);
         els.overText.textContent = won
             ? 'Last whale standing after ' + table.handNo + ' hands.'
             : 'Out on hand ' + table.handNo + ' of a ' + seated + '-whale table.';

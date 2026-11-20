@@ -448,7 +448,7 @@
         raf = requestAnimationFrame(frame);
     }
 
-    /* each racer's portrait, cut into a circle once (cheap to draw every frame) */
+    /* each racer's orca picture, with the default orca if it won't load */
     function loadPortrait(r) {
         const want = imageFor(r.id);
         const img = new Image();
@@ -461,6 +461,7 @@
         img.src = want;
     }
 
+    /* each racer's NFT art, cut to a rounded card once (cheap to draw every frame) */
     function sprite(r, d) {
         if (!r.img) return null;
         const px = Math.max(8, Math.round(d * layoutInfo.dpr));
@@ -469,8 +470,7 @@
         c.width = c.height = px;
         const g = c.getContext('2d');
         try {
-            g.beginPath();
-            g.arc(px / 2, px / 2, px / 2, 0, Math.PI * 2);
+            rr(g, 0, 0, px, px, px * 0.2);
             g.clip();
             const iw = r.img.naturalWidth || px, ih = r.img.naturalHeight || px;
             const s = Math.max(px / iw, px / ih);
@@ -490,8 +490,8 @@
             const avail = Math.max(120, els.pool.clientHeight);
             laneH = avail / n;
         } else {
-            const avail = Math.min(window.innerHeight * 0.68, 620);
-            laneH = Math.max(16, Math.min(66, avail / n));
+            const avail = n > 12 ? Math.min(window.innerHeight * 0.82, 900) : Math.min(window.innerHeight * 0.68, 620);
+            laneH = Math.max(16, Math.min(86, avail / n));
         }
         const H = Math.round(laneH * n);
         els.canvas.style.height = H + 'px';
@@ -501,7 +501,7 @@
         els.confetti.height = Math.round(H * dpr);
         const startX = Math.max(26, W * 0.045);
         const finishX = W - Math.max(26, W * 0.06);
-        const bodyLen = Math.min(laneH * 2.3, W * 0.13, 150);
+        const bodyLen = Math.max(14, Math.min(laneH * (laneH < 34 ? 1.12 : 0.88), W * 0.13, 110));   // card size; crowded lanes overlap a little
         layoutInfo = { W: W, H: H, laneH: H / n, n: n, dpr: dpr, startX: startX, finishX: finishX, bodyLen: bodyLen };
         R.forEach(function (r) { r.sprite = null; });
     }
@@ -672,31 +672,57 @@
         }
     }
 
+    /* a rounded rectangle path (roundRect isn't in every phone browser yet) */
+    function rr(g, x, y, w, h, rad) {
+        const q = Math.min(rad, w / 2, h / 2);
+        g.beginPath();
+        g.moveTo(x + q, y);
+        g.arcTo(x + w, y, x + w, y + h, q);
+        g.arcTo(x + w, y + h, x, y + h, q);
+        g.arcTo(x, y + h, x, y, q);
+        g.arcTo(x, y, x + w, y, q);
+        g.closePath();
+    }
+
+    /* Each racer IS its orca: the NFT art on a comic sticker card, inked
+       like the collection, bobbing and rocking through the water. */
     function drawOrca(i, s, wall, leading) {
         const L = layoutInfo;
         const g = ctx;
         const r = R[i];
         const pos = Sim.posAt(race.racers[i], s);
-        const len = L.bodyLen;
-        const h = Math.max(5, Math.min(L.laneH * 0.36, len * 0.2));   // half the body's height
-        const nose = L.startX + pos * (L.finishX - L.startX);
-        const bob = Math.sin(wall * 4.2 + r.phase) * L.laneH * 0.07;
-        const cy = i * L.laneH + L.laneH / 2 + bob;
-        const tail = nose - len;
+        const c = L.bodyLen;                                   // the card's size
+        const nose = L.startX + c + pos * (L.finishX - L.startX - c);  // the card's front edge
         const moving = phase === 'race' && pos < 1.04;
-        const flap = Math.sin(wall * (moving ? 11 : 4) + r.phase) * h * 0.7;
         const bursting = phase === 'race' && Sim.burstingAt(race.racers[i], s) && pos < 1;
-        const lw = Math.max(1.2, h * 0.14);
+        const bob = Math.sin(wall * 4.2 + r.phase) * L.laneH * 0.06;
+        const cx = nose - c / 2;
+        const cy = i * L.laneH + L.laneH / 2 + bob;
+        const tilt = Math.sin(wall * 3.1 + r.phase) * (moving ? 0.07 : 0.03) - (bursting ? 0.1 : 0);
+        const ink = Math.max(1.5, c * 0.045);
+        const back = nose - c;
 
+        /* the wake: foam puffs trailing behind, longer on a burst */
+        if (moving) {
+            const puffs = bursting ? 6 : 3;
+            g.fillStyle = 'rgba(255,255,255,0.55)';
+            for (let k = 0; k < puffs; k++) {
+                const f = ((wall * (bursting ? 2.6 : 1.4) + k / puffs + r.phase) % 1);
+                const px = back + c * 0.1 - f * c * (bursting ? 1.1 : 0.6);
+                const py = cy + c * 0.32 + Math.sin(k * 2.1 + wall * 5) * c * 0.06;
+                const pr = Math.max(1, c * 0.11 * (1 - f));
+                g.beginPath(); g.arc(px, py, pr, 0, Math.PI * 2); g.fill();
+            }
+        }
         /* speed lines on a burst */
         if (bursting) {
-            g.strokeStyle = 'rgba(255,255,255,0.7)';
-            g.lineWidth = Math.max(1, h * 0.12);
+            g.strokeStyle = 'rgba(255,255,255,0.75)';
+            g.lineWidth = Math.max(1, c * 0.04);
             for (let k = -1; k <= 1; k++) {
-                const x0 = tail - h * 0.4 - (wall * 300 + k * 37) % (h * 2);
+                const x0 = back - c * 0.1 - (wall * 300 + k * 37) % (c * 0.5);
                 g.beginPath();
-                g.moveTo(x0, cy + k * h * 0.6);
-                g.lineTo(x0 - len * 0.35, cy + k * h * 0.6);
+                g.moveTo(x0, cy + k * c * 0.25);
+                g.lineTo(x0 - c * 0.5, cy + k * c * 0.25);
                 g.stroke();
             }
         }
@@ -708,9 +734,10 @@
             g.textAlign = 'right';
             g.textBaseline = 'middle';
             const label = r.name.length > 16 ? r.name.slice(0, 15) + '…' : r.name;
-            const lx = tail - h * 0.9;
+            const lx = back - c * (bursting ? 0.65 : 0.12);
             if (lx > 30) {
                 g.lineWidth = 3;
+                g.lineJoin = 'round';
                 g.strokeStyle = 'rgba(29,27,32,0.8)';
                 g.strokeText(label, lx, cy);
                 g.fillStyle = '#fffaf1';
@@ -718,72 +745,62 @@
             }
         }
 
-        g.lineJoin = 'round';
-        g.lineWidth = lw;
-        g.strokeStyle = '#1d1b20';
-
-        /* tail flukes */
+        /* the card itself, rocking on the swell */
+        const rad = c * 0.2;
+        g.save();
+        g.translate(cx, cy);
+        g.rotate(tilt);
+        /* hard ink shadow, like every sticker on the site */
         g.fillStyle = '#1d1b20';
-        g.beginPath();
-        g.moveTo(tail + h * 0.6, cy);
-        g.quadraticCurveTo(tail - h * 0.2, cy + flap * 0.3, tail - h * 0.9, cy - h * 0.85 + flap);
-        g.quadraticCurveTo(tail - h * 0.35, cy + flap * 0.5, tail - h * 0.9, cy + h * 0.85 + flap);
-        g.quadraticCurveTo(tail - h * 0.2, cy + flap * 0.3, tail + h * 0.6, cy);
+        rr(g, -c / 2 + c * 0.07, -c / 2 + c * 0.07, c, c, rad);
         g.fill();
-
-        /* dorsal fin */
-        const fx = nose - len * 0.52;
-        g.beginPath();
-        g.moveTo(fx - h * 0.55, cy - h * 0.8);
-        g.quadraticCurveTo(fx - h * 0.2, cy - h * 2.0, fx - h * 0.75, cy - h * 2.05);
-        g.quadraticCurveTo(fx + h * 0.4, cy - h * 1.4, fx + h * 0.55, cy - h * 0.8);
-        g.closePath();
-        g.fill();
-
-        /* body */
-        g.beginPath();
-        g.moveTo(nose, cy + h * 0.1);
-        g.bezierCurveTo(nose, cy - h * 1.15, nose - len * 0.55, cy - h * 1.05, tail + h * 0.2, cy - h * 0.2);
-        g.lineTo(tail + h * 0.2, cy + h * 0.2);
-        g.bezierCurveTo(nose - len * 0.55, cy + h * 1.15, nose, cy + h * 1.05, nose, cy + h * 0.1);
-        g.closePath();
-        g.fill();
-        g.stroke();
-
-        /* white belly and eye patch */
-        g.fillStyle = '#fffaf1';
-        g.beginPath();
-        g.moveTo(nose - h * 0.3, cy + h * 0.45);
-        g.quadraticCurveTo(nose - len * 0.4, cy + h * 1.0, nose - len * 0.72, cy + h * 0.35);
-        g.quadraticCurveTo(nose - len * 0.4, cy + h * 0.55, nose - h * 0.3, cy + h * 0.45);
-        g.fill();
-        g.beginPath();
-        g.ellipse(nose - len * 0.2, cy - h * 0.38, h * 0.32, h * 0.16, -0.15, 0, Math.PI * 2);
-        g.fill();
-
-        /* the NFT portrait, in a ring on the body */
-        const d = Math.min(L.laneH * 0.86, h * 2.3, len * 0.46);
-        const px = nose - len * 0.47;
-        const ringW = Math.max(1.5, d * 0.08);
-        g.fillStyle = leading ? '#f4b740' : '#fffaf1';
-        g.beginPath(); g.arc(px, cy, d / 2 + ringW, 0, Math.PI * 2); g.fill();
-        g.lineWidth = Math.max(1, lw * 0.8);
-        g.stroke();
-        const sp = sprite(r, d);
+        if (leading) {
+            g.fillStyle = '#f4b740';
+            rr(g, -c / 2 - ink * 1.6, -c / 2 - ink * 1.6, c + ink * 3.2, c + ink * 3.2, rad + ink * 1.6);
+            g.fill();
+        }
+        const sp = sprite(r, c);
         if (sp) {
-            g.drawImage(sp, px - d / 2, cy - d / 2, d, d);
+            g.drawImage(sp, -c / 2, -c / 2, c, c);
         } else {
             g.fillStyle = '#a1c0d6';
-            g.beginPath(); g.arc(px, cy, d / 2, 0, Math.PI * 2); g.fill();
+            rr(g, -c / 2, -c / 2, c, c, rad);
+            g.fill();
         }
+        /* water lapping at the bottom of the card */
+        g.save();
+        rr(g, -c / 2, -c / 2, c, c, rad);
+        g.clip();
+        const wl = c * 0.3 + Math.sin(wall * 5 + r.phase) * c * 0.03;
+        g.fillStyle = 'rgba(58,135,169,0.55)';
+        g.beginPath();
+        g.moveTo(-c / 2, wl);
+        for (let x = -c / 2; x <= c / 2 + 1; x += Math.max(2, c / 8)) {
+            g.lineTo(x, wl + Math.sin(x * 0.25 + wall * 6 + r.phase) * c * 0.025);
+        }
+        g.lineTo(c / 2, c / 2);
+        g.lineTo(-c / 2, c / 2);
+        g.closePath();
+        g.fill();
+        g.strokeStyle = 'rgba(255,255,255,0.85)';
+        g.lineWidth = Math.max(1, c * 0.03);
+        g.stroke();
+        g.restore();
+        /* the ink outline */
+        g.lineWidth = ink;
+        g.strokeStyle = '#1d1b20';
+        g.lineJoin = 'round';
+        rr(g, -c / 2, -c / 2, c, c, rad);
+        g.stroke();
+        g.restore();
 
         /* place badge once finished */
         if (r.place) {
-            const bd = Math.max(12, Math.min(26, L.laneH * 0.55));
-            const bx = nose + bd * 0.2, by = cy - L.laneH * 0.2;
+            const bd = Math.max(12, Math.min(26, c * 0.38));
+            const bx = nose, by = cy - c / 2 + bd * 0.15;
             g.fillStyle = r.place === 1 ? '#f4b740' : r.place === 2 ? '#bec4c3' : r.place === 3 ? '#ba976a' : '#fffaf1';
             g.beginPath(); g.arc(bx, by, bd / 2, 0, Math.PI * 2); g.fill();
-            g.lineWidth = 1.5; g.stroke();
+            g.lineWidth = 1.5; g.strokeStyle = '#1d1b20'; g.stroke();
             g.fillStyle = '#1d1b20';
             g.font = '900 ' + Math.round(bd * 0.58) + 'px Nunito, sans-serif';
             g.textAlign = 'center';
@@ -823,7 +840,7 @@
         if (!layoutInfo || !cosmetic) return;
         const L = layoutInfo;
         const pos = Sim.posAt(race.racers[lane], stepAt(raceT));
-        const x = L.startX + pos * (L.finishX - L.startX) - L.bodyLen * 0.9;
+        const x = L.startX + pos * (L.finishX - L.startX - L.bodyLen);
         const y = lane * L.laneH + L.laneH / 2;
         for (let k = 0; k < count && spray.length < 400; k++) {
             spray.push({

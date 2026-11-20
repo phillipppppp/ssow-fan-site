@@ -328,7 +328,14 @@
         name.value = r.name;
         name.setAttribute('aria-label', 'Racer name');
         name.spellcheck = false;
-        name.addEventListener('input', function () { r.name = name.value; save(); updateCode(); });
+        name.addEventListener('input', function () {
+            r.name = name.value;
+            save();
+            updateCode();
+            /* a racer with just a name gets its orca from the name: show the new one */
+            clearTimeout(name._t);
+            name._t = setTimeout(function () { refreshPics(); fetchImages(); }, 450);
+        });
 
         const id = document.createElement('input');
         id.type = 'text';

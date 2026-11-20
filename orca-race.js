@@ -25,6 +25,7 @@
     const LOCAL = new URLSearchParams(window.location.search).get('backend') === 'local';
     const API = LOCAL ? 'http://localhost:8790' : (CONFIG.supabaseUrl ? CONFIG.supabaseUrl + '/functions/v1/orca-race' : '');
     const DEFAULT_IMG = 'images/orca.avif';
+    const DEFAULT_CUT = 'images/orca-default-cut.webp';
     const MIN_RACERS = 2;
     const MAX_RACERS = 30;
     const FALLBACK_SUPPLY = 1000;      // used for "random orcas" only until the server says how many there are
@@ -184,16 +185,78 @@
     }
 
     /* how many orcas there are, and which numbers really exist (they have gaps) */
+    let catalogWait = null;
     function fetchSupply() {
-        if (!API) return;
-        api({ action: 'info' }).then(function (d) {
-            if (d.supply) supply = d.supply;
-            if (Array.isArray(d.ids) && d.ids.length) {
-                catalog = d.ids.filter(function (x) { return Number.isInteger(x); });
-                refreshPics();
-                fetchImages();
-            }
-        }).catch(function () { /* fallback */ });
+        if (!API) return Promise.resolve(null);
+        if (!catalogWait) {
+            catalogWait = api({ action: 'info' }).then(function (d) {
+                if (d.supply) supply = d.supply;
+                if (Array.isArray(d.ids) && d.ids.length) {
+                    catalog = d.ids.filter(function (x) { return Number.isInteger(x); });
+                    refreshPics();
+                    fetchImages();
+                }
+                return catalog;
+            }).catch(function () { catalogWait = null; return null; });     /* try again next time */
+        }
+        return catalogWait;
+    }
+
+    /* resolves once test() is true, or after `ms` either way */
+    function waitFor(test, ms) {
+        return new Promise(function (done) {
+            const until = Date.now() + ms;
+            (function check() {
+                if (test() || Date.now() > until) done();
+                else setTimeout(check, 100);
+            })();
+        });
+    }
+
+    /* the orca list, waiting for it at most `ms` (the first visit of a day takes a few seconds) */
+    function ensureCatalog(ms) {
+        if (catalog || !API) return Promise.resolve(catalog);
+        return Promise.race([fetchSupply(), new Promise(function (r) { setTimeout(function () { r(null); }, ms); })]);
+    }
+
+    /* racers whose number isn't a Security Orca (remembered from before, or typed) */
+    function badRacers() {
+        if (!catalog) return [];
+        return racers.filter(function (r) { return String(r.id).trim() !== '' && !isRealOrca(idOf(r)); });
+    }
+
+    function warnBad() {
+        const bad = badRacers();
+        if (!bad.length) {
+            if (els.status.dataset.bad) { say(''); delete els.status.dataset.bad; }
+            return;
+        }
+        const nums = bad.map(function (r) { return '#' + String(r.id).trim(); }).join(', ');
+        say((bad.length === 1 ? nums + ' isn’t a Security Orca' : nums + ' aren’t Security Orcas') +
+            ' (the numbers have gaps), so ' + (bad.length === 1 ? 'it races' : 'they race') + ' as the default orca. ', 'warn');
+        const fix = document.createElement('button');
+        fix.type = 'button';
+        fix.className = 'Btn Or-small';
+        fix.textContent = bad.length === 1 ? 'Swap for a real orca' : 'Swap for real orcas';
+        fix.addEventListener('click', swapBad);
+        els.status.appendChild(fix);
+        els.status.dataset.bad = '1';
+    }
+
+    /* give those racers real orcas instead; a typed name stays */
+    function swapBad() {
+        const taken = new Set(racers.map(idOf).filter(isRealOrca));
+        setupPictures().forEach(function (x) { if (x !== null) taken.add(x); });
+        badRacers().forEach(function (r) {
+            let id = null;
+            for (let tries = 0; tries < 200 && (id === null || taken.has(id)); tries++) id = catalog[randomInt(catalog.length)];
+            if (id === null) return;
+            taken.add(id);
+            const old = String(r.id).trim();
+            if (!Sim.cleanName(r.name) || Sim.cleanName(r.name) === 'Orca #' + old) r.name = 'Orca #' + id;
+            r.id = String(id);
+        });
+        render();
     }
 
     /* an <img> that falls back to the default orca, once */
@@ -236,6 +299,7 @@
             /* get the 2D cut-out ready before the race starts */
             if (window.OrcaCutout && /^https:\/\//.test(src)) window.OrcaCutout.prepare(src);
         });
+        warnBad();
     }
 
     /* ============================================================
@@ -327,7 +391,15 @@
         }
     });
 
-    els.addRandom.addEventListener('click', function () {
+    els.addRandom.addEventListener('click', async function () {
+        /* only real orcas: wait for the list if it's still on its way */
+        if (!catalog && API) {
+            els.addRandom.disabled = true;
+            say('Getting the list of orcas…');
+            await ensureCatalog(15000);
+            if (!els.status.dataset.bad) say('');
+            els.addRandom.disabled = racers.length >= MAX_RACERS;
+        }
         const max = supply || FALLBACK_SUPPLY;
         const taken = new Set(racers.map(idOf).filter(function (x) { return x !== null; }));
         setupPictures().forEach(function (x) { if (x !== null) taken.add(x); });     /* not anyone's picture either */
@@ -369,10 +441,28 @@
         if (!c) { say('Type the race code you want to replay.', 'warn'); els.replayCode.focus(); return; }
         code = c;
         updateCode();
-        startRace();
+        startWhenReady();
     });
 
-    els.start.addEventListener('click', function () { startRace(); });
+    /* Racers with just a name get their orca from the list, and every picture
+       has to be known before the race draws it: wait a few seconds for both,
+       at most, then go. (Nothing here can change who wins.) */
+    async function startWhenReady() {
+        if (API && (!catalog || setupPictures().some(function (id) { return id !== null && !images.has(id); }))) {
+            els.start.disabled = true;
+            say('Getting the orcas ready…');
+            await ensureCatalog(5000);
+            fetchImages();
+            await waitFor(function () {
+                return setupPictures().every(function (id) { return id === null || images.has(id); });
+            }, 4000);
+            if (!els.status.dataset.bad) say('');
+            els.start.disabled = racers.length < MIN_RACERS;
+        }
+        startRace();
+    }
+
+    els.start.addEventListener('click', startWhenReady);
 
     /* ============================================================
        The race
@@ -505,15 +595,40 @@
         img.decoding = 'async';
         if (/^https:\/\//.test(want)) img.crossOrigin = 'anonymous';
         img.onload = function () { r.img = img; r.sprite = null; };
+        function useCut(c) { if (c) { r.cut = c; r.halo = null; r.edge = null; } }
         /* the orca without its background, if it cuts cleanly; the card until then */
-        if (window.OrcaCutout && /^https:\/\//.test(want)) {
-            window.OrcaCutout.prepare(want).then(function (c) { if (c) { r.cut = c; r.halo = null; r.edge = null; } });
-        }
+        if (window.OrcaCutout && /^https:\/\//.test(want)) window.OrcaCutout.prepare(want).then(useCut);
+        else if (want === DEFAULT_IMG) defaultCutout().then(useCut);
         img.onerror = function () {
-            if (img.src.indexOf(DEFAULT_IMG) < 0 && want !== DEFAULT_IMG) { img.src = DEFAULT_IMG; return; }
+            if (img.src.indexOf(DEFAULT_IMG) < 0 && want !== DEFAULT_IMG) {
+                img.src = DEFAULT_IMG;
+                if (!r.cut) defaultCutout().then(useCut);
+                return;
+            }
             r.img = null;          // even the default failed: a plain circle it is
         };
         img.src = want;
+    }
+
+    /* the default orca, already cut out (images/orca-default-cut.webp, made
+       from images/orca.avif the same way), so nobody races as a square card */
+    let defaultCut = null;
+    function defaultCutout() {
+        if (!defaultCut) {
+            defaultCut = new Promise(function (done) {
+                const i = new Image();
+                i.onload = function () {
+                    const c = document.createElement('canvas');
+                    c.width = i.naturalWidth;
+                    c.height = i.naturalHeight;
+                    c.getContext('2d').drawImage(i, 0, 0);
+                    done(c);
+                };
+                i.onerror = function () { done(null); };
+                i.src = DEFAULT_CUT;
+            });
+        }
+        return defaultCut;
     }
 
     /* each racer's NFT art, cut to a rounded card once (cheap to draw every frame) */

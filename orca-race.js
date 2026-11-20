@@ -54,6 +54,7 @@
     let uid = 0;
     let code = '';
     let supply = null;
+    let catalog = null;                // every real orca number (they have gaps), from the server
     const images = new Map();          // orca number -> url | null (null: no picture, use the default)
     const pending = new Set();
 
@@ -98,6 +99,34 @@
         return u || DEFAULT_IMG;
     }
 
+    /* Every racer gets a different orca to look at. A typed number is that
+       orca; a racer with just a name gets one picked from their name (the
+       same name always gets the same orca, and no two racers share one).
+       It's only the picture: the race itself never sees it. */
+    function pictureIds(entries) {
+        const out = entries.map(function (e) { return e.id; });
+        if (!catalog || !catalog.length) return out;
+        const taken = new Set(out.filter(function (x) { return x !== null; }));
+        const need = entries.map(function (_, i) { return i; }).filter(function (i) { return out[i] === null; });
+        need.sort(function (a, b) { return entries[a].key < entries[b].key ? -1 : entries[a].key > entries[b].key ? 1 : a - b; });
+        need.forEach(function (i) {
+            let k = Sim.hash128('ssow-orca-picture|' + entries[i].key)[0] % catalog.length;
+            for (let tries = 0; taken.has(catalog[k]) && tries < catalog.length; tries++) k = (k + 1) % catalog.length;
+            out[i] = catalog[k];
+            taken.add(catalog[k]);
+        });
+        return out;
+    }
+
+    function setupPictures() {
+        return pictureIds(racers.map(function (r, i) {
+            const typed = String(r.id).trim() !== '';
+            return { id: typed ? idOf(r) : null, key: Sim.cleanName(r.name).toLowerCase() || 'racer ' + (i + 1) };
+        }));
+    }
+
+    function isRealOrca(id) { return id !== null && (!catalog || catalog.indexOf(id) >= 0); }
+
     function save() {
         try {
             window.localStorage.setItem(STORE, JSON.stringify({
@@ -129,8 +158,7 @@
 
     async function fetchImages() {
         const want = [];
-        racers.forEach(function (r) {
-            const id = idOf(r);
+        setupPictures().forEach(function (id) {
             if (id !== null && !images.has(id) && !pending.has(id) && want.indexOf(id) < 0) want.push(id);
         });
         if (!want.length) return;
@@ -155,15 +183,24 @@
         }
     }
 
+    /* how many orcas there are, and which numbers really exist (they have gaps) */
     function fetchSupply() {
         if (!API) return;
-        api({ action: 'info' }).then(function (d) { if (d.supply) supply = d.supply; }).catch(function () { /* fallback */ });
+        api({ action: 'info' }).then(function (d) {
+            if (d.supply) supply = d.supply;
+            if (Array.isArray(d.ids) && d.ids.length) {
+                catalog = d.ids.filter(function (x) { return Number.isInteger(x); });
+                refreshPics();
+                fetchImages();
+            }
+        }).catch(function () { /* fallback */ });
     }
 
     /* an <img> that falls back to the default orca, once */
     function safeImg(src, size) {
         const i = document.createElement('img');
         i.alt = '';
+        if (/^https:\/\//.test(src)) i.crossOrigin = 'anonymous';    /* same request the cut-out makes */
         i.width = size;
         i.height = size;
         i.decoding = 'async';
@@ -177,11 +214,14 @@
     }
 
     function refreshPics() {
+        const pics = setupPictures();
         els.list.querySelectorAll('.Racer').forEach(function (row) {
-            const r = racers.find(function (x) { return String(x.uid) === row.dataset.uid; });
-            if (!r) return;
-            const id = String(r.id).trim() === '' ? null : idOf(r);
-            const src = imageFor(id);
+            const at = racers.findIndex(function (x) { return String(x.uid) === row.dataset.uid; });
+            if (at < 0) return;
+            const r = racers[at];
+            const typed = String(r.id).trim() !== '';
+            const id = typed ? idOf(r) : null;
+            const src = imageFor(pics[at]);
             const box = row.querySelector('.Racer-pic');
             const img = box.querySelector('img');
             if (!img || img.dataset.want !== src) {
@@ -189,9 +229,12 @@
                 n.dataset.want = src;
                 box.replaceChildren(n);
             }
-            const bad = String(r.id).trim() !== '' && (id === null || (images.has(id) && images.get(id) === null && API));
+            box.title = !typed && pics[at] !== null ? 'Picked for you: Orca #' + pics[at] + ' (just the picture, it doesn’t change the race)' : '';
+            const bad = typed && (id === null || !isRealOrca(id) || (images.has(id) && images.get(id) === null && API));
             row.querySelector('.Racer-id').classList.toggle('is-bad', bad);
-            row.querySelector('.Racer-id').title = bad ? 'No picture for that orca — the default orca will race' : '';
+            row.querySelector('.Racer-id').title = bad ? 'There’s no orca with that number — the default orca will race' : '';
+            /* get the 2D cut-out ready before the race starts */
+            if (window.OrcaCutout && /^https:\/\//.test(src)) window.OrcaCutout.prepare(src);
         });
     }
 
@@ -287,9 +330,11 @@
     els.addRandom.addEventListener('click', function () {
         const max = supply || FALLBACK_SUPPLY;
         const taken = new Set(racers.map(idOf).filter(function (x) { return x !== null; }));
+        setupPictures().forEach(function (x) { if (x !== null) taken.add(x); });     /* not anyone's picture either */
         let added = 0;
         for (let tries = 0; added < 5 && racers.length < MAX_RACERS && tries < 200; tries++) {
-            const id = 1 + randomInt(max);
+            /* only orcas that exist, once the server has said which */
+            const id = catalog && catalog.length ? catalog[randomInt(catalog.length)] : 1 + randomInt(max);
             if (taken.has(id)) continue;
             taken.add(id);
             addRacer('Orca #' + id, id);
@@ -411,13 +456,18 @@
         events.sort(function (a, b) { return a.t - b.t || a.lane - b.lane; });
         nextEvent = 0;
 
+        const pics = pictureIds(race.racers.map(function (r, lane) {
+            return { id: r.orcaId, key: r.name.toLowerCase() || 'racer ' + (lane + 1) };
+        }));
         R = race.racers.map(function (r, lane) {
             return {
                 name: r.name,
                 id: r.orcaId,
+                pic: pics[lane],         // the orca we draw (their own, or one picked for them)
                 phase: lane * 1.7,
                 img: null,
                 sprite: null,
+                cut: null,               // the 2D cut-out, once it's ready
                 place: 0
             };
         });
@@ -450,10 +500,15 @@
 
     /* each racer's orca picture, with the default orca if it won't load */
     function loadPortrait(r) {
-        const want = imageFor(r.id);
+        const want = imageFor(r.pic);
         const img = new Image();
         img.decoding = 'async';
+        if (/^https:\/\//.test(want)) img.crossOrigin = 'anonymous';
         img.onload = function () { r.img = img; r.sprite = null; };
+        /* the orca without its background, if it cuts cleanly; the card until then */
+        if (window.OrcaCutout && /^https:\/\//.test(want)) {
+            window.OrcaCutout.prepare(want).then(function (c) { if (c) { r.cut = c; r.halo = null; r.edge = null; } });
+        }
         img.onerror = function () {
             if (img.src.indexOf(DEFAULT_IMG) < 0 && want !== DEFAULT_IMG) { img.src = DEFAULT_IMG; return; }
             r.img = null;          // even the default failed: a plain circle it is
@@ -696,11 +751,18 @@
         const moving = phase === 'race' && pos < 1.04;
         const bursting = phase === 'race' && Sim.burstingAt(race.racers[i], s) && pos < 1;
         const bob = Math.sin(wall * 4.2 + r.phase) * L.laneH * 0.06;
-        const cx = nose - c / 2;
+        /* a cut-out keeps its own shape: a bit taller than the card, as wide as its ride */
+        let w = c, h = c;
+        if (r.cut) {
+            h = c * (L.laneH >= 40 ? 1.3 : 1.12);              /* roomy lanes: they can ride big */
+            w = h * r.cut.width / r.cut.height;
+            if (w > c * 2) { w = c * 2; h = w * r.cut.height / r.cut.width; }
+        }
+        const cx = nose - w / 2;
         const cy = i * L.laneH + L.laneH / 2 + bob;
         const tilt = Math.sin(wall * 3.1 + r.phase) * (moving ? 0.07 : 0.03) - (bursting ? 0.1 : 0);
         const ink = Math.max(1.5, c * 0.045);
-        const back = nose - c;
+        const back = nose - w;
 
         /* the wake: foam puffs trailing behind, longer on a burst */
         if (moving) {
@@ -745,6 +807,9 @@
             }
         }
 
+        if (r.cut) {
+            drawCut(g, r, cx, cy, w, h, tilt, wall, leading);
+        } else {
         /* the card itself, rocking on the swell */
         const rad = c * 0.2;
         g.save();
@@ -793,11 +858,12 @@
         rr(g, -c / 2, -c / 2, c, c, rad);
         g.stroke();
         g.restore();
+        }
 
         /* place badge once finished */
         if (r.place) {
             const bd = Math.max(12, Math.min(26, c * 0.38));
-            const bx = nose, by = cy - c / 2 + bd * 0.15;
+            const bx = nose, by = cy - h / 2 + bd * 0.15;
             g.fillStyle = r.place === 1 ? '#f4b740' : r.place === 2 ? '#bec4c3' : r.place === 3 ? '#ba976a' : '#fffaf1';
             g.beginPath(); g.arc(bx, by, bd / 2, 0, Math.PI * 2); g.fill();
             g.lineWidth = 1.5; g.strokeStyle = '#1d1b20'; g.stroke();
@@ -807,6 +873,78 @@
             g.textBaseline = 'middle';
             g.fillText(String(r.place), bx, by + 0.5);
         }
+    }
+
+    /* ---------- the 2D cut-out orca, riding in the water ---------- */
+
+    const AROUND = [[1, 0], [-1, 0], [0, 1], [0, -1], [0.7, 0.7], [-0.7, 0.7], [0.7, -0.7], [-0.7, -0.7]];
+
+    /* the sprite's shape in one flat colour, for its ink edge and the leader's glow */
+    function silhouette(sp, color) {
+        const c = document.createElement('canvas');
+        c.width = sp.width;
+        c.height = sp.height;
+        const g = c.getContext('2d');
+        g.drawImage(sp, 0, 0);
+        g.globalCompositeOperation = 'source-in';
+        g.fillStyle = color;
+        g.fillRect(0, 0, c.width, c.height);
+        return c;
+    }
+
+    /* the water's surface across the sprite; above or below it */
+    function surface(g, x0, x1, wl, h, wall, phase, above) {
+        const step = Math.max(2, (x1 - x0) / 12);
+        g.beginPath();
+        g.moveTo(x0, wl + Math.sin(x0 * 0.25 + wall * 6 + phase) * h * 0.025);
+        for (let x = x0 + step; x < x1 + step; x += step) g.lineTo(x, wl + Math.sin(x * 0.25 + wall * 6 + phase) * h * 0.025);
+        g.lineTo(x1 + step, above ? -h : h);
+        g.lineTo(x0, above ? -h : h);
+        g.closePath();
+    }
+
+    function drawCut(g, r, cx, cy, w, h, tilt, wall, leading) {
+        const sp = r.cut;
+        if (!r.edge) r.edge = silhouette(sp, '#1d1b20');
+        if (leading && !r.halo) r.halo = silhouette(sp, '#f4b740');
+        const ow = Math.max(1, Math.min(2.4, h * 0.028));            /* ink edge */
+        const gw = Math.max(2, h * 0.065);                            /* the leader's glow */
+        const wl = h * 0.27 + Math.sin(wall * 5 + r.phase) * h * 0.025;   /* waterline */
+        const x0 = -w / 2 - gw - 2, x1 = w / 2 + gw + 2;
+        g.save();
+        g.translate(cx, cy);
+        g.rotate(tilt);
+        /* its shadow in the water */
+        g.fillStyle = 'rgba(16, 52, 72, 0.28)';
+        g.beginPath();
+        g.ellipse(0, wl + h * 0.04, w * 0.46, h * 0.09, 0, 0, Math.PI * 2);
+        g.fill();
+        /* below the surface: faded, seen through the water */
+        g.save();
+        surface(g, x0, x1, wl, h, wall, r.phase, false);
+        g.clip();
+        g.globalAlpha = 0.35;
+        g.drawImage(sp, -w / 2, -h / 2, w, h);
+        g.restore();
+        /* above it: the glow, the ink edge, the orca */
+        g.save();
+        surface(g, x0, x1, wl, h, wall, r.phase, true);
+        g.clip();
+        if (leading) AROUND.forEach(function (d) { g.drawImage(r.halo, -w / 2 + d[0] * gw, -h / 2 + d[1] * gw, w, h); });
+        AROUND.forEach(function (d) { g.drawImage(r.edge, -w / 2 + d[0] * ow, -h / 2 + d[1] * ow, w, h); });
+        g.drawImage(sp, -w / 2, -h / 2, w, h);
+        g.restore();
+        /* foam where it meets the water */
+        g.strokeStyle = 'rgba(255,255,255,0.85)';
+        g.lineWidth = Math.max(1, h * 0.035);
+        g.lineCap = 'round';
+        g.beginPath();
+        for (let x = -w * 0.44, k = 0; x <= w * 0.44; x += Math.max(2, w / 14), k++) {
+            const y = wl + Math.sin(x * 0.25 + wall * 6 + r.phase) * h * 0.025;
+            if (k === 0) g.moveTo(x, y); else g.lineTo(x, y);
+        }
+        g.stroke();
+        g.restore();
     }
 
     function bigText(g, text, x, y, size, fill) {
@@ -937,7 +1075,7 @@
             li.className = 'is-' + (k + 1);
             const pic = document.createElement('span');
             pic.className = 'Podium-pic';
-            pic.appendChild(safeImg(imageFor(r.orcaId), 112));
+            pic.appendChild(safeImg(imageFor(R[lane] ? R[lane].pic : r.orcaId), 112));
             const name = document.createElement('span');
             name.className = 'Podium-name';
             name.textContent = medals[k] + ' ' + r.name;

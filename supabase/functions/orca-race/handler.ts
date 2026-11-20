@@ -2,15 +2,17 @@
 // orca-race handler — Security Orca pictures for Orca Race.
 //
 // One endpoint, POST { action, ... }:
-//   info   how many orcas there are (for "Add 5 random orcas")
+//   info   how many orcas there are, and every real orca number
+//          (the numbering has gaps: about 3,000 orcas between 0 and 9999)
 //   orcas  { ids: [up to 30 numbers] } -> each orca's picture, or null
 //
-// Works exactly like the Cigar Lounge's whale lookups: the browser
-// only sends orca numbers, this function asks OpenSea with the key
-// only the server has (OPENSEA_API_KEY, the same project secret the
-// poker and whale-2048 functions use), keeps only pictures served
-// from OpenSea's own image hosts, and caches answers in pk_cache so
-// a 30-orca race doesn't hit OpenSea's rate limits.
+// Works like the Cigar Lounge's whale lookups: the browser only sends
+// orca numbers, this function asks OpenSea with the key only the
+// server has (OPENSEA_API_KEY, the same project secret the poker and
+// whale-2048 functions use), keeps only pictures served from
+// OpenSea's own image hosts, and caches in pk_cache. The whole
+// collection's listing (numbers + pictures) is one cached row,
+// refreshed daily, so a race costs OpenSea nothing.
 //
 // The race itself never comes here: it is decided in the browser
 // from the race code and the racer list (orca-race-sim.js), so
@@ -24,6 +26,8 @@ type Any = any;
 export const ORCAS = { slug: 'secret-society-security-orcas' };
 const MAX_IDS = 30;
 const COLLECTION_TTL_MS = 24 * 60 * 60 * 1000;
+const CATALOG_TTL_MS = 24 * 60 * 60 * 1000;   // every orca's number and picture, refreshed daily
+const CATALOG_PAGES = 40;                      // 200 a page; there are about 3,000 orcas
 const IMAGE_TTL_MS = 7 * 24 * 60 * 60 * 1000;
 const MISS_TTL_MS = 24 * 60 * 60 * 1000;      // "no such orca" is remembered for a day
 const BATCH = 10;                              // OpenSea calls at once
@@ -93,6 +97,39 @@ export function createHandler(db: Any, deps: { now?: () => number; opensea?: (pa
         }
     }
 
+    /* Every orca that exists, with its picture, from the collection's listing.
+       Orca numbers have gaps (about 3,000 orcas numbered 0 to 9999), so this
+       is the only way to know which numbers are real. One cached row, a day. */
+    async function catalog(): Promise<{ ids: number[]; images: Record<string, string> } | null> {
+        const hit = await cacheGet('orca:catalog');
+        const usable = (v: Any) => v && Array.isArray(v.ids) && v.ids.length && v.images;
+        if (hit && hit.age < CATALOG_TTL_MS && usable(hit.value)) return hit.value;
+        try {
+            const ids: number[] = [];
+            const images: Record<string, string> = {};
+            let next = '';
+            for (let page = 0; page < CATALOG_PAGES; page++) {
+                const j = await opensea('/api/v2/collection/' + ORCAS.slug + '/nfts?limit=200' + (next ? '&next=' + encodeURIComponent(next) : ''));
+                for (const n of (j && Array.isArray(j.nfts) ? j.nfts : [])) {
+                    const id = Number(n.identifier);
+                    if (!Number.isInteger(id) || id < 0 || id > 999999 || images[id] !== undefined) continue;
+                    const img = safeImage(n.display_image_url || n.image_url);
+                    ids.push(id);
+                    if (img) images[id] = img;
+                }
+                next = j && typeof j.next === 'string' ? j.next : '';
+                if (!next) break;
+            }
+            if (!ids.length) throw new Error('no orcas listed');
+            ids.sort((a, b) => a - b);
+            const out = { ids, images };
+            await cachePut('orca:catalog', out);
+            return out;
+        } catch {
+            return hit && usable(hit.value) ? hit.value : null;          // stale beats nothing
+        }
+    }
+
     async function image(col: { chain: string; address: string }, id: number): Promise<string | null> {
         const k = 'img:orca:' + id;
         const hit = await cacheGet(k);
@@ -124,21 +161,28 @@ export function createHandler(db: Any, deps: { now?: () => number; opensea?: (pa
 
     const ACTIONS: Record<string, (b: Any) => Promise<unknown>> = {
         async info() {
+            const cat = await catalog();
+            if (cat) return { supply: cat.ids.length, ids: cat.ids };
             const col = await collection();
             return { supply: col ? col.supply : null };
         },
         async orcas(b: Any) {
             const ids = cleanIds(b.ids);
-            const col = await collection();
             const images: Record<string, string | null> = {};
+            /* the usual way: straight from the catalog, no OpenSea call at all */
+            const cat = await catalog();
+            if (cat) {
+                for (const id of ids) images[id] = cat.images[id] ?? null;      // not listed: no such orca
+                return { supply: cat.ids.length, images };
+            }
+            /* no catalog right now: ask about each orca. (Numbers above the
+               supply are real too: the numbering has gaps.) */
+            const col = await collection();
             if (!col) {
                 for (const id of ids) images[id] = null;
                 return { supply: null, images };
             }
-            const wanted = ids.filter((id) => {
-                if (col.supply !== null && id > col.supply) { images[id] = null; return false; }
-                return true;
-            });
+            const wanted = ids;
             for (let i = 0; i < wanted.length; i += BATCH) {
                 const part = wanted.slice(i, i + BATCH);
                 const got = await Promise.all(part.map((id) => image(col, id)));

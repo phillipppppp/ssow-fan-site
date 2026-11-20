@@ -74,6 +74,8 @@ accept only image URLs from OpenSea's own hosts (`seadn.io`, `opensea.io`,
 | `orca-race-sim.js` | **The fair race engine.** Pure, deterministic, works in browser and Node. |
 | `orca-race.js` | UI: setup list, picture loading, canvas drawing/playback, results, copy, mute, fullscreen. |
 | `orca-race-sound.js` | Synthesized sounds on the shared arcade kit: beep, horn, splash, whoosh, finish, cheer. |
+| `orca-cutout.js` | Cuts each orca out of its background in the browser, for the 2D racers. |
+| `images/orca-scenes/*.webp` | The six empty background scenes the cut-out compares against. |
 | `supabase/functions/orca-race/handler.ts` + `index.ts` | Edge function for orca pictures (key stays server-side). |
 | `supabase/config.toml` | Added `[functions.orca-race] verify_jwt = false`. |
 | `tools/test-orca-race.js` | Fairness test suite (Node). |
@@ -116,31 +118,63 @@ results matched Node exactly (code `K7QX2M`, 8 racers → winner "Shamu").
 
 ## The `orca-race` edge function
 
-`POST { action: 'info' }` → `{ supply }`
+`POST { action: 'info' }` → `{ supply, ids }` (every real orca number)
 `POST { action: 'orcas', ids: [≤30 numbers] }` → `{ supply, images: { id: url | null } }`
 
-- Finds the orca contract + total supply from OpenSea by slug
-  (`/api/v2/collections/secret-society-security-orcas`), cached a day as
-  `orca:collection` (the contract address wasn't known/hardcoded).
-- Per-orca image from `/api/v2/chain/{chain}/contract/{address}/nfts/{id}`, cached
-  7 days as `img:orca:<id>`; "missing" cached 1 day. IDs above supply → `null`.
+- **Orca numbers have gaps.** There are 3,010 Security Orcas (Ethereum, contract
+  `0xef920c1df72b8a1e48e976ca78e09fe35bfc6f38`) numbered between 0 and 9999 —
+  #3 and #1000 don't exist, #3010 and #9787 do. So the function reads the whole
+  collection listing (`/api/v2/collection/<slug>/nfts`, 16 pages of 200) once a day
+  into one cached row, `orca:catalog` = `{ ids, images }`, and answers `orcas` from
+  it with no OpenSea call. (The first version treated "number > supply" as missing,
+  which hid ~70% of real orcas.) If the listing can't be read, it falls back to
+  per-orca lookups (`img:orca:<id>`, 7 days; "missing" 1 day).
 - Only OpenSea image hosts are accepted; any failure → `null` → page shows
   `images/orca.avif`. If OpenSea is down entirely, the call still returns 200 with nulls.
-- Tested with a fake OpenSea in Deno (missing, foreign host, errors, cache, >30 IDs).
+- Tested with a fake OpenSea in Deno (catalog + gaps, foreign host, cache/refresh,
+  stale catalog when OpenSea is down, >30 IDs) and live against real OpenSea.
+
+## Different orca per racer, as 2D cut-outs (2026-11-20)
+
+- **Every racer gets a different orca.** "Add 5 random orcas" picks only real numbers
+  (from `info.ids`). A racer with just a name gets an orca picked from their name
+  (`pictureIds()` in `orca-race.js`: same name → same orca, no two racers share one).
+  That picture is cosmetic only — the race never sees it. A typed number that isn't
+  an orca is flagged red.
+- **2D cut-outs** (`orca-cutout.js`, `window.OrcaCutout.prepare(url)`): the racers are
+  the orca + its ride with the background removed, facing right, riding in the water
+  (faded below a waving waterline, foam at the hull, a thin ink edge, a gold glow for
+  the leader). Square cards remain the fallback when a picture can't be cut.
+- How the cut works: every orca uses one of six painted scenes (the Background trait:
+  Gold Volcano, Citadel, Coral, Crystal Cove, Boulders, Underwater Plains), identical
+  under every orca. `images/orca-scenes/*.webp` (314 KB total) are those scenes,
+  rebuilt offline from 600 orcas by voting per vehicle type (a ride's own parts only
+  agree within its type; the scene agrees across types). Alpha marks where a scene is
+  known; the middle, where some ride always sits, is unknown. In the browser: pick the
+  scene, mark matching pixels as background, flood the unknown middle only through
+  smooth colour (never across the art's ink lines), count only background that
+  reaches the picture's edge, drop specks, soften the edge. ~0.1 s per orca, queued,
+  done during setup. OpenSea's image host sends `Access-Control-Allow-Origin: *`,
+  which is what lets the page read the pixels.
+- Tested on 28 orcas of every vehicle type × background (scene picked right 28/28),
+  and in Edge with real OpenSea: 13/13 and 30/30 racers cut, all different orcas.
 
 ---
 
 ## Status / to-do
 
 - [x] Built, tested, committed and pushed on `claude/orca-race-arcade-game-7hd89y`.
-- [ ] **Deploy the function:** `supabase functions deploy orca-race`
-      (`OPENSEA_API_KEY` secret and `pk_cache` table already exist). Until then every
-      racer shows the default orca picture — the race itself works fine.
-- [ ] Check the Vercel preview for the branch (GitHub commit → ✓ → Vercel → Details),
-      including on a phone and in fullscreen.
+- [x] Different orca per racer + 2D cut-outs (see above).
+- [x] Function deployed to Supabase (2026-11-20) so the branch preview shows real orcas:
+      `npx supabase@2.119.0 functions deploy orca-race --project-ref brinxceqiczxanmxvoph --use-api`.
+- [ ] The owner's feedback on the Vercel preview (GitHub commit → ✓ → Vercel → Details).
+- [ ] Before using it for giveaways: the person running the race can try codes privately
+      until a chosen racer wins (~26 tries for 20 racers). Use a code nobody can know in
+      advance (e.g. a drand round / future Ethereum block hash announced with the list).
+- [ ] "Copy results" pastes names raw into Discord — break `@everyone`/`@here` and escape
+      markdown. The card byline says "giveaway racer" (others say "by @deeznuts.ron").
+- [ ] Re-render `images/games/orca-race.webp` (the arcade cover still shows the old cards).
 - [ ] Merge the branch into `main` to go live (GitHub Pages deploys from `main`).
-- [ ] Until the function reports the real supply, "Add 5 random orcas" picks IDs 1–1000
-      (`FALLBACK_SUPPLY` in `orca-race.js`). If orca IDs start at 0, #0 can only be typed.
 
 Ideas not built (optional): a "copy replay link" that encodes racers in the URL
 (the page already reads `#code=…&len=…&r=name~id|name~id` on load), a sound volume slider,

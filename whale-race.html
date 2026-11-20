@@ -1,0 +1,180 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Whale Race | Secret Society of Whales</title>
+    <meta name="description" content="Race OG whales across the sea for giveaways. Paste your winners list, share the race code, and let them swim: the race code and the racer list decide everything.">
+    <link rel="icon" type="image/png" sizes="32x32" href="images/favicon-32.png">
+    <link rel="apple-touch-icon" sizes="180x180" href="images/favicon-180.png">
+    <link rel="stylesheet" href="base.css">
+    <link rel="stylesheet" href="arcade.css">
+    <link rel="stylesheet" href="orca-race.css">
+    <script>
+        /* Runs before <body> paints: if the boot screen already played
+           this session, mark the document so CSS skips it outright.
+           Deferring this to a file would flash the intro on every page. */
+        try {
+            if (sessionStorage.getItem('ssow-booted')) {
+                document.documentElement.classList.add('booted');
+            }
+            sessionStorage.setItem('ssow-booted', '1');
+        } catch (e) { /* private mode - the intro just plays again */ }
+    </script>
+</head>
+<body data-race="whale">
+<div class="Boot" aria-hidden="true">
+    <div class="Boot-inner">
+        <p class="Boot-mark">Secret Society of Whales</p>
+        <div class="Boot-bar"><span></span></div>
+    </div>
+</div>
+
+<header>
+
+    <nav class="Nav" aria-label="Main">
+        <a class="Nav-logo" href="index.html" aria-label="Secret Society of Whales — home">
+            <img src="images/OG_logo-nav.webp" alt="" width="46" height="39">
+            <span class="Nav-brand" aria-hidden="true">SSoW</span>
+        </a>
+        <div class="Nav-links">
+            <a href="index.html">Home</a>
+            <a href="history.html">Whalestory</a>
+            <a href="meme.html">Meme</a>
+            <a href="idcard.html">ID Generator</a>
+            <a href="minigames.html" aria-current="page">Minigames</a>
+        </div>
+        <a class="Nav-cta" href="game.html">Play Whale Road</a>
+    </nav>
+
+</header>
+
+<main>
+    <section class="Intro Or-intro">
+        <p class="Crumbs"><a href="minigames.html">&larr; Minigames</a></p>
+        <h1 data-stroke-text>Whale Race</h1>
+        <p class="Tagline">
+            Paste the winners list, share the race code, and let the OG whales swim for it.
+            Same code, same racers, same race &mdash; every time.
+        </p>
+    </section>
+
+    <!-- ============ Setup ============ -->
+    <section class="Panel Or-setup" id="setup" aria-labelledby="setupTitle">
+        <div class="Or-head">
+            <h2 id="setupTitle">Racers <span class="Or-count" id="count">0 / 30</span></h2>
+            <div class="Or-tools">
+                <button type="button" class="Btn" id="addRacer">+ Add racer</button>
+                <button type="button" class="Btn" id="paste" aria-expanded="false" aria-controls="pastePanel">Paste a list</button>
+                <button type="button" class="Btn" id="addRandom">Add 5 random whales</button>
+                <button type="button" class="Btn" id="shuffle">Shuffle lanes</button>
+                <button type="button" class="Btn" id="clear">Clear</button>
+            </div>
+        </div>
+
+        <div class="Or-paste" id="pastePanel" hidden>
+            <label class="Field-label" for="pasteText">Paste a list <span class="Hint">one racer per line &middot; a whale number goes after a # or a comma</span></label>
+            <textarea id="pasteText" rows="6" spellcheck="false" autocomplete="off" placeholder="deez&#10;Champ #1234&#10;Doc, 777"></textarea>
+            <div class="Or-pastebtns">
+                <button type="button" class="Btn Btn--primary Or-small" id="pasteAdd">Add to the race</button>
+                <button type="button" class="Btn Or-small" id="pasteReplace">Replace the list</button>
+                <button type="button" class="Btn Or-small" id="pasteCancel">Cancel</button>
+            </div>
+        </div>
+
+        <ol class="Or-list" id="list"></ol>
+        <p class="Or-empty" id="empty">No racers yet &mdash; <strong>Paste a list</strong>, add a few, or tap <strong>Add 5 random whales</strong>.</p>
+        <p class="Wallet-status" id="setupStatus" role="status" aria-live="polite"></p>
+
+        <div class="Or-options">
+            <fieldset class="Field">
+                <legend class="Field-label">Race length</legend>
+                <div class="Or-seg" role="radiogroup">
+                    <label><input type="radio" name="length" value="10"><span>10s</span></label>
+                    <label><input type="radio" name="length" value="20" checked><span>20s</span></label>
+                    <label><input type="radio" name="length" value="30"><span>30s</span></label>
+                </div>
+            </fieldset>
+
+            <div class="Field Or-codebox">
+                <span class="Field-label">Race code <span class="Hint">decides the whole race &mdash; share it before you start</span></span>
+                <div class="Or-code">
+                    <strong id="code">------</strong>
+                    <span class="Or-fp" id="fingerprint" title="Fingerprint of the racer list">racers #------</span>
+                    <button type="button" class="Btn Or-small" id="newCode">New code</button>
+                </div>
+            </div>
+
+            <form class="Field Or-replay" id="replayForm" novalidate>
+                <label class="Field-label" for="replayCode">Replay with code <span class="Hint">same code + same racers = same race</span></label>
+                <div class="Wallet-row">
+                    <input type="text" id="replayCode" maxlength="16" autocomplete="off" spellcheck="false" placeholder="e.g. K7QX2M">
+                    <button type="submit" class="Btn">Replay</button>
+                </div>
+            </form>
+        </div>
+
+        <button type="button" class="Btn Btn--primary Or-go" id="start">Start the race</button>
+    </section>
+
+    <!-- ============ The race ============ -->
+    <section class="Or-stage" id="stage" aria-label="Race" hidden>
+        <div class="Or-hud">
+            <div class="Or-clock" aria-label="Race clock"><span class="Score-label">Time</span><strong id="clock">00:00.000</strong></div>
+            <div class="Or-hudcode"><span class="Score-label">Race code</span><strong id="hudCode">------</strong></div>
+            <div class="Or-leader"><span class="Score-label">Leader</span><strong id="leader">&mdash;</strong></div>
+            <div class="Or-hudbtns">
+                <button type="button" class="Or-icon" id="mute" aria-pressed="false" aria-label="Sound on — mute" title="Sound">&#x1F50A;</button>
+                <button type="button" class="Or-icon" id="fullscreen" aria-label="Fullscreen" title="Fullscreen">&#x26F6;</button>
+            </div>
+        </div>
+        <div class="Or-pool" id="pool">
+            <canvas id="canvas"></canvas>
+            <canvas class="Or-confetti" id="confetti" aria-hidden="true"></canvas>
+
+            <div class="Or-results" id="results" hidden>
+                <div class="Or-card" role="dialog" aria-modal="false" aria-labelledby="resultsTitle">
+                    <h2 class="Or-title" id="resultsTitle">Results</h2>
+                    <p class="Or-meta" id="resultsMeta"></p>
+                    <ol class="Podium" id="podium"></ol>
+                    <h3 class="Or-sub">Full finishing order</h3>
+                    <ol class="Or-order" id="order"></ol>
+                    <div class="Or-actions">
+                        <button type="button" class="Btn Btn--primary" id="copy">Copy results</button>
+                        <button type="button" class="Btn" id="again">Race again</button>
+                        <button type="button" class="Btn" id="newRace">New race</button>
+                    </div>
+                    <p class="Wallet-status" id="copyStatus" role="status" aria-live="polite"></p>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <section class="Or-fair" aria-labelledby="fairTitle">
+        <h2 class="Label" id="fairTitle">Why it&rsquo;s fair</h2>
+        <ul>
+            <li>The <strong>race code</strong> and the <strong>racer list</strong> decide everything. They feed a seeded random generator; nothing random happens during the race.</li>
+            <li>Post the code and the racer list <em>before</em> the race. Anyone can type the same code with the same racers into <strong>Replay with code</strong> and watch the exact same race and winner.</li>
+            <li>Lane order doesn&rsquo;t matter: <strong>Shuffle lanes</strong> moves whales around but can&rsquo;t change the result. The race length only stretches time, and the whale pictures are only looks.</li>
+            <li>The <strong>racers #</strong> fingerprint next to the code changes if anyone is added, removed or renamed.</li>
+        </ul>
+    </section>
+
+    <p class="Sr-only" id="announce" aria-live="polite"></p>
+</main>
+
+<footer class="Footer" data-footer></footer>
+
+<script defer src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/gsap.min.js"></script>
+<script defer src="strokeText.js"></script>
+<script defer src="game-config.js"></script>
+<script defer src="orca-race-sim.js"></script>
+<script defer src="arcade-sound.js"></script>
+<script defer src="orca-race-sound.js"></script>
+<script defer src="whale-cutout.js"></script>
+<script defer src="orca-race.js"></script>
+<script defer src="footer.js"></script>
+<script defer src="data/gold.js"></script>
+<script defer src="easteregg.js"></script>
+</body>
+</html>

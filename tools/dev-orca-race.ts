@@ -1,14 +1,14 @@
 // ============================================================
-// A local stand-in for the Orca Race picture lookup.
+// A local stand-in for the Orca Race and Whale Race picture lookup.
 //
 //     npx deno@2 run -A tools/dev-orca-race.ts
 //
 // Runs the real orca-race handler against a real Postgres (PGlite,
 // in-process, every migration applied) on http://localhost:8790.
-// Open orca-race.html?backend=local to use it. OpenSea isn't called:
-// the collection says 3000 orcas, and every picture points at a
-// test address that won't load, so the page's default-orca fallback
-// gets exercised too.
+// Open orca-race.html?backend=local or whale-race.html?backend=local.
+// OpenSea isn't called: the collection says 3000 orcas, and every
+// picture points at a test address that won't load, so the page's
+// default-picture fallback gets exercised too.
 // ============================================================
 
 import { makeLocalDb } from './dev-backend.ts';
@@ -31,6 +31,7 @@ const opensea = (path: string) => {
         return Promise.resolve({ total_supply: 3000, contracts: [{ address: '0x' + '0'.repeat(39) + '1', chain: 'ethereum' }] });
     }
     const id = Number(path.split('/').pop());
-    return Promise.resolve({ nft: { display_image_url: 'https://i2c.seadn.io/local-test/orca-' + id + '.png' } });
+    const kind = path.includes('/contract/0x88091012eedf8dba59d08e27ed7b22008f5d6fe5/') ? 'whale' : 'orca';
+    return Promise.resolve({ nft: { display_image_url: 'https://i2c.seadn.io/local-test/' + kind + '-' + id + '.png' } });
 };
 Deno.serve({ port, onListen: () => console.log(`Orca Race dev backend on http://localhost:${port}`) }, createHandler(client, { opensea }));

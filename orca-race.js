@@ -1,5 +1,9 @@
 /* ============================================================
-   Orca Race — the page: setup, the race on a canvas, results.
+   Orca Race and Whale Race — the page: setup, the race on a
+   canvas, results. One script for both: <body data-race="whale">
+   races OG whales (whale-race.html), anything else races Security
+   Orcas (orca-race.html). Only the pictures and the wording differ;
+   the race itself is the same OrcaRaceSim either way.
 
    Who wins is NOT decided here. orca-race-sim.js works out the
    whole race from the race code and the racer list before the
@@ -21,16 +25,51 @@
     const $ = function (id) { return document.getElementById(id); };
     if (!Sim || !$('setup')) return;
 
+    /* what's racing: everything that differs between the two pages */
+    const KINDS = {
+        orca: {
+            action: 'orcas',            // the function's picture lookup
+            gaps: true,                 // the numbers have gaps: ask the server which are real
+            noun: 'orca', nouns: 'orcas', Noun: 'Orca',
+            collection: 'Security Orca', collections: 'Security Orcas',
+            tag: 'Orca #',
+            idLength: 6,
+            defaultImg: 'images/orca.avif',
+            defaultCut: 'images/orca-default-cut.webp',
+            cutout: function () { return window.OrcaCutout; },
+            store: 'ssow-orca-race',
+            salt: 'ssow-orca-picture|',
+            title: '🐋 **SSoW Orca Race — results**'
+        },
+        whale: {
+            action: 'whales',
+            gaps: false,                // OG whales are simply #0 to #9999 (the contract has no #10000)
+            supply: 10000,
+            first: 0,
+            noun: 'whale', nouns: 'whales', Noun: 'Whale',
+            collection: 'OG whale', collections: 'OG whales',
+            tag: 'Whale #',
+            idLength: 5,
+            defaultImg: 'images/pfp/whale-0.svg',
+            defaultCut: 'images/whale-default-cut.svg',
+            cutout: function () { return window.WhaleCutout; },
+            store: 'ssow-whale-race',
+            salt: 'ssow-whale-picture|',
+            title: '🐳 **SSoW Whale Race — results**'
+        }
+    };
+    const K = KINDS[document.body.dataset.race] || KINDS.orca;
+
     const CONFIG = window.WHALE_ROAD_CONFIG || {};
     const LOCAL = new URLSearchParams(window.location.search).get('backend') === 'local';
     const API = LOCAL ? 'http://localhost:8790' : (CONFIG.supabaseUrl ? CONFIG.supabaseUrl + '/functions/v1/orca-race' : '');
-    const DEFAULT_IMG = 'images/orca.avif';
-    const DEFAULT_CUT = 'images/orca-default-cut.webp';
+    const DEFAULT_IMG = K.defaultImg;
+    const DEFAULT_CUT = K.defaultCut;
     const MIN_RACERS = 2;
     const MAX_RACERS = 30;
     const FALLBACK_SUPPLY = 1000;      // used for "random orcas" only until the server says how many there are
     const CODE_CHARS = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
-    const STORE = 'ssow-orca-race';
+    const STORE = K.store;
     const COUNTDOWN = 3.6;             // 3, 2, 1, GO
     const Sound = window.OrcaSound || { play: function () {}, isMuted: function () { return true; }, toggle: function () { return true; } };
 
@@ -44,7 +83,10 @@
         mute: $('mute'), fullscreen: $('fullscreen'),
         results: $('results'), resultsMeta: $('resultsMeta'), podium: $('podium'), order: $('order'),
         copy: $('copy'), again: $('again'), newRace: $('newRace'), copyStatus: $('copyStatus'),
-        announce: $('announce')
+        announce: $('announce'),
+        /* "Paste a list" (only on pages that have it) */
+        paste: $('paste'), pastePanel: $('pastePanel'), pasteText: $('pasteText'),
+        pasteAdd: $('pasteAdd'), pasteReplace: $('pasteReplace'), pasteCancel: $('pasteCancel')
     };
 
     /* ============================================================
@@ -54,8 +96,9 @@
     let racers = [];                   // { uid, name, id } (id is the raw text typed)
     let uid = 0;
     let code = '';
-    let supply = null;
-    let catalog = null;                // every real orca number (they have gaps), from the server
+    let supply = K.supply || null;
+    /* every real number: orcas have gaps, so the server says which; OG whales are 0 to 9999 */
+    let catalog = K.gaps ? null : Array.from({ length: K.supply }, function (_, i) { return i + K.first; });
     const images = new Map();          // orca number -> url | null (null: no picture, use the default)
     const pending = new Set();
 
@@ -89,7 +132,7 @@
         return racers.map(function (r, i) {
             const id = String(r.id).trim() === '' ? null : idOf(r);
             let name = Sim.cleanName(r.name);
-            if (!name) name = id !== null ? 'Orca #' + id : 'Racer ' + (i + 1);
+            if (!name) name = id !== null ? K.tag + id : 'Racer ' + (i + 1);
             return { name: name, orcaId: id };
         });
     }
@@ -111,7 +154,7 @@
         const need = entries.map(function (_, i) { return i; }).filter(function (i) { return out[i] === null; });
         need.sort(function (a, b) { return entries[a].key < entries[b].key ? -1 : entries[a].key > entries[b].key ? 1 : a - b; });
         need.forEach(function (i) {
-            let k = Sim.hash128('ssow-orca-picture|' + entries[i].key)[0] % catalog.length;
+            let k = Sim.hash128(K.salt + entries[i].key)[0] % catalog.length;
             for (let tries = 0; taken.has(catalog[k]) && tries < catalog.length; tries++) k = (k + 1) % catalog.length;
             out[i] = catalog[k];
             taken.add(catalog[k]);
@@ -168,7 +211,7 @@
         try {
             for (let i = 0; i < want.length; i += MAX_RACERS) {
                 const part = want.slice(i, i + MAX_RACERS);
-                const data = await api({ action: 'orcas', ids: part });
+                const data = await api({ action: K.action, ids: part });
                 if (data.supply) supply = data.supply;
                 part.forEach(function (id) {
                     const u = data.images && data.images[id];
@@ -177,7 +220,7 @@
             }
         } catch (e) {
             /* no pictures right now: default orcas, and we'll ask again next time */
-            say('Couldn’t load orca pictures right now — the default orca will swim instead.', 'warn');
+            say('Couldn’t load ' + K.noun + ' pictures right now — the default ' + K.noun + ' will swim instead.', 'warn');
         } finally {
             want.forEach(function (id) { pending.delete(id); });
             refreshPics();
@@ -187,6 +230,7 @@
     /* how many orcas there are, and which numbers really exist (they have gaps) */
     let catalogWait = null;
     function fetchSupply() {
+        if (!K.gaps) return Promise.resolve(catalog);       /* already known */
         if (!API) return Promise.resolve(null);
         if (!catalogWait) {
             catalogWait = api({ action: 'info' }).then(function (d) {
@@ -232,18 +276,21 @@
             return;
         }
         const nums = bad.map(function (r) { return '#' + String(r.id).trim(); }).join(', ');
-        say((bad.length === 1 ? nums + ' isn’t a Security Orca' : nums + ' aren’t Security Orcas') +
-            ' (the numbers have gaps), so ' + (bad.length === 1 ? 'it races' : 'they race') + ' as the default orca. ', 'warn');
+        say((bad.length === 1 ? nums + ' isn’t ' + article(K.collection) + ' ' + K.collection : nums + ' aren’t ' + K.collections) +
+            (K.gaps ? ' (the numbers have gaps)' : ' (they go from #' + K.first + ' to #' + (K.first + K.supply - 1) + ')') +
+            ', so ' + (bad.length === 1 ? 'it races' : 'they race') + ' as the default ' + K.noun + '. ', 'warn');
         const fix = document.createElement('button');
         fix.type = 'button';
         fix.className = 'Btn Or-small';
-        fix.textContent = bad.length === 1 ? 'Swap for a real orca' : 'Swap for real orcas';
+        fix.textContent = bad.length === 1 ? 'Swap for a real ' + K.noun : 'Swap for real ' + K.nouns;
         fix.addEventListener('click', swapBad);
         els.status.appendChild(fix);
         els.status.dataset.bad = '1';
     }
 
-    /* give those racers real orcas instead; a typed name stays */
+    function article(word) { return /^[aeiou]/i.test(word) ? 'an' : 'a'; }
+
+    /* give those racers real ones instead; a typed name stays */
     function swapBad() {
         const taken = new Set(racers.map(idOf).filter(isRealOrca));
         setupPictures().forEach(function (x) { if (x !== null) taken.add(x); });
@@ -253,7 +300,7 @@
             if (id === null) return;
             taken.add(id);
             const old = String(r.id).trim();
-            if (!Sim.cleanName(r.name) || Sim.cleanName(r.name) === 'Orca #' + old) r.name = 'Orca #' + id;
+            if (!Sim.cleanName(r.name) || Sim.cleanName(r.name) === K.tag + old) r.name = K.tag + id;
             r.id = String(id);
         });
         render();
@@ -292,12 +339,12 @@
                 n.dataset.want = src;
                 box.replaceChildren(n);
             }
-            box.title = !typed && pics[at] !== null ? 'Picked for you: Orca #' + pics[at] + ' (just the picture, it doesn’t change the race)' : '';
+            box.title = !typed && pics[at] !== null ? 'Picked for you: ' + K.tag + pics[at] + ' (just the picture, it doesn’t change the race)' : '';
             const bad = typed && (id === null || !isRealOrca(id) || (images.has(id) && images.get(id) === null && API));
             row.querySelector('.Racer-id').classList.toggle('is-bad', bad);
-            row.querySelector('.Racer-id').title = bad ? 'There’s no orca with that number — the default orca will race' : '';
+            row.querySelector('.Racer-id').title = bad ? 'There’s no ' + K.noun + ' with that number — the default ' + K.noun + ' will race' : '';
             /* get the 2D cut-out ready before the race starts */
-            if (window.OrcaCutout && /^https:\/\//.test(src)) window.OrcaCutout.prepare(src);
+            if (K.cutout() && /^https:\/\//.test(src)) K.cutout().prepare(src);
         });
         warnBad();
     }
@@ -332,7 +379,7 @@
             r.name = name.value;
             save();
             updateCode();
-            /* a racer with just a name gets its orca from the name: show the new one */
+            /* a racer with just a name gets its picture from the name: show the new one */
             clearTimeout(name._t);
             name._t = setTimeout(function () { refreshPics(); fetchImages(); }, 450);
         });
@@ -340,11 +387,11 @@
         const id = document.createElement('input');
         id.type = 'text';
         id.inputMode = 'numeric';
-        id.maxLength = 6;
-        id.placeholder = 'Orca #';
+        id.maxLength = K.idLength;
+        id.placeholder = K.tag;
         id.className = 'Racer-id';
         id.value = r.id;
-        id.setAttribute('aria-label', 'Orca ID (optional)');
+        id.setAttribute('aria-label', K.Noun + ' number (optional)');
         id.addEventListener('input', function () {
             id.value = id.value.replace(/[^0-9]/g, '');
             r.id = id.value;
@@ -399,10 +446,10 @@
     });
 
     els.addRandom.addEventListener('click', async function () {
-        /* only real orcas: wait for the list if it's still on its way */
+        /* only real ones: wait for the list if it's still on its way */
         if (!catalog && API) {
             els.addRandom.disabled = true;
-            say('Getting the list of orcas…');
+            say('Getting the list of ' + K.nouns + '…');
             await ensureCatalog(15000);
             if (!els.status.dataset.bad) say('');
             els.addRandom.disabled = racers.length >= MAX_RACERS;
@@ -412,11 +459,11 @@
         setupPictures().forEach(function (x) { if (x !== null) taken.add(x); });     /* not anyone's picture either */
         let added = 0;
         for (let tries = 0; added < 5 && racers.length < MAX_RACERS && tries < 200; tries++) {
-            /* only orcas that exist, once the server has said which */
+            /* only numbers that exist, once the server has said which */
             const id = catalog && catalog.length ? catalog[randomInt(catalog.length)] : 1 + randomInt(max);
             if (taken.has(id)) continue;
             taken.add(id);
-            addRacer('Orca #' + id, id);
+            addRacer(K.tag + id, id);
             added++;
         }
         render();
@@ -430,6 +477,60 @@
         render();
         say('Lanes shuffled. (Lane order never changes who wins.)', 'ok');
     });
+
+    /* ---------- Paste a list: one racer per line ---------- */
+
+    /* "deez", "Champ #1234", "Doc, 777", "1. @someone (#42)", "#5000".
+       A number counts as the racer's only after a #, a comma, a tab,
+       a | or a ( — so a name like "Racer2" stays a name. */
+    function parseList(text) {
+        const out = [];
+        String(text || '').split(/\r?\n/).forEach(function (raw) {
+            let line = raw.trim()
+                .replace(/^(?:\d{1,3}[.)]\s+|[-*•·]\s+)/, '')     /* "1. ", "2) ", "- ", "• " */
+                .replace(/^@+/, '');                             /* a Discord mention: just the name */
+            if (!line) return;
+            let id = '';
+            const m = /^(.*?)\s*(?:#|[,;|\t(]\s*#?)\s*(\d{1,6})\s*\)?\s*$/.exec(line);
+            if (m) { line = m[1].replace(/[\s,;|(-]+$/, '').trim(); id = m[2]; }
+            const name = Sim.cleanName(line).slice(0, 24);
+            if (!name && !id) return;
+            out.push({ name: name || (K.tag + id), id: id.slice(0, K.idLength) });
+        });
+        return out;
+    }
+
+    function openPaste(open) {
+        if (!els.pastePanel) return;
+        els.pastePanel.hidden = !open;
+        els.paste.setAttribute('aria-expanded', open ? 'true' : 'false');
+        if (open) els.pasteText.focus();
+    }
+
+    function usePaste(replace) {
+        const got = parseList(els.pasteText.value);
+        if (!got.length) { say('Paste some names first — one racer per line.', 'warn'); els.pasteText.focus(); return; }
+        if (replace) racers = [];
+        const room = MAX_RACERS - racers.length;
+        got.slice(0, room).forEach(function (r) { addRacer(r.name, r.id); });
+        const left = got.length - Math.max(0, room);
+        els.pasteText.value = '';
+        openPaste(false);
+        render();
+        say(left > 0
+            ? 'Added ' + Math.max(0, room) + ' — only ' + MAX_RACERS + ' racers fit, so the last ' + left + ' line' + (left === 1 ? ' was' : 's were') + ' left out.'
+            : 'Added ' + got.length + ' racer' + (got.length === 1 ? '' : 's') + '.', left > 0 ? 'warn' : 'ok');
+    }
+
+    if (els.paste && els.pastePanel) {
+        els.paste.addEventListener('click', function () { openPaste(els.pastePanel.hidden); });
+        els.pasteAdd.addEventListener('click', function () { usePaste(false); });
+        els.pasteReplace.addEventListener('click', function () {
+            if (racers.length > 3 && !window.confirm('Replace all ' + racers.length + ' racers with the pasted list?')) return;
+            usePaste(true);
+        });
+        els.pasteCancel.addEventListener('click', function () { openPaste(false); });
+    }
 
     els.clear.addEventListener('click', function () {
         if (racers.length > 3 && !window.confirm('Remove all ' + racers.length + ' racers?')) return;
@@ -457,7 +558,7 @@
     async function startWhenReady() {
         if (API && (!catalog || setupPictures().some(function (id) { return id !== null && !images.has(id); }))) {
             els.start.disabled = true;
-            say('Getting the orcas ready…');
+            say('Getting the ' + K.nouns + ' ready…');
             await ensureCatalog(5000);
             fetchImages();
             await waitFor(function () {
@@ -603,8 +704,8 @@
         if (/^https:\/\//.test(want)) img.crossOrigin = 'anonymous';
         img.onload = function () { r.img = img; r.sprite = null; };
         function useCut(c) { if (c) { r.cut = c; r.halo = null; r.edge = null; } }
-        /* the orca without its background, if it cuts cleanly; the card until then */
-        if (window.OrcaCutout && /^https:\/\//.test(want)) window.OrcaCutout.prepare(want).then(useCut);
+        /* the racer without its background, if it cuts cleanly; the card until then */
+        if (K.cutout() && /^https:\/\//.test(want)) K.cutout().prepare(want).then(useCut);
         else if (want === DEFAULT_IMG) defaultCutout().then(useCut);
         img.onerror = function () {
             if (img.src.indexOf(DEFAULT_IMG) < 0 && want !== DEFAULT_IMG) {
@@ -1201,7 +1302,7 @@
             const name = document.createElement('span');
             name.className = 'Podium-name';
             name.textContent = medals[k] + ' ' + r.name;
-            name.title = r.name + (r.orcaId !== null ? ' (Orca #' + r.orcaId + ')' : '');
+            name.title = r.name + (r.orcaId !== null ? ' (' + K.tag + r.orcaId + ')' : '');
             const time = document.createElement('span');
             time.className = 'Podium-time';
             time.textContent = fmt(finishTime(lane));
@@ -1214,7 +1315,7 @@
         els.order.replaceChildren.apply(els.order, race.order.map(function (lane) {
             const r = race.racers[lane];
             const li = document.createElement('li');
-            li.textContent = r.name + (r.orcaId !== null && r.name !== 'Orca #' + r.orcaId ? ' (#' + r.orcaId + ')' : '');
+            li.textContent = r.name + (r.orcaId !== null && r.name !== K.tag + r.orcaId ? ' (#' + r.orcaId + ')' : '');
             const t = document.createElement('span');
             t.textContent = fmt(finishTime(lane));
             li.appendChild(t);
@@ -1236,9 +1337,13 @@
         const d = new Date();
         const date = d.toISOString().slice(0, 16).replace('T', ' ') + ' UTC';
         const medals = ['🥇', '🥈', '🥉'];
-        const who = function (r) { return r.name + (r.orcaId !== null && r.name !== 'Orca #' + r.orcaId ? ' (Orca #' + r.orcaId + ')' : ''); };
+        /* Names are pasted into Discord as they are, so take the teeth out:
+           "@everyone" mustn't ping the server, and *, _, ~, ` and friends
+           in a name mustn't turn the message into formatting. */
+        const safe = function (s) { return String(s).replace(/[\\*_~`|>[\]]/g, '\\$&').replace(/@/g, '@\u200b').replace(/<(?=[@#:at])/g, '<\u200b'); };
+        const who = function (r) { return safe(r.name) + (r.orcaId !== null && r.name !== K.tag + r.orcaId ? ' (' + K.tag + r.orcaId + ')' : ''); };
         const lines = [
-            '🐋 **SSoW Orca Race — results**',
+            K.title,
             'Race code: `' + race.code + '` · racers `#' + race.fingerprint + '` · ' + race.racers.length + ' racers · ' + seconds + 's race',
             'Date: ' + date,
             ''
@@ -1373,7 +1478,7 @@
         try {
             const s = JSON.parse(window.localStorage.getItem(STORE));
             if (s && Array.isArray(s.racers)) {
-                s.racers.slice(0, MAX_RACERS).forEach(function (r) { addRacer(String(r.name || '').slice(0, 24), String(r.id || '').replace(/[^0-9]/g, '').slice(0, 6)); });
+                s.racers.slice(0, MAX_RACERS).forEach(function (r) { addRacer(String(r.name || '').slice(0, 24), String(r.id || '').replace(/[^0-9]/g, '').slice(0, K.idLength)); });
             }
             if (s && s.length) setLength(s.length);
         } catch (e) { /* fresh start */ }
@@ -1386,7 +1491,7 @@
         racers = [];
         list.split('|').slice(0, MAX_RACERS).forEach(function (part) {
             const bits = part.split('~');
-            addRacer(Sim.cleanName(bits[0]), (bits[1] || '').replace(/[^0-9]/g, '').slice(0, 6));
+            addRacer(Sim.cleanName(bits[0]), (bits[1] || '').replace(/[^0-9]/g, '').slice(0, K.idLength));
         });
         const c = Sim.cleanCode(h.get('code'));
         if (c) code = c;

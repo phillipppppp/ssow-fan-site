@@ -40,6 +40,35 @@ main { max-width: 1240px; }
 .Or-tools { display: flex; flex-wrap: wrap; gap: 0.5rem; }
 .Or-tools .Btn { padding: 0.55rem 0.95rem; font-size: 0.72rem; }
 
+/* "Paste a list" (Whale Race): a textarea that opens under the tools */
+.Or-paste {
+    margin-top: 1rem;
+    padding: 0.85rem;
+    background: var(--bg);
+    border: var(--line-thin) solid var(--ink);
+    border-radius: var(--radius-sm);
+}
+.Or-paste[hidden] { display: none; }
+.Or-paste textarea {
+    display: block;
+    width: 100%;
+    min-height: 8.5rem;
+    margin-top: 0.4rem;
+    padding: 0.6rem 0.75rem;
+    font-family: var(--font-body);
+    font-size: 0.95rem;
+    font-weight: 700;
+    line-height: 1.45;
+    color: var(--ink);
+    background: var(--paper);
+    border: var(--line-thin) solid var(--ink);
+    border-radius: 10px;
+    resize: vertical;
+}
+.Or-paste textarea:focus { outline: none; box-shadow: 0 0 0 3px var(--bg-turquoise); }
+.Or-pastebtns { display: flex; flex-wrap: wrap; gap: 0.5rem; margin-top: 0.6rem; }
+.Or-pastebtns .Btn { width: auto; }
+
 .Or-list {
     display: grid;
     grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));

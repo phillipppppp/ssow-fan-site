@@ -1,10 +1,12 @@
 // ============================================================
-// orca-race handler — Security Orca pictures for Orca Race.
+// orca-race handler — racer pictures for Orca Race and Whale Race.
 //
 // One endpoint, POST { action, ... }:
 //   info   how many orcas there are, and every real orca number
 //          (the numbering has gaps: about 3,000 orcas between 0 and 9999)
 //   orcas  { ids: [up to 30 numbers] } -> each orca's picture, or null
+//   whales { ids: [up to 30 numbers] } -> each OG whale's picture, or null
+//          (OG whales are simply #0 to #9999, no gaps; there is no #10000)
 //
 // Works like the Cigar Lounge's whale lookups: the browser only sends
 // orca numbers, this function asks OpenSea with the key only the
@@ -24,6 +26,8 @@
 type Any = any;
 
 export const ORCAS = { slug: 'secret-society-security-orcas' };
+/* the OG collection; its picture cache rows are shared with the Cigar Lounge and Whale 2048 */
+export const OG = { chain: 'ethereum', contract: '0x88091012eedf8dba59d08e27ed7b22008f5d6fe5', supply: 10000, first: 0, last: 9999 };
 const MAX_IDS = 30;
 const COLLECTION_TTL_MS = 24 * 60 * 60 * 1000;
 const CATALOG_TTL_MS = 24 * 60 * 60 * 1000;   // every orca's number and picture, refreshed daily
@@ -148,9 +152,25 @@ export function createHandler(db: Any, deps: { now?: () => number; opensea?: (pa
         }
     }
 
+    /* an OG whale's picture, under the same cache key the poker function uses */
+    async function whaleImage(id: number): Promise<string | null> {
+        const k = 'img:og:' + id;
+        const hit = await cacheGet(k);
+        const old = hit && hit.value ? safeImage(hit.value.image) : null;
+        if (old && hit && hit.age < IMAGE_TTL_MS) return old;
+        try {
+            const j = await opensea('/api/v2/chain/' + OG.chain + '/contract/' + OG.contract + '/nfts/' + id);
+            const img = safeImage(j && j.nft && (j.nft.display_image_url || j.nft.image_url));
+            if (img) await cachePut(k, { image: img });
+            return img ?? old;
+        } catch {
+            return old;                                                  // stale beats nothing
+        }
+    }
+
     function cleanIds(raw: unknown): number[] {
-        if (!Array.isArray(raw)) throw new Fail(400, 'send ids as a list of orca numbers');
-        if (raw.length > MAX_IDS) throw new Fail(400, 'at most ' + MAX_IDS + ' orcas at a time');
+        if (!Array.isArray(raw)) throw new Fail(400, 'send ids as a list of numbers');
+        if (raw.length > MAX_IDS) throw new Fail(400, 'at most ' + MAX_IDS + ' at a time');
         const ids: number[] = [];
         for (const v of raw) {
             const n = Number(v);
@@ -189,6 +209,18 @@ export function createHandler(db: Any, deps: { now?: () => number; opensea?: (pa
                 part.forEach((id, j) => { images[id] = got[j]; });
             }
             return { supply: col.supply, images };
+        },
+        async whales(b: Any) {
+            const ids = cleanIds(b.ids);
+            const images: Record<string, string | null> = {};
+            for (const id of ids) images[id] = null;                         // not an OG number: no picture
+            const real = ids.filter((id) => id >= OG.first && id <= OG.last);
+            for (let i = 0; i < real.length; i += BATCH) {
+                const part = real.slice(i, i + BATCH);
+                const got = await Promise.all(part.map(whaleImage));
+                part.forEach((id, j) => { images[id] = got[j]; });
+            }
+            return { supply: OG.supply, images };
         }
     };
 

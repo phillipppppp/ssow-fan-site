@@ -427,3 +427,7 @@ verify_jwt = false
 # Whale 2048 too: players are checked by their own browser key.
 [functions.whale-2048]
 verify_jwt = false
+
+# Orca Race: only looks up orca pictures; nothing to sign in for.
+[functions.orca-race]
+verify_jwt = false

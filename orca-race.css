@@ -1,0 +1,344 @@
+/* ============================================================
+   Orca Race. Shared chrome lives in base.css; fields and the
+   wallet-style input row in arcade.css.
+
+   Setup is a paper panel of racer rows (name, orca number, the
+   orca's picture). The race is a canvas sea in an inked frame,
+   with a sticker HUD on top; results pop up over the water.
+   ============================================================ */
+
+main { max-width: 1240px; }
+
+.Intro h1 { --title-fill: var(--bg-blue); }
+.Or-intro { padding-bottom: clamp(1.25rem, 2.5vw, 2rem); }
+
+.Sr-only {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip: rect(0 0 0 0);
+    white-space: nowrap;
+}
+
+/* ------------------------------------------------------------
+   Setup panel
+   ------------------------------------------------------------ */
+
+.Or-setup {
+    padding: clamp(1.1rem, 2.5vw, 1.75rem);
+    background: var(--paper);
+    border: var(--line) solid var(--ink);
+    border-radius: var(--radius);
+    box-shadow: var(--pop-lg);
+}
+.Or-setup[hidden] { display: none; }
+
+.Or-head { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 0.75rem 1rem; }
+.Or-head h2 { font-family: var(--font-display); font-size: 2rem; font-weight: 400; line-height: 1.1; }
+.Or-count { margin-left: 0.35rem; font-family: var(--font-body); font-size: 0.9rem; font-weight: 900; color: var(--ink-3); vertical-align: middle; }
+.Or-tools { display: flex; flex-wrap: wrap; gap: 0.5rem; }
+.Or-tools .Btn { padding: 0.55rem 0.95rem; font-size: 0.72rem; }
+
+.Or-list {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+    gap: 0.6rem 1rem;
+    margin-top: 1.1rem;
+    list-style: none;
+    counter-reset: lane;
+}
+
+.Racer {
+    display: grid;
+    grid-template-columns: auto 2.75rem minmax(0, 1fr) 6.2rem auto;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.4rem 0.5rem;
+    background: var(--bg);
+    border: var(--line-thin) solid var(--ink);
+    border-radius: var(--radius-sm);
+    counter-increment: lane;
+}
+.Racer::before {
+    content: counter(lane);
+    min-width: 1.4rem;
+    font-family: var(--font-display);
+    font-size: 1rem;
+    text-align: center;
+    color: var(--ink-3);
+}
+
+.Racer-pic {
+    width: 2.75rem;
+    height: 2.75rem;
+    overflow: hidden;
+    background: var(--bg-lightblue);
+    border: var(--line-thin) solid var(--ink);
+    border-radius: 50%;
+}
+.Racer-pic img { display: block; width: 100%; height: 100%; object-fit: cover; }
+
+.Racer input {
+    width: 100%;
+    min-width: 0;
+    padding: 0.5rem 0.6rem;
+    font-family: var(--font-body);
+    font-size: 0.95rem;
+    font-weight: 800;
+    color: var(--ink);
+    background: var(--paper);
+    border: var(--line-thin) solid var(--ink);
+    border-radius: 10px;
+}
+.Racer input:focus { outline: none; box-shadow: 0 0 0 3px var(--bg-turquoise); }
+.Racer .Racer-id { font-family: var(--font-code); font-size: 0.85rem; font-weight: 600; }
+.Racer .Racer-id.is-bad { background: #fbe3dc; }
+
+.Racer-del {
+    width: 2rem;
+    height: 2rem;
+    padding: 0;
+    font-size: 1.1rem;
+    font-weight: 900;
+    line-height: 1;
+    color: var(--ink);
+    background: var(--paper);
+    border: var(--line-thin) solid var(--ink);
+    border-radius: 50%;
+    cursor: pointer;
+}
+.Racer-del:hover, .Racer-del:focus-visible { background: var(--bg-coral); }
+
+.Or-empty { margin-top: 1rem; font-weight: 700; color: var(--ink-3); }
+.Or-empty[hidden] { display: none; }
+
+.Or-options {
+    display: grid;
+    grid-template-columns: auto minmax(0, 1fr) minmax(0, 1fr);
+    gap: 1.1rem 1.5rem;
+    align-items: start;
+    margin-top: 1.1rem;
+    padding-top: 1.1rem;
+    border-top: var(--line-thin) dashed var(--rule-soft);
+}
+
+.Or-seg { display: inline-flex; border: var(--line-thin) solid var(--ink); border-radius: 999px; overflow: hidden; box-shadow: var(--pop-sm); }
+.Or-seg label { position: relative; cursor: pointer; }
+.Or-seg input { position: absolute; opacity: 0; pointer-events: none; }
+.Or-seg span { display: block; padding: 0.5rem 1rem; font-weight: 900; background: var(--paper); }
+.Or-seg label + label span { border-left: var(--line-thin) solid var(--ink); }
+.Or-seg input:checked + span { background: var(--gold); }
+.Or-seg input:focus-visible + span { outline: 3px solid var(--ink); outline-offset: -5px; }
+
+.Or-code { display: flex; flex-wrap: wrap; align-items: center; gap: 0.4rem 0.75rem; }
+.Or-code strong {
+    padding: 0.2rem 0.75rem;
+    font-family: var(--font-code);
+    font-size: 1.35rem;
+    font-weight: 600;
+    letter-spacing: 0.12em;
+    background: var(--bg-green);
+    border: var(--line-thin) solid var(--ink);
+    border-radius: 10px;
+}
+.Or-fp { font-family: var(--font-code); font-size: 0.78rem; color: var(--ink-3); }
+.Or-small { padding: 0.45rem 0.8rem; font-size: 0.68rem; }
+
+.Or-replay input {
+    flex: 1;
+    min-width: 0;
+    padding: 0.6rem 0.8rem;
+    font-family: var(--font-code);
+    font-size: 0.95rem;
+    text-transform: uppercase;
+    color: var(--ink);
+    background: var(--bg);
+    border: var(--line-thin) solid var(--ink);
+    border-radius: var(--radius-sm);
+}
+.Or-replay input:focus { outline: none; box-shadow: 0 0 0 3px var(--bg-turquoise); }
+.Or-replay .Btn { width: auto; }
+
+.Or-go { margin-top: 1.25rem; font-size: 1.35rem; padding: 0.85rem; }
+
+/* ------------------------------------------------------------
+   The race stage
+   ------------------------------------------------------------ */
+
+.Or-stage { display: grid; gap: 0.75rem; }
+.Or-stage[hidden] { display: none; }
+
+.Or-hud { display: flex; align-items: stretch; gap: 0.5rem; }
+.Or-hud > div:not(.Or-hudbtns) {
+    display: grid;
+    align-content: center;
+    min-width: 0;
+    padding: 0.3rem 0.8rem 0.35rem;
+    background: var(--paper);
+    border: var(--line) solid var(--ink);
+    border-radius: var(--radius-sm);
+    box-shadow: var(--pop-sm);
+}
+.Or-hud strong {
+    overflow: hidden;
+    font-family: var(--font-display);
+    font-size: clamp(1.1rem, 3.4vw, 1.7rem);
+    font-weight: 400;
+    line-height: 1.05;
+    white-space: nowrap;
+    text-overflow: ellipsis;
+}
+.Or-clock { flex: 0 0 auto; }
+.Or-clock strong { font-family: var(--font-code); font-weight: 600; font-size: clamp(1rem, 3.2vw, 1.5rem); }
+.Or-hudcode strong { font-family: var(--font-code); font-weight: 600; font-size: clamp(0.95rem, 3vw, 1.4rem); letter-spacing: 0.08em; }
+.Or-leader { flex: 1 1 0; }
+.Score-label { font-size: 0.62rem; font-weight: 900; letter-spacing: 0.08em; text-transform: uppercase; color: var(--ink-3); }
+.Or-hudbtns { display: flex; align-items: center; gap: 0.4rem; margin-left: auto; }
+
+.Or-icon {
+    display: grid;
+    place-items: center;
+    width: 2.6rem;
+    height: 2.6rem;
+    padding: 0;
+    font-size: 1.15rem;
+    line-height: 1;
+    color: var(--ink);
+    background: var(--paper);
+    border: var(--line-thin) solid var(--ink);
+    border-radius: 50%;
+    box-shadow: var(--pop-sm);
+    cursor: pointer;
+}
+.Or-icon:hover, .Or-icon:focus-visible { background: var(--gold); }
+.Or-icon[aria-pressed="true"] { background: var(--bg-lightgray); }
+
+.Or-pool {
+    position: relative;
+    overflow: hidden;
+    background: #2f6f8f;
+    border: var(--line) solid var(--ink);
+    border-radius: var(--radius);
+    box-shadow: var(--pop-lg);
+}
+.Or-pool canvas { display: block; width: 100%; touch-action: manipulation; }
+.Or-confetti { position: absolute; inset: 0; height: 100%; pointer-events: none; }
+
+/* fullscreen: the stage fills the screen, the sea takes what's left */
+.Or-stage:fullscreen,
+.Or-stage.is-fs {
+    display: flex;
+    flex-direction: column;
+    gap: 0.6rem;
+    padding: 0.75rem;
+    background: var(--bg);
+}
+.Or-stage:-webkit-full-screen { display: flex; flex-direction: column; gap: 0.6rem; padding: 0.75rem; background: var(--bg); }
+.Or-stage.is-fs { position: fixed; inset: 0; z-index: 2000; }
+.Or-stage:fullscreen .Or-pool, .Or-stage.is-fs .Or-pool { flex: 1 1 auto; min-height: 0; }
+.Or-stage:-webkit-full-screen .Or-pool { flex: 1 1 auto; min-height: 0; }
+html.or-lock, html.or-lock body { overflow: hidden; }
+
+/* ------------------------------------------------------------
+   Results
+   ------------------------------------------------------------ */
+
+.Or-results {
+    position: absolute;
+    inset: 0;
+    display: grid;
+    place-items: center;
+    padding: clamp(0.5rem, 2vw, 1.25rem);
+    background: rgba(29, 27, 32, 0.35);
+    overflow-y: auto;
+}
+.Or-results[hidden] { display: none; }
+
+.Or-card {
+    width: min(100%, 640px);
+    max-height: 100%;
+    overflow-y: auto;
+    padding: clamp(1rem, 3vw, 1.6rem);
+    background: var(--paper);
+    border: var(--line) solid var(--ink);
+    border-radius: var(--radius);
+    box-shadow: var(--pop-lg);
+    animation: or-pop 0.35s cubic-bezier(.2, 1.4, .4, 1) both;
+}
+@keyframes or-pop { from { transform: scale(0.85) rotate(-2deg); opacity: 0; } }
+
+.Or-title { font-family: var(--font-display); font-size: clamp(1.8rem, 5vw, 2.4rem); font-weight: 400; line-height: 1; text-align: center; }
+.Or-meta { margin-top: 0.35rem; font-size: 0.8rem; font-weight: 800; text-align: center; color: var(--ink-3); }
+.Or-meta code { font-family: var(--font-code); color: var(--ink); }
+
+.Podium {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    align-items: end;
+    gap: 0.5rem;
+    margin: 1rem 0 0.5rem;
+    list-style: none;
+}
+.Podium li { display: grid; justify-items: center; gap: 0.3rem; min-width: 0; text-align: center; }
+.Podium-pic {
+    width: clamp(3.5rem, 13vw, 5.5rem);
+    height: clamp(3.5rem, 13vw, 5.5rem);
+    overflow: hidden;
+    background: var(--bg-lightblue);
+    border: var(--line) solid var(--ink);
+    border-radius: 50%;
+    box-shadow: var(--pop-sm);
+}
+.Podium-pic img { display: block; width: 100%; height: 100%; object-fit: cover; }
+.Podium .is-1 .Podium-pic { width: clamp(4.5rem, 17vw, 7rem); height: clamp(4.5rem, 17vw, 7rem); box-shadow: 0 0 0 4px var(--gold), 4px 4px 0 4px var(--ink); }
+.Podium-name { max-width: 100%; font-size: clamp(0.8rem, 3.2vw, 1rem); font-weight: 900; line-height: 1.2; overflow-wrap: anywhere; }
+.Podium-time { font-family: var(--font-code); font-size: 0.78rem; color: var(--ink-2); }
+.Podium-step {
+    display: grid;
+    place-items: center;
+    width: 100%;
+    font-family: var(--font-display);
+    font-size: 1.6rem;
+    border: var(--line) solid var(--ink);
+    border-radius: 10px 10px 0 0;
+}
+.Podium .is-1 .Podium-step { height: 4.2rem; background: var(--gold); }
+.Podium .is-2 .Podium-step { height: 3rem; background: var(--bg-lightgray); }
+.Podium .is-3 .Podium-step { height: 2.2rem; background: var(--bg-wood); }
+
+.Or-sub { margin-top: 0.75rem; font-size: 0.72rem; font-weight: 900; letter-spacing: 0.08em; text-transform: uppercase; color: var(--ink-3); }
+.Or-order {
+    max-height: 12rem;
+    overflow-y: auto;
+    margin-top: 0.35rem;
+    padding: 0.4rem 0.6rem 0.4rem 2.2rem;
+    font-size: 0.88rem;
+    font-weight: 700;
+    background: var(--bg);
+    border: var(--line-thin) solid var(--ink);
+    border-radius: var(--radius-sm);
+}
+.Or-order li { padding: 0.1rem 0; }
+.Or-order li span { float: right; font-family: var(--font-code); font-size: 0.78rem; color: var(--ink-3); }
+
+.Or-actions { display: grid; grid-template-columns: 1.4fr 1fr 1fr; gap: 0.5rem; margin-top: 1rem; }
+.Or-actions .Btn { width: 100%; padding-left: 0.5rem; padding-right: 0.5rem; }
+
+/* ------------------------------------------------------------
+   Fairness notes
+   ------------------------------------------------------------ */
+
+.Or-fair { margin-top: clamp(2rem, 5vw, 3.5rem); max-width: 52rem; }
+.Or-fair ul { display: grid; gap: 0.5rem; padding-left: 1.2rem; font-weight: 600; color: var(--ink-2); }
+
+@media (max-width: 760px) {
+    .Or-options { grid-template-columns: 1fr; }
+    .Or-list { grid-template-columns: 1fr; }
+    .Racer { grid-template-columns: auto 2.4rem minmax(0, 1fr) 5.2rem auto; gap: 0.35rem; }
+    .Racer-pic { width: 2.4rem; height: 2.4rem; }
+    .Or-hud { flex-wrap: wrap; }
+    .Or-hudcode { display: none !important; }
+    .Or-actions { grid-template-columns: 1fr 1fr; }
+    .Or-actions .Btn--primary { grid-column: 1 / -1; }
+}

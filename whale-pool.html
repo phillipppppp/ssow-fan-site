@@ -1,0 +1,242 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Whale Pool | Secret Society of Whales</title>
+    <meta name="description" content="8-ball, 9-ball and 10-ball on a comic pool table, against the bot whales or a friend. A Secret Society of Whales minigame.">
+    <link rel="icon" type="image/png" sizes="32x32" href="images/favicon-32.png">
+    <link rel="apple-touch-icon" sizes="180x180" href="images/favicon-180.png">
+    <link rel="stylesheet" href="base.css">
+    <link rel="stylesheet" href="arcade.css">
+    <link rel="stylesheet" href="whale-pool.css">
+    <script>
+        /* Runs before <body> paints: if the boot screen already played
+           this session, mark the document so CSS skips it outright.
+           Deferring this to a file would flash the intro on every page. */
+        try {
+            if (sessionStorage.getItem('ssow-booted')) {
+                document.documentElement.classList.add('booted');
+            }
+            sessionStorage.setItem('ssow-booted', '1');
+        } catch (e) { /* private mode - the intro just plays again */ }
+    </script>
+</head>
+<body>
+<div class="Boot" aria-hidden="true">
+    <div class="Boot-inner">
+        <p class="Boot-mark">Secret Society of Whales</p>
+        <div class="Boot-bar"><span></span></div>
+    </div>
+</div>
+
+<header>
+
+    <nav class="Nav" aria-label="Main">
+        <a class="Nav-logo" href="index.html" aria-label="Secret Society of Whales — home">
+            <img src="images/OG_logo-nav.webp" alt="" width="46" height="39">
+            <span class="Nav-brand" aria-hidden="true">SSoW</span>
+        </a>
+        <div class="Nav-links">
+            <a href="index.html">Home</a>
+            <a href="history.html">Whalestory</a>
+            <a href="meme.html">Meme</a>
+            <a href="idcard.html">ID Generator</a>
+            <a href="minigames.html" aria-current="page">Minigames</a>
+        </div>
+        <a class="Nav-cta" href="game.html">Play Whale Road</a>
+    </nav>
+
+</header>
+
+<main class="Pool">
+    <section class="Intro Pool-intro">
+        <p class="Crumbs"><a href="minigames.html">&larr; Minigames</a></p>
+        <h1 data-stroke-text>Whale Pool</h1>
+        <p class="Tagline">
+            Rack &rsquo;em up in the lounge: 8-ball, 9-ball or 10-ball against the bot whales,
+            or pass the cue to a friend on the same screen.
+        </p>
+    </section>
+
+    <!-- ============ Setup ============ -->
+    <section class="Pool-setup" id="setup" aria-labelledby="setupTitle">
+        <h2 class="Pool-h2" id="setupTitle">New game</h2>
+
+        <fieldset class="Field">
+            <legend class="Field-label">Game</legend>
+            <div class="Modes" role="radiogroup" aria-label="Game">
+                <label class="Mode">
+                    <input type="radio" name="mode" value="8" checked>
+                    <span class="Mode-card">
+                        <span class="Mode-ball Mode-ball--8" aria-hidden="true">8</span>
+                        <span class="Mode-name">8-Ball</span>
+                        <span class="Mode-rule">Solids or stripes, then call a pocket for the 8.</span>
+                    </span>
+                </label>
+                <label class="Mode">
+                    <input type="radio" name="mode" value="9">
+                    <span class="Mode-card">
+                        <span class="Mode-ball Mode-ball--9" aria-hidden="true">9</span>
+                        <span class="Mode-name">9-Ball</span>
+                        <span class="Mode-rule">Hit the lowest ball first. Sink the 9 to win &mdash; even on a combo.</span>
+                    </span>
+                </label>
+                <label class="Mode">
+                    <input type="radio" name="mode" value="10">
+                    <span class="Mode-card">
+                        <span class="Mode-ball Mode-ball--10" aria-hidden="true">10</span>
+                        <span class="Mode-name">10-Ball</span>
+                        <span class="Mode-rule">Like 9-ball, but call every shot. Only a called 10 wins.</span>
+                    </span>
+                </label>
+            </div>
+        </fieldset>
+
+        <fieldset class="Field">
+            <legend class="Field-label">Opponent</legend>
+            <div class="Opps" role="radiogroup" aria-label="Opponent" id="opps">
+                <!-- filled by whale-pool.js -->
+            </div>
+        </fieldset>
+
+        <div class="Names">
+            <label class="Field" for="name1">
+                <span class="Field-label" id="name1Label">Your name</span>
+                <input class="Pool-input" id="name1" maxlength="16" autocomplete="nickname" placeholder="You">
+            </label>
+            <label class="Field" for="name2" id="name2Wrap" hidden>
+                <span class="Field-label">Player 2</span>
+                <input class="Pool-input" id="name2" maxlength="16" autocomplete="off" placeholder="Player 2">
+            </label>
+        </div>
+
+        <div class="Pool-go">
+            <button type="button" class="Btn Btn--primary" id="start">Rack &rsquo;em up</button>
+            <button type="button" class="Btn" id="resume" hidden>Resume your game</button>
+        </div>
+    </section>
+
+    <!-- ============ The table ============ -->
+    <section class="Pool-game" id="game" aria-label="Pool table" hidden>
+        <div class="Hud">
+            <div class="Seat" id="seat0">
+                <img class="Seat-pic" id="pic0" src="images/pfp/whale-0.svg" alt="" width="48" height="48">
+                <div class="Seat-info">
+                    <span class="Seat-name" id="who0">You</span>
+                    <span class="Seat-balls" id="balls0"></span>
+                </div>
+            </div>
+            <div class="Hud-mid">
+                <span class="Hud-mode" id="modeName">8-Ball</span>
+                <span class="Hud-rack" id="rack" aria-label="Balls left"></span>
+            </div>
+            <div class="Seat Seat--right" id="seat1">
+                <img class="Seat-pic" id="pic1" src="images/whales/777.webp" alt="" width="48" height="48">
+                <div class="Seat-info">
+                    <span class="Seat-name" id="who1">Whale #777</span>
+                    <span class="Seat-balls" id="balls1"></span>
+                </div>
+            </div>
+        </div>
+
+        <div class="Bar">
+            <p class="Say" id="say" role="status" aria-live="polite">Your break.</p>
+            <div class="Tools">
+                <button type="button" class="Tool" id="mute" aria-pressed="false" aria-label="Sound on — mute" title="Sound">&#x1F50A;</button>
+                <button type="button" class="Tool" id="full" aria-pressed="false" aria-label="Full screen" title="Full screen">&#x26F6;</button>
+                <button type="button" class="Tool" id="quit" aria-label="Leave this game" title="Leave game">&#x2715;</button>
+            </div>
+        </div>
+
+        <div class="Stage" id="stage">
+            <canvas id="table" aria-label="The pool table. Drag to aim, then pull the power bar and let go to shoot."></canvas>
+            <div class="Over" id="over" hidden>
+                <div class="Over-card">
+                    <h2 class="Over-title" id="overTitle">You win!</h2>
+                    <p class="Over-text" id="overText"></p>
+                    <div class="Over-btns">
+                        <button type="button" class="Btn Btn--primary" id="again">Rematch</button>
+                        <button type="button" class="Btn" id="change">Change game</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="Controls" id="controls">
+            <button type="button" class="Spin" id="spinBtn" aria-haspopup="dialog" aria-expanded="false" aria-controls="spinPop" title="Spin">
+                <span class="Spin-face" aria-hidden="true"><span class="Spin-dot" id="spinDot"></span></span>
+                <span class="Spin-label">Spin</span>
+            </button>
+            <div class="Power" id="power" role="slider" tabindex="0" aria-label="Power: drag, then let go to shoot" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0">
+                <span class="Power-fill" id="powerFill"></span>
+                <span class="Power-text" id="powerText">Pull to shoot &rarr;</span>
+            </div>
+            <div class="Fine" id="fine" title="Fine aim: drag left or right">
+                <span class="Fine-grip" id="fineGrip" aria-hidden="true"></span>
+                <span class="Fine-label">Fine aim</span>
+            </div>
+        </div>
+
+        <div class="Spin-pop" id="spinPop" role="dialog" aria-label="Cue ball spin" hidden>
+            <p class="Spin-pop-title">Where the cue hits the ball</p>
+            <div class="Spin-big" id="spinBig">
+                <span class="Spin-big-dot" id="spinBigDot"></span>
+            </div>
+            <p class="Spin-pop-hint">Low = draw back &middot; high = follow &middot; sides = english</p>
+            <div class="Spin-pop-btns">
+                <button type="button" class="Btn" id="spinReset">Centre</button>
+                <button type="button" class="Btn Btn--primary" id="spinDone">Done</button>
+            </div>
+        </div>
+
+        <p class="Keys" id="keys">Drag on the table to aim &middot; pull the power bar and let go to shoot.</p>
+    </section>
+
+    <!-- ============ Rules ============ -->
+    <section class="Pool-rules" aria-labelledby="rulesTitle">
+        <h2 class="Label" id="rulesTitle">How to play</h2>
+        <div class="Rules">
+            <div class="Rule">
+                <h3>Shooting</h3>
+                <p>Drag anywhere on the table to swing the cue around; a quick tap aims straight at that spot.
+                    Use <b>Fine aim</b> for tiny turns. Then drag the <b>power bar</b> and let go to shoot
+                    (slide it back to the start to cancel). <b>Spin</b> sets where the cue hits the cue ball:
+                    low draws it back, high follows through, left and right bend it off the cushions.</p>
+                <p>On a computer: arrow keys aim (hold Shift for big turns), W/S set power, Space shoots.</p>
+            </div>
+            <div class="Rule">
+                <h3>Fouls</h3>
+                <p>Scratching (the cue ball drops), missing everything, hitting the wrong ball first, or
+                    nothing reaching a cushion after the hit. After a foul the other player gets
+                    <b>ball in hand</b>: drag the cue ball anywhere. The break is taken from behind the line.</p>
+            </div>
+            <div class="Rule">
+                <h3>8-Ball</h3>
+                <p>The table is open after the break. Your first pot decides whether you&rsquo;re on solids
+                    (1&ndash;7) or stripes (9&ndash;15). Clear yours, then tap a pocket and sink the 8 there.
+                    The 8 early, in the wrong pocket or with a scratch loses.</p>
+            </div>
+            <div class="Rule">
+                <h3>9-Ball &amp; 10-Ball</h3>
+                <p>Always hit the lowest ball first; anything that drops keeps you shooting. In 9-ball the 9
+                    wins whenever it drops on a good shot. In 10-ball you call each shot &mdash; the aim line
+                    picks the ball and pocket, or tap them yourself &mdash; and only a called 10 wins.</p>
+            </div>
+        </div>
+    </section>
+</main>
+
+<footer class="Footer" data-footer></footer>
+
+<script defer src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/gsap.min.js"></script>
+<script defer src="strokeText.js"></script>
+<script defer src="arcade-sound.js"></script>
+<script defer src="whale-pool-sim.js"></script>
+<script defer src="whale-pool-bots.js"></script>
+<script defer src="whale-pool.js"></script>
+<script defer src="footer.js"></script>
+<script defer src="data/gold.js"></script>
+<script defer src="easteregg.js"></script>
+</body>
+</html>

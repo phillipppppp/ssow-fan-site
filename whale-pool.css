@@ -1,0 +1,498 @@
+/* ============================================================
+   Whale Pool. Shared chrome lives in base.css; form fields in
+   arcade.css. The table itself is drawn on a canvas by
+   whale-pool.js (wood rails, turquoise felt with the SSoW crest,
+   inked comic balls); this file dresses everything around it.
+   ============================================================ */
+
+main.Pool { max-width: 1240px; }
+
+.Pool-intro { padding-bottom: 0.5rem; }
+.Pool-intro h1 { --title-fill: var(--bg-turquoise); }
+
+.Pool-h2 {
+    margin-bottom: 1.1rem;
+    font-family: var(--font-display);
+    font-size: clamp(1.6rem, 3vw, 2.1rem);
+    font-weight: 400;
+    line-height: 1.1;
+}
+
+/* ------------------------------------------------------------
+   Setup
+   ------------------------------------------------------------ */
+
+.Pool-setup {
+    display: grid;
+    gap: 1.4rem;
+    max-width: 920px;
+    padding: clamp(1.1rem, 3vw, 1.8rem);
+    background: var(--paper);
+    border: var(--line) solid var(--ink);
+    border-radius: var(--radius);
+    box-shadow: var(--pop);
+}
+.Pool-setup[hidden] { display: none; }
+.Pool-setup .Pool-h2 { margin-bottom: -0.4rem; }
+
+.Modes, .Opps { display: grid; gap: 0.75rem; grid-template-columns: repeat(auto-fit, minmax(190px, 1fr)); }
+
+.Mode, .Opp { position: relative; display: block; cursor: pointer; }
+.Mode input, .Opp input { position: absolute; opacity: 0; pointer-events: none; }
+
+.Mode-card, .Opp-card {
+    display: grid;
+    gap: 0.25rem;
+    height: 100%;
+    padding: 0.85rem 1rem 0.95rem;
+    background: var(--bg);
+    border: var(--line-thin) solid var(--ink);
+    border-radius: var(--radius-sm);
+    box-shadow: var(--pop-sm);
+    transition: transform 0.12s, box-shadow 0.12s, background 0.12s;
+}
+.Mode:hover .Mode-card, .Opp:hover .Opp-card { transform: translate(-1px, -1px); box-shadow: 3px 3px 0 var(--ink); }
+.Mode input:checked + .Mode-card,
+.Opp input:checked + .Opp-card { background: var(--bg-turquoise); box-shadow: var(--pop); transform: translate(-2px, -2px); }
+.Mode input:focus-visible + .Mode-card,
+.Opp input:focus-visible + .Opp-card { outline: 3px solid var(--gold); outline-offset: 3px; }
+
+.Mode-card { grid-template-columns: auto 1fr; column-gap: 0.75rem; align-items: center; }
+.Mode-ball {
+    grid-row: span 2;
+    display: grid;
+    place-items: center;
+    width: 2.6rem;
+    height: 2.6rem;
+    font-family: var(--font-display);
+    font-size: 0.85rem;
+    line-height: 1;
+    color: var(--ink);
+    background: radial-gradient(circle, var(--paper) 0 36%, var(--ball) 37%);
+    border: var(--line-thin) solid var(--ink);
+    border-radius: 50%;
+}
+.Mode-ball--8 { --ball: #1d1b20; }
+.Mode-ball--9 { --ball: #f5c400; }
+.Mode-ball--10 { --ball: #2563c9; }
+.Mode-ball--9, .Mode-ball--10 {
+    background:
+        radial-gradient(circle, var(--paper) 0 34%, transparent 35%),
+        linear-gradient(var(--paper) 20%, var(--ball) 20% 80%, var(--paper) 80%);
+}
+.Mode-name { font-family: var(--font-display); font-size: 1.25rem; line-height: 1.1; }
+.Mode-rule { grid-column: 2; font-size: 0.82rem; font-weight: 700; color: var(--ink-2); line-height: 1.35; }
+
+.Opp-card { grid-template-columns: auto 1fr; column-gap: 0.75rem; align-items: center; }
+.Opp-pic {
+    grid-row: span 2;
+    width: 3rem;
+    height: 3rem;
+    object-fit: cover;
+    background: var(--paper);
+    border: var(--line-thin) solid var(--ink);
+    border-radius: 50%;
+}
+.Opp-name { font-family: var(--font-display); font-size: 1.1rem; line-height: 1.1; }
+.Opp-note { font-size: 0.8rem; font-weight: 700; color: var(--ink-2); line-height: 1.3; }
+.Opp-level {
+    display: inline-block;
+    margin-left: 0.35rem;
+    padding: 0.05rem 0.45rem;
+    font-family: var(--font-body);
+    font-size: 0.62rem;
+    font-weight: 900;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    vertical-align: 0.2em;
+    background: var(--paper);
+    border: 2px solid var(--ink);
+    border-radius: 999px;
+}
+
+.Names { display: grid; gap: 0.75rem; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); }
+.Names .Field[hidden] { display: none; }
+.Pool-input {
+    width: 100%;
+    padding: 0.65rem 0.85rem;
+    font: inherit;
+    font-weight: 800;
+    color: var(--ink);
+    background: var(--bg);
+    border: var(--line-thin) solid var(--ink);
+    border-radius: var(--radius-sm);
+}
+.Pool-input:focus { outline: none; box-shadow: 0 0 0 3px var(--bg-turquoise); }
+
+.Pool-go { display: flex; flex-wrap: wrap; gap: 0.75rem; }
+.Pool-go .Btn--primary { width: auto; min-width: 14rem; padding: 0.85rem 2rem; font-size: 1.2rem; }
+.Pool-go .Btn[hidden] { display: none; }
+
+/* ------------------------------------------------------------
+   The game: scoreboard, message, table, controls
+   ------------------------------------------------------------ */
+
+.Pool-game { display: grid; gap: 0.7rem; min-width: 0; }
+.Pool-game[hidden] { display: none; }
+
+.Hud {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr);
+    align-items: center;
+    gap: 0.6rem;
+}
+
+.Seat {
+    display: flex;
+    align-items: center;
+    gap: 0.6rem;
+    min-width: 0;
+    padding: 0.4rem 0.7rem 0.4rem 0.45rem;
+    background: var(--paper);
+    border: var(--line) solid var(--ink);
+    border-radius: 999px;
+    box-shadow: var(--pop-sm);
+    transition: background 0.2s, transform 0.2s, box-shadow 0.2s;
+}
+.Seat--right { flex-direction: row-reverse; padding: 0.4rem 0.45rem 0.4rem 0.7rem; text-align: right; }
+.Seat.is-turn { background: var(--gold); transform: translate(-2px, -2px); box-shadow: var(--pop); }
+.Seat-pic {
+    flex-shrink: 0;
+    width: 2.9rem;
+    height: 2.9rem;
+    object-fit: cover;
+    background: var(--bg-turquoise);
+    border: var(--line-thin) solid var(--ink);
+    border-radius: 50%;
+}
+.Seat-info { display: grid; gap: 0.15rem; min-width: 0; }
+.Seat-name {
+    overflow: hidden;
+    font-family: var(--font-display);
+    font-size: 1.1rem;
+    line-height: 1.1;
+    white-space: nowrap;
+    text-overflow: ellipsis;
+}
+.Seat-balls { display: flex; flex-wrap: wrap; gap: 2px; min-height: 0.95rem; font-size: 0.72rem; font-weight: 800; color: var(--ink-2); }
+.Seat--right .Seat-balls { justify-content: flex-end; }
+
+/* the little balls in the scoreboard */
+.Mini {
+    display: inline-grid;
+    place-items: center;
+    width: 0.95rem;
+    height: 0.95rem;
+    font-size: 0.5rem;
+    font-weight: 900;
+    line-height: 1;
+    color: var(--ink);
+    background: var(--c);
+    border: 1.5px solid var(--ink);
+    border-radius: 50%;
+}
+.Mini--stripe { background: linear-gradient(var(--paper) 24%, var(--c) 24% 76%, var(--paper) 76%); }
+.Mini--8 { color: var(--paper); }
+.Mini.is-down { opacity: 0.22; }
+.Mini.is-on { outline: 2px solid var(--ink); outline-offset: 1px; transform: scale(1.15); }
+
+.Hud-mid { display: grid; justify-items: center; gap: 0.25rem; }
+.Hud-mode {
+    padding: 0.2rem 0.7rem;
+    font-size: 0.7rem;
+    font-weight: 900;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    background: var(--paper);
+    border: var(--line-thin) solid var(--ink);
+    border-radius: 999px;
+}
+.Hud-rack { display: flex; flex-wrap: wrap; justify-content: center; gap: 2px; max-width: 12rem; }
+
+.Bar { display: flex; align-items: center; gap: 0.5rem; }
+.Say {
+    flex: 1 1 auto;
+    min-width: 0;
+    min-height: 1.6em;
+    padding: 0.45rem 0.9rem;
+    font-weight: 800;
+    text-align: center;
+    background: var(--paper);
+    border: var(--line-thin) solid var(--ink);
+    border-radius: var(--radius-sm);
+}
+.Say.is-foul { background: #f6cfc6; }
+.Say.is-good { background: var(--bg-green); }
+
+.Stage {
+    position: relative;
+    display: grid;
+    place-items: center;
+    min-height: 200px;
+    touch-action: none;
+    user-select: none;
+    -webkit-user-select: none;
+}
+.Stage canvas { display: block; max-width: 100%; touch-action: none; cursor: crosshair; }
+.Stage canvas.is-hand { cursor: grab; }
+.Stage canvas.is-wait { cursor: progress; }
+
+.Over {
+    position: absolute;
+    inset: 0;
+    display: grid;
+    place-items: center;
+    padding: 1rem;
+    background: rgba(29, 27, 32, 0.35);
+    border-radius: var(--radius);
+}
+.Over[hidden] { display: none; }
+.Over-card {
+    display: grid;
+    gap: 0.6rem;
+    width: min(100%, 22rem);
+    padding: 1.3rem 1.4rem 1.4rem;
+    text-align: center;
+    background: var(--paper);
+    border: var(--line) solid var(--ink);
+    border-radius: var(--radius);
+    box-shadow: var(--pop-lg);
+}
+.Over-title { font-family: var(--font-display); font-size: 2rem; font-weight: 400; line-height: 1.05; }
+.Over-text { font-weight: 700; color: var(--ink-2); }
+.Over-btns { display: grid; gap: 0.5rem; margin-top: 0.3rem; }
+
+/* controls */
+.Controls {
+    display: grid;
+    grid-template-columns: auto minmax(0, 1fr) minmax(7rem, 12rem);
+    align-items: center;
+    gap: 0.6rem;
+}
+
+.Spin {
+    display: flex;
+    align-items: center;
+    gap: 0.4rem;
+    padding: 0.25rem 0.7rem 0.25rem 0.3rem;
+    font: inherit;
+    font-size: 0.72rem;
+    font-weight: 900;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    color: var(--ink);
+    background: var(--paper);
+    border: var(--line-thin) solid var(--ink);
+    border-radius: 999px;
+    box-shadow: var(--pop-sm);
+    cursor: pointer;
+}
+.Spin-face {
+    position: relative;
+    width: 2.2rem;
+    height: 2.2rem;
+    background: radial-gradient(circle at 35% 30%, #fff 0 18%, #f4efe4 19% 100%);
+    border: 2px solid var(--ink);
+    border-radius: 50%;
+}
+.Spin-dot, .Spin-big-dot {
+    position: absolute;
+    left: 50%;
+    top: 50%;
+    width: 22%;
+    height: 22%;
+    background: var(--ember);
+    border: 1.5px solid var(--ink);
+    border-radius: 50%;
+    transform: translate(-50%, -50%);
+}
+
+.Power {
+    position: relative;
+    height: 2.7rem;
+    overflow: hidden;
+    background:
+        repeating-linear-gradient(90deg, transparent 0 calc(10% - 2px), rgba(29, 27, 32, 0.12) calc(10% - 2px) 10%),
+        var(--paper);
+    border: var(--line) solid var(--ink);
+    border-radius: 999px;
+    box-shadow: var(--pop-sm);
+    cursor: ew-resize;
+    touch-action: none;
+}
+.Power:focus-visible { outline: 3px solid var(--gold); outline-offset: 3px; }
+.Power-fill {
+    position: absolute;
+    inset: 0 auto 0 0;
+    width: 0%;
+    background: linear-gradient(90deg, var(--bg-green), var(--gold) 55%, var(--ember));
+    border-right: var(--line-thin) solid var(--ink);
+}
+.Power-fill.is-preset { opacity: 0.35; }
+.Power-text {
+    position: absolute;
+    inset: 0;
+    display: grid;
+    place-items: center;
+    font-size: 0.72rem;
+    font-weight: 900;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    pointer-events: none;
+}
+.Power.is-off { opacity: 0.5; cursor: not-allowed; }
+
+.Fine {
+    position: relative;
+    height: 2.7rem;
+    overflow: hidden;
+    background: repeating-linear-gradient(90deg, var(--paper-2) 0 6px, var(--ink-4) 6px 8px);
+    border: var(--line) solid var(--ink);
+    border-radius: var(--radius-sm);
+    box-shadow: var(--pop-sm);
+    cursor: ew-resize;
+    touch-action: none;
+}
+.Fine-grip { position: absolute; inset: 0; background-image: inherit; background-size: inherit; }
+.Fine-label {
+    position: absolute;
+    left: 50%;
+    top: 50%;
+    padding: 0.05rem 0.45rem;
+    font-size: 0.62rem;
+    font-weight: 900;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    white-space: nowrap;
+    background: var(--paper);
+    border: 2px solid var(--ink);
+    border-radius: 999px;
+    transform: translate(-50%, -50%);
+    pointer-events: none;
+}
+
+.Tools { display: flex; gap: 0.4rem; }
+.Tool {
+    display: grid;
+    place-items: center;
+    width: 2.6rem;
+    height: 2.6rem;
+    font-size: 1.05rem;
+    line-height: 1;
+    color: var(--ink);
+    background: var(--paper);
+    border: var(--line-thin) solid var(--ink);
+    border-radius: 50%;
+    box-shadow: var(--pop-sm);
+    cursor: pointer;
+}
+.Tool:hover { background: var(--bg-lightblue); }
+.Tool[aria-pressed="true"] { background: var(--paper-2); }
+
+.Spin-pop {
+    position: fixed;
+    left: 50%;
+    bottom: max(1rem, env(safe-area-inset-bottom));
+    z-index: 60;
+    display: grid;
+    justify-items: center;
+    gap: 0.6rem;
+    width: min(20rem, calc(100vw - 2rem));
+    padding: 1rem 1.1rem 1.1rem;
+    text-align: center;
+    background: var(--paper);
+    border: var(--line) solid var(--ink);
+    border-radius: var(--radius);
+    box-shadow: var(--pop-lg);
+    transform: translateX(-50%);
+}
+.Spin-pop[hidden] { display: none; }
+.Spin-pop-title { font-family: var(--font-display); font-size: 1.2rem; }
+.Spin-pop-hint { font-size: 0.75rem; font-weight: 700; color: var(--ink-3); }
+.Spin-big {
+    position: relative;
+    width: 11rem;
+    height: 11rem;
+    background:
+        radial-gradient(circle, transparent 0 59%, rgba(29, 27, 32, 0.08) 60%),
+        radial-gradient(circle at 35% 30%, #fff 0 15%, #f4efe4 16% 100%);
+    border: var(--line) solid var(--ink);
+    border-radius: 50%;
+    cursor: crosshair;
+    touch-action: none;
+}
+.Spin-big::before, .Spin-big::after {
+    content: "";
+    position: absolute;
+    background: rgba(29, 27, 32, 0.18);
+}
+.Spin-big::before { left: 50%; top: 8%; bottom: 8%; width: 2px; transform: translateX(-1px); }
+.Spin-big::after { top: 50%; left: 8%; right: 8%; height: 2px; transform: translateY(-1px); }
+.Spin-big-dot { width: 18%; height: 18%; z-index: 1; }
+.Spin-pop-btns { display: flex; gap: 0.5rem; }
+.Spin-pop-btns .Btn--primary { width: auto; }
+
+.Keys { font-size: 0.78rem; font-weight: 700; color: var(--ink-3); text-align: center; }
+
+/* ------------------------------------------------------------
+   Full screen: the game fills the window
+   ------------------------------------------------------------ */
+
+.Pool-game.is-full {
+    position: fixed;
+    inset: 0;
+    z-index: 50;
+    align-content: start;
+    padding: max(0.6rem, env(safe-area-inset-top)) max(0.6rem, env(safe-area-inset-right)) max(0.6rem, env(safe-area-inset-bottom)) max(0.6rem, env(safe-area-inset-left));
+    overflow: auto;
+    background: var(--bg);
+}
+.Pool-game.is-full .Keys { display: none; }
+html.pool-full, html.pool-full body { overflow: hidden; }
+
+/* ------------------------------------------------------------
+   Rules
+   ------------------------------------------------------------ */
+
+.Pool-rules { margin-top: clamp(2rem, 5vw, 3.5rem); }
+.Rules { display: grid; gap: 1rem; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); margin-top: 1rem; }
+.Rule {
+    padding: 1rem 1.1rem 1.1rem;
+    background: var(--paper);
+    border: var(--line-thin) solid var(--ink);
+    border-radius: var(--radius-sm);
+    box-shadow: var(--pop-sm);
+}
+.Rule h3 { margin-bottom: 0.4rem; font-family: var(--font-display); font-size: 1.2rem; font-weight: 400; }
+.Rule p { font-size: 0.9rem; line-height: 1.5; color: var(--ink-2); }
+.Rule p + p { margin-top: 0.5rem; }
+
+/* ------------------------------------------------------------
+   Phones
+   ------------------------------------------------------------ */
+
+/* Phones: everything around the table shrinks so the table can grow */
+@media (max-width: 720px) {
+    .Pool-game { gap: 0.45rem; }
+    .Hud { gap: 0.35rem; }
+    .Seat { gap: 0.35rem; padding: 0.25rem 0.5rem 0.25rem 0.25rem; border-width: var(--line-thin); }
+    .Seat--right { padding: 0.25rem 0.25rem 0.25rem 0.5rem; }
+    .Seat-pic { width: 2rem; height: 2rem; }
+    .Seat-name { font-size: 0.85rem; }
+    .Seat-balls { gap: 1px; }
+    .Mini { width: 0.72rem; height: 0.72rem; font-size: 0.4rem; border-width: 1px; }
+    .Hud-mode { padding: 0.1rem 0.45rem; font-size: 0.58rem; }
+    .Hud-rack { max-width: 4.6rem; gap: 1px; }
+    .Say { padding: 0.3rem 0.6rem; font-size: 0.8rem; line-height: 1.3; }
+    .Tools { gap: 0.25rem; }
+    .Tool { width: 2.1rem; height: 2.1rem; font-size: 0.85rem; }
+    .Controls { grid-template-columns: auto minmax(0, 1fr) 5.2rem; gap: 0.4rem; }
+    .Spin { padding: 0.2rem; }
+    .Spin-label { display: none; }
+    .Spin-face { width: 2rem; height: 2rem; }
+    .Power, .Fine { height: 2.4rem; }
+    .Power-text { font-size: 0.62rem; }
+    .Fine-label { font-size: 0.52rem; }
+    .Keys { display: none; }
+    .Mode-card { padding: 0.7rem 0.8rem; }
+}

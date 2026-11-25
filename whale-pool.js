@@ -736,15 +736,66 @@
         }
     }
 
+    /* The whole cue, never sliced off by the edge of the table picture.
+       When the full cue would run off the canvas it gets shorter instead
+       (its design scales with it, so the butt cap still shows). Only when
+       even a short cue can't fit (the cue ball against a rail, aiming
+       away from it) does its far end fade out softly. */
+    let cueLayer = null;
+
+    function roomAlong(x, y, ux, uy, m) {
+        const W = els.canvas.width, H = els.canvas.height;
+        let room = Infinity;
+        if (ux > 1e-6) room = Math.min(room, (W - m - x) / ux);
+        if (ux < -1e-6) room = Math.min(room, (m - x) / ux);
+        if (uy > 1e-6) room = Math.min(room, (H - m - y) / uy);
+        if (uy < -1e-6) room = Math.min(room, (m - y) / uy);
+        return room;
+    }
+
     function drawCue(c, cp, pull) {
         const dpr = view.dpr, k = view.k;
         const d = aimDir();
         const sv = vecToScreen(d[0], d[1]);
         const s = toScreen(cp[0], cp[1]);
         const u = k * dpr;                                 // one table unit in canvas pixels
-        const gap = (S.R + 5 + pull * 120) * u;
-        const tx = s[0] * dpr - sv[0] * gap, ty = s[1] * dpr - sv[1] * gap;
-        Cues.drawCue(c, cueNow().id, tx, ty, Math.atan2(-sv[1], -sv[0]), 560 * u, 4.6 * u, 9.5 * u, { px: dpr, shadow: [5 * u, 7 * u] });
+        const ux = -sv[0], uy = -sv[1];                    // from the tip toward the butt
+        const bx = s[0] * dpr, by = s[1] * dpr;
+        const m = 10.5 * u + 3 * dpr;                      // the butt's half width, its shadow, a hair more
+        const full = 560 * u, least = 190 * u;
+        /* pulling back never pushes the tip itself off the picture */
+        const fromBall = roomAlong(bx, by, ux, uy, m);
+        const gap = Math.min((S.R + 5 + pull * 120) * u, Math.max((S.R + 5) * u, fromBall - 60 * u));
+        const tx = bx + ux * gap, ty = by + uy * gap;
+        const room = fromBall - gap;
+        const len = Math.max(least, Math.min(full, room));
+        const id = cueNow().id, ang = Math.atan2(uy, ux);
+        const opts = { px: dpr, shadow: [5 * u, 7 * u] };
+        if (len <= room) {
+            Cues.drawCue(c, id, tx, ty, ang, len, 4.6 * u, 9.5 * u, opts);
+            return;
+        }
+        /* not even a short cue fits: draw it on its own layer, fade its end into the edge */
+        const W = els.canvas.width, H = els.canvas.height;
+        if (!cueLayer || cueLayer.width !== W || cueLayer.height !== H) {
+            cueLayer = document.createElement('canvas');
+            cueLayer.width = W;
+            cueLayer.height = H;
+        }
+        const g = cueLayer.getContext('2d');
+        g.setTransform(1, 0, 0, 1, 0, 0);
+        g.globalCompositeOperation = 'source-over';
+        g.clearRect(0, 0, W, H);
+        Cues.drawCue(g, id, tx, ty, ang, len, 4.6 * u, 9.5 * u, opts);
+        const to = Math.max(0, room) + m, from = Math.max(0, Math.max(0, room) - 70 * u);
+        const fade = g.createLinearGradient(tx + ux * from, ty + uy * from, tx + ux * to, ty + uy * to);
+        fade.addColorStop(0, 'rgba(0, 0, 0, 1)');
+        fade.addColorStop(1, 'rgba(0, 0, 0, 0)');
+        g.globalCompositeOperation = 'destination-in';
+        g.fillStyle = fade;
+        g.fillRect(0, 0, W, H);
+        g.globalCompositeOperation = 'source-over';
+        c.drawImage(cueLayer, 0, 0);
     }
 
     /* ======================================================

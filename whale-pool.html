@@ -100,6 +100,15 @@
             </div>
         </fieldset>
 
+        <fieldset class="Field">
+            <legend class="Field-label">Aim lines</legend>
+            <div class="Guides" role="radiogroup" aria-label="Aim lines">
+                <label class="Guide"><input type="radio" name="guides" value="cue" checked><span>Your cue&rsquo;s lines<small>better cues see further</small></span></label>
+                <label class="Guide"><input type="radio" name="guides" value="short"><span>Short for everyone<small>fair for two players</small></span></label>
+                <label class="Guide"><input type="radio" name="guides" value="off"><span>No lines (Pro)<small>+50% Pearls</small></span></label>
+            </div>
+        </fieldset>
+
         <div class="Names">
             <label class="Field" for="name1">
                 <span class="Field-label" id="name1Label">Your name</span>
@@ -114,6 +123,30 @@
         <div class="Pool-go">
             <button type="button" class="Btn Btn--primary" id="start">Rack &rsquo;em up</button>
             <button type="button" class="Btn" id="resume" hidden>Resume your game</button>
+        </div>
+    </section>
+
+    <!-- ============ The Cue Shop ============ -->
+    <section class="Shop" id="shop" aria-labelledby="shopTitle">
+        <div class="Shop-head">
+            <h2 class="Pool-h2" id="shopTitle">Cue Shop</h2>
+            <p class="Pearls"><span class="Pearl" aria-hidden="true"></span><strong id="pearls">0</strong>&nbsp;Pearls</p>
+        </div>
+        <p class="Shop-lede">
+            Beat the bot whales to earn Pearls: more against Hard, a bonus for your first win each day,
+            and half again with no aim lines. Pearls are play coins for this game only &mdash; not money,
+            not a token, and they stay in this browser.
+        </p>
+        <div class="Cues" id="cues"></div>
+        <div class="Legend-check">
+            <h3>Legendary: the Staff &amp; the Trident</h3>
+            <p>Hold an OG whale with the Staff or the Trident and that cue is yours. Paste the wallet that
+                holds it: no signing, and the wallet is never shown to anyone.</p>
+            <div class="Wallet-row">
+                <input id="legendWallet" type="text" placeholder="0x…" autocomplete="off" spellcheck="false" aria-label="Wallet address">
+                <button type="button" class="Btn" id="legendGo">Check</button>
+            </div>
+            <p class="Legend-status" id="legendStatus" role="status" aria-live="polite"></p>
         </div>
     </section>
 
@@ -155,6 +188,7 @@
                 <div class="Over-card">
                     <h2 class="Over-title" id="overTitle">You win!</h2>
                     <p class="Over-text" id="overText"></p>
+                    <p class="Over-pearls" id="overPearls" hidden></p>
                     <div class="Over-btns">
                         <button type="button" class="Btn Btn--primary" id="again">Rematch</button>
                         <button type="button" class="Btn" id="change">Change game</button>
@@ -181,6 +215,7 @@
         <div class="Spin-pop" id="spinPop" role="dialog" aria-label="Cue ball spin" hidden>
             <p class="Spin-pop-title">Where the cue hits the ball</p>
             <div class="Spin-big" id="spinBig">
+                <span class="Spin-reach" id="spinReach" aria-hidden="true"></span>
                 <span class="Spin-big-dot" id="spinBigDot"></span>
             </div>
             <p class="Spin-pop-hint">Low = draw back &middot; high = follow &middot; sides = english</p>
@@ -234,6 +269,8 @@
 <script defer src="arcade-sound.js"></script>
 <script defer src="whale-pool-sim.js"></script>
 <script defer src="whale-pool-bots.js"></script>
+<script defer src="game-config.js"></script>
+<script defer src="whale-pool-cues.js"></script>
 <script defer src="whale-pool.js"></script>
 <script defer src="footer.js"></script>
 <script defer src="data/gold.js"></script>

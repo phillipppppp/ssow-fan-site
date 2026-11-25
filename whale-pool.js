@@ -19,7 +19,8 @@
 
     const S = window.WhalePoolSim;
     const Bots = window.WhalePoolBots;
-    if (!S || !Bots) return;
+    const Cues = window.WhalePoolCues;
+    if (!S || !Bots || !Cues) return;
 
     const $ = function (id) { return document.getElementById(id); };
 
@@ -103,13 +104,16 @@
         controls: $('controls'), power: $('power'), powerFill: $('powerFill'), powerText: $('powerText'),
         fine: $('fine'), fineGrip: $('fineGrip'), spinBtn: $('spinBtn'), spinDot: $('spinDot'),
         spinPop: $('spinPop'), spinBig: $('spinBig'), spinBigDot: $('spinBigDot'), spinReset: $('spinReset'), spinDone: $('spinDone'),
-        mute: $('mute'), full: $('full'), quit: $('quit'), keys: $('keys')
+        mute: $('mute'), full: $('full'), quit: $('quit'), keys: $('keys'),
+        spinReach: $('spinReach'), overPearls: $('overPearls'),
+        shop: $('shop'), pearls: $('pearls'), cues: $('cues'),
+        legendWallet: $('legendWallet'), legendGo: $('legendGo'), legendStatus: $('legendStatus')
     };
     const ctx = els.canvas.getContext('2d');
 
     /* ---------- settings ---------- */
 
-    let settings = { mode: '8', opp: 'normal', name1: '', name2: '' };
+    let settings = { mode: '8', opp: 'normal', name1: '', name2: '', guides: 'cue' };
     try { Object.assign(settings, JSON.parse(localStorage.getItem(STORE) || '{}')); } catch (e) { /* defaults */ }
     function saveSettings() { try { localStorage.setItem(STORE, JSON.stringify(settings)); } catch (e) { /* fine */ } }
 
@@ -652,17 +656,47 @@
         c.restore();
     }
 
+    /* how much of the aim guide each level shows (table units):
+       cap = longest aim line, obj = object-ball line, cue = where the
+       cue ball glances off, rail = the bounce off a cushion */
+    const GUIDE = {
+        1: { cap: 260, obj: 30, cue: 0, rail: 0 },
+        2: { cap: 420, obj: 60, cue: 0, rail: 40 },
+        3: { cap: 620, obj: 100, cue: 40, rail: 70 },
+        4: { cap: Infinity, obj: 160, cue: 80, rail: 100 },
+        5: { cap: Infinity, obj: 230, cue: 130, rail: 130 }
+    };
+
+    /* the cue in the hand of whoever is shooting */
+    function cueOf(p) { return p && p.bot ? Cues.get(Cues.BOT_CUE[p.bot]) : Cues.equipped(); }
+    function cueNow() { return cueOf(current()); }
+
+    function guideLevel(faint) {
+        if (G.guides === 'off') return 0;
+        if (faint || G.guides === 'short') return 1;
+        return Cues.aimOf(cueNow());
+    }
+
     function guide(c, cp, faint) {
         const st = G.state, dpr = view.dpr, k = view.k;
         const d = aimDir();
         const p = S.predict(st, cp[0], cp[1], d);
         G.pred = p;
+        const lv = GUIDE[guideLevel(faint)];
+        if (!lv) return;
         const sc = function (x, y) { const s = toScreen(x, y); return [s[0] * dpr, s[1] * dpr]; };
         const from = sc(cp[0], cp[1]);
-        const to = sc(p.x, p.y);
         const alpha = faint ? 0.45 : 0.95;
         const white = 'rgba(255, 250, 241,' + alpha + ')';
         const ink = 'rgba(29, 27, 32,' + (alpha * 0.55) + ')';
+        if (p.t > lv.cap) {
+            /* too far for this cue: the line just fades out */
+            const e = sc(cp[0] + d[0] * lv.cap, cp[1] + d[1] * lv.cap);
+            line(c, from, e, 3.6 * dpr, ink);
+            line(c, from, e, 1.8 * dpr, white);
+            return;
+        }
+        const to = sc(p.x, p.y);
         line(c, from, to, 3.6 * dpr, ink);
         line(c, from, to, 1.8 * dpr, white);
         if (p.kind === 'ball') {
@@ -679,19 +713,21 @@
             } else {
                 /* where the object ball goes, and where the cue ball glances off */
                 const ob = sc(p.ball[0], p.ball[1]);
-                const L = 40 + 190 * p.full * p.full;
+                const L = lv.obj * (0.3 + 0.7 * p.full * p.full);
                 const oe = sc(p.ball[0] + p.objDir[0] * L, p.ball[1] + p.objDir[1] * L);
                 line(c, ob, oe, 3.4 * dpr, ink);
                 line(c, ob, oe, 1.8 * dpr, white);
-                if (p.full < 0.995) {
-                    const Lc = 30 + 110 * (1 - p.full);
+                if (p.full < 0.995 && lv.cue) {
+                    const Lc = lv.cue * (0.4 + 0.6 * (1 - p.full));
                     const ce = sc(p.x + p.cueDir[0] * Lc, p.y + p.cueDir[1] * Lc);
                     line(c, to, ce, 1.6 * dpr, 'rgba(255, 250, 241,' + alpha * 0.7 + ')');
                 }
             }
         } else if (p.kind === 'rail' && p.cueDir) {
-            const e = sc(p.x + p.cueDir[0] * 110, p.y + p.cueDir[1] * 110);
-            line(c, to, e, 1.6 * dpr, 'rgba(255, 250, 241,' + alpha * 0.7 + ')');
+            if (lv.rail) {
+                const e = sc(p.x + p.cueDir[0] * lv.rail, p.y + p.cueDir[1] * lv.rail);
+                line(c, to, e, 1.6 * dpr, 'rgba(255, 250, 241,' + alpha * 0.7 + ')');
+            }
             c.lineWidth = 2 * dpr;
             c.strokeStyle = white;
             c.beginPath();
@@ -705,43 +741,10 @@
         const d = aimDir();
         const sv = vecToScreen(d[0], d[1]);
         const s = toScreen(cp[0], cp[1]);
-        const ox = s[0] * dpr, oy = s[1] * dpr;
         const u = k * dpr;                                 // one table unit in canvas pixels
         const gap = (S.R + 5 + pull * 120) * u;
-        const len = 560 * u;
-        const tipW = 4.6 * u, buttW = 9.5 * u;
-        const nx = -sv[1], ny = sv[0];
-        const P = function (t, w) { return [ox - sv[0] * (gap + t) + nx * w, oy - sv[1] * (gap + t) + ny * w]; };
-        const seg = function (t0, t1, color) {
-            const w0 = tipW + (buttW - tipW) * (t0 / len), w1 = tipW + (buttW - tipW) * (t1 / len);
-            const a = P(t0, w0), b = P(t1, w1), cc2 = P(t1, -w1), dd = P(t0, -w0);
-            c.beginPath();
-            c.moveTo(a[0], a[1]); c.lineTo(b[0], b[1]); c.lineTo(cc2[0], cc2[1]); c.lineTo(dd[0], dd[1]);
-            c.closePath();
-            c.fillStyle = color;
-            c.fill();
-        };
-        c.save();
-        /* a soft shadow on the felt */
-        c.globalAlpha = 0.22;
-        c.translate(5 * u, 7 * u);
-        seg(0, len, '#0b2a22');
-        c.restore();
-        seg(0, 6 * u, '#3f6fd1');                           // tip
-        seg(6 * u, 16 * u, '#fbf6ea');                      // ferrule
-        seg(16 * u, len * 0.62, '#efd9ae');                 // shaft
-        seg(len * 0.62, len * 0.645, '#f4b740');            // gold joint ring
-        seg(len * 0.645, len, '#5b3a22');                   // butt
-        seg(len * 0.78, len * 0.8, '#f4b740');
-        seg(len * 0.96, len, '#1d1b20');
-        /* ink outline */
-        const a = P(0, tipW), b = P(len, buttW), cc2 = P(len, -buttW), dd = P(0, -tipW);
-        c.beginPath();
-        c.moveTo(a[0], a[1]); c.lineTo(b[0], b[1]); c.lineTo(cc2[0], cc2[1]); c.lineTo(dd[0], dd[1]);
-        c.closePath();
-        c.lineWidth = Math.max(1.2, 1.6 * dpr);
-        c.strokeStyle = INK;
-        c.stroke();
+        const tx = s[0] * dpr - sv[0] * gap, ty = s[1] * dpr - sv[1] * gap;
+        Cues.drawCue(c, cueNow().id, tx, ty, Math.atan2(-sv[1], -sv[0]), 560 * u, 4.6 * u, 9.5 * u, { px: dpr, shadow: [5 * u, 7 * u] });
     }
 
     /* ======================================================
@@ -933,7 +936,12 @@
     function shoot(power) {
         if (!G || G.phase !== 'aim') return;
         const st = G.state;
-        const input = { dir: aimDir(), power: power, spin: G.spin.slice() };
+        const cue = cueNow();
+        const reach = Cues.spinReach(cue);
+        let sp = G.spin.slice();
+        const m = Math.hypot(sp[0], sp[1]);
+        if (m > reach) sp = [sp[0] * reach / m, sp[1] * reach / m];
+        const input = { dir: aimDir(), power: power * Cues.powerCap(cue), spin: sp };
         if (st.inHand) {
             if (!G.place || !S.canPlace(st, G.place[0], G.place[1])) { say('The cue ball can’t go there. Drag it to a free spot' + (st.inHand === 'kitchen' ? ' behind the line.' : '.'), 'foul'); return; }
             input.cue = G.place;
@@ -952,6 +960,7 @@
         let run;
         try { run = S.begin(G.state, input); } catch (e) { say(e.message, 'foul'); return; }
         G.input = input;
+        G.shotsBy[G.state.turn]++;
         G.run = run;
         G.sinking = [];
         G.phase = 'rolling';
@@ -1019,6 +1028,17 @@
         const humanWon = !w.bot;
         els.overTitle.textContent = you(w) ? 'You win!' : w.name + ' wins!';
         els.overText.textContent = (you(who) ? 'You ' : who.name + ' ') + why + '.' + (G.players[1].bot && !humanWon ? ' Rack ’em again?' : '');
+        els.overPearls.hidden = true;
+        if (G.players[1].bot && !G.awarded) {
+            G.awarded = true;
+            const r = Cues.award({
+                win: res.state.winner === 0, level: G.players[1].bot, pro: G.guides === 'off',
+                breakRun: res.state.winner === 0 && G.breaker === 0 && G.shotsBy[1] === 0
+            });
+            els.overPearls.textContent = '+' + r.total + ' Pearls · ' + r.lines.map(function (x) { return x[0] + ' ' + x[1]; }).join(' · ') + ' · you have ' + r.pearls.toLocaleString();
+            els.overPearls.hidden = false;
+            renderShop();
+        }
         els.over.hidden = false;
         say(els.overTitle.textContent + ' ' + els.overText.textContent, humanWon ? 'good' : 'foul');
         Sound.play(humanWon || !G.players[1].bot ? 'win' : 'foul');
@@ -1308,6 +1328,8 @@
 
     function showSpin() {
         const s = G ? G.spin : [0, 0];
+        const reach = Cues.spinReach(G ? cueNow() : Cues.equipped());
+        if (els.spinReach) { els.spinReach.style.width = (reach * 76) + '%'; els.spinReach.style.height = (reach * 76) + '%'; }
         const put = function (dot) { dot.style.left = (50 + s[0] * 38) + '%'; dot.style.top = (50 - s[1] * 38) + '%'; };
         put(els.spinDot);
         put(els.spinBigDot);
@@ -1326,7 +1348,8 @@
         let a = ((e.clientX - r.left) / r.width - 0.5) / 0.38;
         let b = -((e.clientY - r.top) / r.height - 0.5) / 0.38;
         const m = Math.hypot(a, b);
-        if (m > 1) { a /= m; b /= m; }
+        const reach = Cues.spinReach(G ? cueNow() : Cues.equipped());
+        if (m > reach) { a *= reach / m; b *= reach / m; }
         if (G) G.spin = [Math.round(a * 100) / 100, Math.round(b * 100) / 100];
         showSpin();
     }
@@ -1432,6 +1455,7 @@
         const opp = (document.querySelector('input[name="opp"]:checked') || {}).value || 'normal';
         settings.mode = mode;
         settings.opp = opp;
+        settings.guides = (document.querySelector('input[name="guides"]:checked') || {}).value || 'cue';
         settings.name1 = cleanName(els.name1.value);
         settings.name2 = cleanName(els.name2.value);
         saveSettings();
@@ -1469,10 +1493,12 @@
             mode: mode, opp: opp, players: players, breaker: breaker,
             state: state || Object.assign(S.newGame(mode, (Math.random() * 4294967296) >>> 0), {}),
             phase: 'wait', angle: 0, spin: [0, 0], call: null, manual: { ball: false, pocket: false },
-            place: null, run: null, sinking: [], pull: 0, anim: null, timer: null, sayTimer: null, report: null
+            place: null, run: null, sinking: [], pull: 0, anim: null, timer: null, sayTimer: null, report: null,
+            guides: settings.guides || 'cue', shotsBy: [0, 0], awarded: false
         };
         if (!state) G.state.turn = breaker;
         els.setup.hidden = true;
+        els.shop.hidden = true;
         els.game.hidden = false;
         els.over.hidden = true;
         els.modeName.textContent = S.MODES[mode].name;
@@ -1495,13 +1521,15 @@
         G = null;
         els.game.hidden = true;
         els.setup.hidden = false;
+        els.shop.hidden = false;
+        renderShop();
         offerResume();
     }
 
     function save() {
         if (!G || G.phase === 'over' || G.state.over) return;
         try {
-            localStorage.setItem(SAVE, JSON.stringify({ v: S.VERSION, mode: G.mode, opp: G.opp, players: G.players, breaker: G.breaker, state: G.state }));
+            localStorage.setItem(SAVE, JSON.stringify({ v: S.VERSION, mode: G.mode, opp: G.opp, players: G.players, breaker: G.breaker, state: G.state, guides: G.guides, shotsBy: G.shotsBy }));
         } catch (e) { /* fine */ }
     }
     function clearSave() { try { localStorage.removeItem(SAVE); } catch (e) { /* fine */ } }
@@ -1525,7 +1553,9 @@
     els.resume.addEventListener('click', function () {
         const s = loadSave();
         if (!s) { offerResume(); return; }
+        settings.guides = s.guides || 'cue';
         begin(s.mode, s.opp, s.players, s.breaker, s.state);
+        if (s.shotsBy) G.shotsBy = s.shotsBy;
     });
     els.again.addEventListener('click', function () {
         if (!G) return;
@@ -1535,17 +1565,127 @@
     els.opps.addEventListener('change', syncSetup);
 
     /* ======================================================
+       The Cue Shop
+       ====================================================== */
+
+    function statBar(label, n) {
+        const row = document.createElement('span');
+        row.className = 'Stat';
+        const l = document.createElement('span');
+        l.className = 'Stat-name';
+        l.textContent = label;
+        const pips = document.createElement('span');
+        pips.className = 'Stat-pips';
+        pips.setAttribute('aria-label', label + ' ' + n + ' of 5');
+        for (let i = 1; i <= 5; i++) {
+            const p = document.createElement('span');
+            if (i <= n) p.className = 'is-on';
+            pips.appendChild(p);
+        }
+        row.append(l, pips);
+        return row;
+    }
+
+    function paintPreview(canvas, id) {
+        const dpr = Math.min(2, window.devicePixelRatio || 1);
+        const w = canvas.clientWidth || 260, h = canvas.clientHeight || 44;
+        canvas.width = Math.round(w * dpr);
+        canvas.height = Math.round(h * dpr);
+        const c = canvas.getContext('2d');
+        c.clearRect(0, 0, canvas.width, canvas.height);
+        const len = canvas.width * 0.8;
+        /* tip on the right, butt on the left */
+        Cues.drawCue(c, id, canvas.width * 0.9, canvas.height / 2, Math.PI, len, 2.6 * dpr, 6 * dpr, { px: dpr });
+    }
+
+    function renderShop() {
+        if (!els.cues) return;
+        const L = Cues.load();
+        els.pearls.textContent = L.pearls.toLocaleString();
+        els.cues.textContent = '';
+        Cues.CUES.forEach(function (cue) {
+            const owned = Cues.owns(cue.id);
+            const on = L.equipped === cue.id;
+            const card = document.createElement('div');
+            card.className = 'Cue-card' + (on ? ' is-on' : '') + (owned ? ' is-owned' : '');
+            card.style.setProperty('--rarity', Cues.RARITY[cue.rarity].color);
+            card.style.setProperty('--pip', Cues.RARITY[cue.rarity].pip);
+            const head = document.createElement('div');
+            head.className = 'Cue-head';
+            const name = document.createElement('span');
+            name.className = 'Cue-name';
+            name.textContent = cue.name;
+            const tag = document.createElement('span');
+            tag.className = 'Cue-rarity';
+            tag.textContent = Cues.RARITY[cue.rarity].name;
+            head.append(name, tag);
+            const art = document.createElement('canvas');
+            art.className = 'Cue-art';
+            art.setAttribute('aria-hidden', 'true');
+            const blurb = document.createElement('p');
+            blurb.className = 'Cue-blurb';
+            blurb.textContent = cue.blurb;
+            const stats = document.createElement('div');
+            stats.className = 'Cue-stats';
+            stats.append(statBar('Aim', cue.stats[0]), statBar('Power', cue.stats[1]), statBar('Spin', cue.stats[2]));
+            const btn = document.createElement('button');
+            btn.type = 'button';
+            btn.className = 'Btn Cue-btn' + (!owned && !cue.holder && L.pearls >= cue.price ? ' Btn--primary' : '');
+            if (on) { btn.textContent = 'In your hand'; btn.disabled = true; }
+            else if (owned) { btn.textContent = 'Use this cue'; btn.addEventListener('click', function () { Cues.equip(cue.id); renderShop(); }); }
+            else if (cue.holder) { btn.textContent = 'Holders only'; btn.disabled = true; }
+            else {
+                btn.textContent = 'Buy · ' + cue.price.toLocaleString() + ' Pearls';
+                btn.disabled = L.pearls < cue.price;
+                btn.addEventListener('click', function () {
+                    try { Cues.buy(cue.id); Sound.play('win'); } catch (e) { /* the button was disabled anyway */ }
+                    renderShop();
+                });
+            }
+            card.append(head, art, blurb, stats, btn);
+            els.cues.appendChild(card);
+            paintPreview(art, cue.id);
+        });
+        if (els.legendWallet && !els.legendWallet.value && L.wallet) els.legendWallet.value = L.wallet;
+    }
+
+    async function checkLegend() {
+        els.legendGo.disabled = true;
+        els.legendStatus.textContent = 'Looking up the OG whales in that wallet…';
+        try {
+            const r = await Cues.checkWallet(els.legendWallet.value);
+            const got = [];
+            if (r.staff.length) got.push('the Staff (whale #' + r.staff.join(', #') + ')');
+            if (r.trident.length) got.push('the Trident (whale #' + r.trident.join(', #') + ')');
+            els.legendStatus.textContent = got.length
+                ? 'Yours: ' + got.join(' and ') + '. Pick it below.'
+                : (r.unread ? 'Couldn’t read ' + r.unread + ' of the ' + r.count + ' whales’ traits just now — try again in a minute.'
+                            : r.count + ' OG whale' + (r.count === 1 ? '' : 's') + ' in that wallet, but none holds a Staff or a Trident.');
+        } catch (e) {
+            els.legendStatus.textContent = e.message;
+        }
+        els.legendGo.disabled = false;
+        renderShop();
+    }
+    if (els.legendGo) els.legendGo.addEventListener('click', checkLegend);
+
+    /* ======================================================
        Start up
        ====================================================== */
 
     buildOpps();
     const mi = document.querySelector('input[name="mode"][value="' + settings.mode + '"]');
     if (mi) mi.checked = true;
+    const gi = document.querySelector('input[name="guides"][value="' + (settings.guides || 'cue') + '"]');
+    if (gi) gi.checked = true;
     els.name1.value = settings.name1 || '';
     els.name2.value = settings.name2 || '';
     syncSetup();
     offerResume();
     showMute();
+    renderShop();
+    /* a wallet pasted in the Lounge or Whale 2048: check it for the Legendary cues */
+    Cues.autoCheck(function () { renderShop(); });
 
     crest = new Image();
     crest.onload = function () { if (view.layer) { buildLayer(); dirty = true; } };

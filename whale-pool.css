@@ -451,6 +451,133 @@ main.Pool { max-width: 1240px; }
 html.pool-full, html.pool-full body { overflow: hidden; }
 
 /* ------------------------------------------------------------
+   Aim-line choice
+   ------------------------------------------------------------ */
+
+.Guides { display: flex; flex-wrap: wrap; gap: 0.5rem; }
+.Guide { position: relative; cursor: pointer; }
+.Guide input { position: absolute; opacity: 0; pointer-events: none; }
+.Guide span {
+    display: grid;
+    padding: 0.5rem 0.9rem;
+    font-weight: 900;
+    font-size: 0.85rem;
+    line-height: 1.2;
+    background: var(--bg);
+    border: var(--line-thin) solid var(--ink);
+    border-radius: var(--radius-sm);
+    box-shadow: var(--pop-sm);
+}
+.Guide small { font-size: 0.7rem; font-weight: 700; color: var(--ink-3); }
+.Guide input:checked + span { background: var(--bg-turquoise); }
+.Guide input:focus-visible + span { outline: 3px solid var(--gold); outline-offset: 3px; }
+
+/* ------------------------------------------------------------
+   The Cue Shop
+   ------------------------------------------------------------ */
+
+.Shop {
+    display: grid;
+    gap: 1rem;
+    margin-top: 1.5rem;
+    padding: clamp(1.1rem, 3vw, 1.8rem);
+    background: var(--paper);
+    border: var(--line) solid var(--ink);
+    border-radius: var(--radius);
+    box-shadow: var(--pop);
+}
+.Shop[hidden] { display: none; }
+.Shop-head { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 0.75rem; }
+.Shop-head .Pool-h2 { margin: 0; }
+.Pearls {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.45rem;
+    padding: 0.35rem 0.9rem 0.35rem 0.45rem;
+    font-weight: 900;
+    background: var(--bg-lightblue);
+    border: var(--line-thin) solid var(--ink);
+    border-radius: 999px;
+    box-shadow: var(--pop-sm);
+}
+.Pearls strong { font-family: var(--font-display); font-size: 1.25rem; font-weight: 400; }
+.Pearl {
+    width: 1.3rem;
+    height: 1.3rem;
+    background: radial-gradient(circle at 35% 30%, #fff 0 22%, #f3eef8 23% 55%, #d9cfe6 56% 100%);
+    border: 2px solid var(--ink);
+    border-radius: 50%;
+}
+.Shop-lede { font-size: 0.88rem; font-weight: 700; color: var(--ink-2); max-width: 60rem; }
+
+.Cues { display: grid; gap: 0.8rem; grid-template-columns: repeat(auto-fill, minmax(230px, 1fr)); }
+.Cue-card {
+    display: grid;
+    gap: 0.45rem;
+    padding: 0.8rem 0.85rem 0.9rem;
+    background: var(--bg);
+    border: var(--line-thin) solid var(--ink);
+    border-top: 0.45rem solid var(--rarity);
+    border-radius: var(--radius-sm);
+    box-shadow: var(--pop-sm);
+}
+.Cue-card.is-on { background: #fff6dd; box-shadow: 0 0 0 3px var(--gold), var(--pop-sm); }
+.Cue-head { display: flex; align-items: center; justify-content: space-between; gap: 0.5rem; }
+.Cue-name { font-family: var(--font-display); font-size: 1.15rem; line-height: 1.1; }
+.Cue-rarity {
+    padding: 0.05rem 0.5rem;
+    font-size: 0.6rem;
+    font-weight: 900;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    background: var(--rarity);
+    border: 2px solid var(--ink);
+    border-radius: 999px;
+}
+.Cue-art { display: block; width: 100%; height: 44px; }
+.Cue-blurb { font-size: 0.78rem; font-weight: 700; color: var(--ink-2); line-height: 1.35; min-height: 2.1em; }
+.Cue-stats { display: grid; gap: 0.2rem; }
+.Stat { display: flex; align-items: center; gap: 0.5rem; font-size: 0.68rem; font-weight: 900; letter-spacing: 0.04em; text-transform: uppercase; }
+.Stat-name { width: 3.4rem; color: var(--ink-3); }
+.Stat-pips { display: flex; gap: 3px; }
+.Stat-pips span { width: 0.85rem; height: 0.5rem; background: var(--paper-2); border: 1.5px solid var(--ink); border-radius: 2px; }
+.Stat-pips span.is-on { background: var(--pip, var(--rarity)); }
+.Cue-btn { width: 100%; margin-top: 0.2rem; }
+
+.Legend-check {
+    display: grid;
+    gap: 0.5rem;
+    padding: 0.9rem 1rem 1rem;
+    background: #fff6dd;
+    border: var(--line-thin) solid var(--ink);
+    border-radius: var(--radius-sm);
+}
+.Legend-check h3 { font-family: var(--font-display); font-size: 1.2rem; font-weight: 400; }
+.Legend-check p { font-size: 0.85rem; font-weight: 700; color: var(--ink-2); }
+.Legend-status:empty { display: none; }
+.Legend-status { color: var(--ink) !important; }
+
+.Over-pearls {
+    padding: 0.45rem 0.7rem;
+    font-size: 0.82rem;
+    font-weight: 900;
+    background: var(--bg-lightblue);
+    border: var(--line-thin) solid var(--ink);
+    border-radius: var(--radius-sm);
+}
+.Over-pearls[hidden] { display: none; }
+
+.Spin-reach {
+    position: absolute;
+    left: 50%;
+    top: 50%;
+    border: 2px dashed rgba(29, 27, 32, 0.35);
+    border-radius: 50%;
+    transform: translate(-50%, -50%);
+    pointer-events: none;
+}
+
+/* ------------------------------------------------------------
    Rules
    ------------------------------------------------------------ */
 

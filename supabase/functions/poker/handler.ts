@@ -3,6 +3,9 @@
 //
 // One endpoint, POST { action, ... }:
 //   wallet  a wallet's OG whales, from OpenSea (the key stays here)
+//   legend  which of a wallet's OG whales hold a Staff or a Trident
+//           (Whale Pool's Legendary cues): its whales from OpenSea, each
+//           whale's traits from the collection's IPFS metadata, cached
 //   create  host a table: settings + your name and avatar -> code, seat key
 //   join    take a seat at a table that hasn't started
 //   leave   give your seat back (before the start only)
@@ -68,12 +71,17 @@ const ALT_PFPS = 6;                 // images/pfp/whale-0.svg .. whale-5.svg
 const WALLET_TTL_MS = 5 * 60 * 1000;
 const IMAGE_TTL_MS = 7 * 24 * 60 * 60 * 1000;
 const WALLET_PAGES = 5;             // 200 a page: plenty for any holder
+const TRAITS_TTL_MS = 3650 * 24 * 60 * 60 * 1000;   // IPFS metadata never changes
+/* the OG collection's metadata folder (tokenURI ipfs://<CID>/<id>), and gateways to read it */
+const META_CID = 'QmdAxHGSCS2NftXn52WbumMn2ENMKXcmk55QgXbmWr86KL';
+const META_GATEWAYS = ['https://ipfs.io/ipfs/', 'https://dweb.link/ipfs/', 'https://gateway.pinata.cloud/ipfs/', 'https://ipfs.filebase.io/ipfs/'];
 /* OpenSea's own image servers — the only hosts a whale picture may come from */
 const IMAGE_HOSTS = /^https:\/\/([a-z0-9-]+\.)*(seadn\.io|opensea\.io|openseauserdata\.com)\//;
 
-export function createHandler(db: Any, deps: { now?: () => number; opensea?: (path: string) => Promise<Any> } = {}) {
+export function createHandler(db: Any, deps: { now?: () => number; opensea?: (path: string) => Promise<Any>; meta?: (id: number) => Promise<Any> } = {}) {
     const now = deps.now ?? (() => Date.now());
     const opensea = deps.opensea ?? openseaGet;
+    const meta = deps.meta ?? ipfsMeta;
 
     const CORS = {
         'Access-Control-Allow-Origin': '*',
@@ -223,6 +231,41 @@ export function createHandler(db: Any, deps: { now?: () => number; opensea?: (pa
             await Promise.all(pics.slice(i, i + 25).map((w) => cachePut('img:og:' + w.id, { image: w.image })));
         }
         return out;
+    }
+
+    /* ---------- Whale Pool: the Legendary cues ---------- */
+
+    /* a whale's traits never change, so they're kept for a long time */
+    async function ogTraits(id: number): Promise<Record<string, string> | null> {
+        const k = 'traits:og:' + id;
+        const hit = await cacheGet(k, TRAITS_TTL_MS);
+        if (hit) return hit;
+        let j: Any = null;
+        try { j = await meta(id); } catch { j = null; }
+        if (!j || !Array.isArray(j.attributes)) return null;
+        const t: Record<string, string> = {};
+        for (const a of j.attributes) t[String(a.trait_type)] = String(a.value);
+        await cachePut(k, t);
+        return t;
+    }
+
+    async function legend(b: Any) {
+        const w = await wallet(b);
+        const ids: number[] = (w.whales || []).map((x: Any) => x.id).slice(0, 1000);
+        const staff: number[] = [];
+        const trident: number[] = [];
+        let unread = 0;
+        for (let i = 0; i < ids.length; i += 20) {
+            const part = ids.slice(i, i + 20);
+            const got = await Promise.all(part.map(ogTraits));
+            part.forEach((id, j) => {
+                const t = got[j];
+                if (!t) { unread++; return; }
+                if (t.Fin === 'Staff') staff.push(id);
+                if (t.Fin === 'Trident') trident.push(id);
+            });
+        }
+        return { count: ids.length, staff, trident, unread };
     }
 
     function cleanSettings(b: Any) {
@@ -910,7 +953,7 @@ export function createHandler(db: Any, deps: { now?: () => number; opensea?: (pa
         };
     }
 
-    const ACTIONS: Record<string, (b: Any) => Promise<unknown>> = { wallet, create, join, leave, start, act, back, tick, me, state };
+    const ACTIONS: Record<string, (b: Any) => Promise<unknown>> = { wallet, legend, create, join, leave, start, act, back, tick, me, state };
 
     return async function handle(req: Request): Promise<Response> {
         if (req.method === 'OPTIONS') return new Response('ok', { headers: CORS });
@@ -931,6 +974,18 @@ export function createHandler(db: Any, deps: { now?: () => number; opensea?: (pa
             return reply(500, { error: 'something went wrong' });
         }
     };
+}
+
+/* one OG whale's metadata from IPFS: the first gateway that answers */
+async function ipfsMeta(id: number): Promise<Any> {
+    for (const g of META_GATEWAYS) {
+        try {
+            const res = await fetch(g + META_CID + '/' + id, { signal: AbortSignal.timeout(6000) });
+            if (!res.ok) continue;
+            return await res.json();
+        } catch { /* the next gateway */ }
+    }
+    return null;
 }
 
 /* OpenSea's API, with the key from the function's secrets. The key never

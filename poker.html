@@ -148,6 +148,7 @@
                             <option value="4">4</option>
                             <option value="5">5</option>
                             <option value="6" selected>6 &mdash; full table</option>
+                            <option value="tournament">Tournament &mdash; up to 20 players</option>
                         </select>
                     </label>
                     <fieldset class="Field Speeds">
@@ -187,6 +188,11 @@
                 <button type="button" class="Btn" id="roomCopy">Copy link</button>
             </div>
             <p class="Room-status" id="roomStatus" aria-live="polite"></p>
+            <div class="Tourney" id="tourney" hidden>
+                <p class="Tourney-line" id="tourneyLine" aria-live="polite"></p>
+                <div class="Tourney-tables" id="tourneyTables" role="group" aria-label="Watch a table"></div>
+                <ol class="Tourney-list" id="tourneyList" aria-label="Players"></ol>
+            </div>
             <div class="Room-actions">
                 <button type="button" class="Btn Btn--primary" id="roomStart" hidden>Start the game</button>
                 <button type="button" class="Btn" id="roomBack" hidden>I&rsquo;m back</button>

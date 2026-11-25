@@ -12,6 +12,12 @@
      - sends your moves, and pings `tick` when it sees a deadline
        pass, so time-outs happen even if nobody clicks.
 
+   Tournaments (up to 20 players, one link) come from the same server
+   as one public row holding every table. This page shows your own
+   table (or, once you're out, any table you pick) through the same
+   table drawing as a normal game, plus the sign-up list, standings
+   and "you've been moved" notices.
+
    Everything a player typed (names) goes on screen as plain text.
    Avatars: this page sends only which one (an OG whale's number or one
    of our pfps — see poker-avatar.js); the server finds the picture and
@@ -44,7 +50,10 @@
         room: $('room'), roomCode: $('roomCode'), roomLink: $('roomLink'), roomCopy: $('roomCopy'),
         roomStatus: $('roomStatus'), roomStart: $('roomStart'), roomBack: $('roomBack'), roomLeave: $('roomLeave'),
         over: $('over'), overTitle: $('overTitle'), overText: $('overText'),
-        again: $('again'), change: $('change'), overLobby: $('overLobby')
+        again: $('again'), change: $('change'), overLobby: $('overLobby'),
+        tourney: $('tourney'), tourneyLine: $('tourneyLine'), tourneyTables: $('tourneyTables'),
+        tourneyList: $('tourneyList'), tableBox: $('table'),
+        roomLabel: document.querySelector('.Room-code .Field-label')
     };
 
     const T = window.PokerTable.get({
@@ -73,6 +82,14 @@
     let clockTimer = null;
     let ticking = false;
     let present = null;      /* seats with a browser open (Realtime presence) */
+    let tour = null;         /* the latest tournament (all its tables), or null at a normal table */
+    let myEntrant = -1;      /* your number in the tournament */
+    let viewTable = -1;      /* which of its tables is on screen */
+    let pickedTable = -1;    /* the table you chose to watch once you're out */
+    let notice = null;       /* { text, until }: "you've been moved" */
+    let outNoted = false;
+    let quietDue = 0;        /* a deadline a tick already found nothing to do for */
+    let quietUntil = 0;
 
     /* ---------------------------------------------------------
        Small helpers
@@ -94,7 +111,17 @@
 
     function cleanCode(raw) { return String(raw || '').toUpperCase().replace(/[^A-Z0-9]/g, '').slice(0, 6); }
 
+    /* a crowded table (a tournament at the start) can briefly answer "busy": try again a few times */
     async function api(action, body) {
+        for (let attempt = 0; ; attempt++) {
+            try { return await callApi(action, body); } catch (e) {
+                if (!(e.status === 409 && /busy/.test(e.message)) || attempt >= 3) throw e;
+                await new Promise(function (r) { setTimeout(r, 250 + Math.random() * 500 * (attempt + 1)); });
+            }
+        }
+    }
+
+    async function callApi(action, body) {
         if (!API) throw new Error('multiplayer isn’t set up on this copy of the site');
         let res;
         try {
@@ -136,9 +163,9 @@
         if (p && p.name) els.name.value = p.name;
     }
 
-    function remember(c, k, seat) {
+    function remember(c, k, seat, entrant) {
         const all = read(SEATS_STORE, {});
-        all[c] = { key: k, seat: seat, at: Date.now() };
+        all[c] = { key: k, seat: seat, entrant: entrant === undefined ? -1 : entrant, at: Date.now() };
         /* keep the last few tables only */
         Object.keys(all).sort(function (a, b) { return all[b].at - all[a].at; }).slice(10).forEach(function (old) { delete all[old]; });
         write(SEATS_STORE, all);
@@ -164,12 +191,12 @@
             const r = await api('create', {
                 name: me.name, avatar: me.avatar,
                 chips: Number(els.hostChips.value),
-                seats: Number(els.hostSeats.value),
+                seats: els.hostSeats.value === 'tournament' ? 'tournament' : Number(els.hostSeats.value),
                 speed: (document.querySelector('input[name="hostSpeed"]:checked') || {}).value || 'regular'
             });
-            remember(r.code, r.key, r.seat);
+            remember(r.code, r.key, r.seat, r.entrant);
             say('');
-            enter(r.code, r.key, r.seat, r.table);
+            enter(r.code, r.key, r.seat, r.table, r.entrant);
         } catch (e) {
             say(e.message, 'error');
         } finally {
@@ -186,9 +213,9 @@
         say('Finding a seat…');
         try {
             const r = await api('join', { code: c, name: me.name, avatar: me.avatar });
-            remember(r.code, r.key, r.seat);
+            remember(r.code, r.key, r.seat, r.entrant);
             say('');
-            enter(r.code, r.key, r.seat, r.table);
+            enter(r.code, r.key, r.seat, r.table, r.entrant);
         } catch (e) {
             /* a game that has started can still be watched */
             if (e.status === 409 && /started/.test(e.message)) {
@@ -222,7 +249,7 @@
                 const m = await api('me', { code: c, key: mine.key });
                 const s = await api('state', { code: c });
                 say('');
-                enter(c, mine.key, m.seat, s.table);
+                enter(c, mine.key, m.seat, s.table, m.entrant);
                 return;
             } catch (e) {
                 if (e.status === 401 || e.status === 404) forget(c);
@@ -232,7 +259,7 @@
         try {
             const s = await api('state', { code: c });
             if (s.table.status === 'waiting') {
-                say('Table ' + c + ' — pick a name and a whale, then press Take a seat.');
+                say((s.table.kind === 'tournament' ? 'Tournament ' : 'Table ') + c + ' — pick a name and a whale, then press Take a seat.');
                 els.name.focus();
             } else {
                 watch(c);
@@ -278,8 +305,18 @@
        At the table
        --------------------------------------------------------- */
 
-    function enter(c, k, seat, table) {
+    function enter(c, k, seat, table, entrant) {
         stop();
+        tour = null;
+        myEntrant = entrant === undefined || entrant === null ? -1 : entrant;
+        viewTable = -1;
+        pickedTable = -1;
+        notice = null;
+        outNoted = false;
+        els.tourney.hidden = true;
+        els.tableBox.removeAttribute('data-felt');
+        if (els.roomLabel) els.roomLabel.textContent = 'Table';
+        els.roomStart.textContent = 'Start the game';
         document.dispatchEvent(new CustomEvent('lounge:mode', { detail: 'online' }));
         active = true;
         code = c;
@@ -346,14 +383,14 @@
             try {
                 const client = window.supabase.createClient(CONFIG.supabaseUrl, CONFIG.anonKey, { auth: { persistSession: false } });
                 const myCode = code;
-                channel = client.channel('lounge-' + myCode, { config: { presence: { key: String(mySeat >= 0 ? mySeat : 'watch-' + Math.random()) } } })
+                channel = client.channel('lounge-' + myCode, { config: { presence: { key: myEntrant >= 0 ? 'e' + myEntrant : String(mySeat >= 0 ? mySeat : 'watch-' + Math.random()) } } })
                     .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'pk_public', filter: 'code=eq.' + myCode }, function (msg) {
                         if (active && code === myCode && msg.new && msg.new.data) onPublic(msg.new.data);
                     })
                     .on('presence', { event: 'sync' }, function () {
                         const state = channel.presenceState();
                         present = {};
-                        Object.keys(state).forEach(function (k) { if (/^\d$/.test(k)) present[k] = true; });
+                        Object.keys(state).forEach(function (k) { if (/^(\d|e\d+)$/.test(k)) present[k] = true; });
                         if (pub) draw();
                     })
                     .subscribe(function (status) {
@@ -394,6 +431,7 @@
     function clock() {
         if (!active || !pub) return;
         draw(true);
+        if (tour) { tourClock(); return; }
         if (pub.status !== 'playing' || !pub.table) return;
         const h = pub.table.hand;
         let due = 0;
@@ -410,11 +448,37 @@
             .then(function () { setTimeout(function () { ticking = false; }, 600); });
     }
 
+    function tourClock() {
+        if (tour.status !== 'playing' || ticking) return;
+        let due = 0;
+        tour.tables.forEach(function (Tb) {
+            if (Tb.closed || Tb.idle || !Tb.table) return;
+            const h = Tb.table.hand;
+            let d = 0;
+            if (h && !h.result) d = Tb.deadline;
+            else if (h && h.result) d = Tb.resultAt + (h.result.showdown ? SHOWDOWN_MS : RESULT_MS);
+            if (d && (!due || d < due)) due = d;
+        });
+        if (!due) return;
+        if (due === quietDue && Date.now() < quietUntil) return;
+        /* each player waits a little differently, so twenty browsers don't all call at once */
+        const spread = 250 + ((myEntrant >= 0 ? myEntrant : 21) % 24) * 110;
+        if (serverNow() < due + spread) return;
+        ticking = true;
+        api('tick', { code: code })
+            .then(function (r) {
+                if (!r.changed) { quietDue = due; quietUntil = Date.now() + 4000; }
+                onPublic(r.table);
+            })
+            .catch(function () { /* the next look will try again */ })
+            .then(function () { setTimeout(function () { ticking = false; }, 600); });
+    }
+
     async function fetchMyCards(handNo) {
         if (mySeat < 0 || !key) return;
         try {
             const m = await api('me', { code: code, key: key });
-            if (m.hand === handNo) { myCards = m.cards; myHand = handNo; draw(); }
+            if (m.hand === handNo && (!tour || m.table === viewTable + 1)) { myCards = m.cards; myHand = handNo; draw(); }
         } catch (e) {
             if (e.status === 401) { T.status('This browser lost its seat key — you can still watch.'); mySeat = -1; key = null; }
         }
@@ -424,7 +488,7 @@
         if (!pub || !pub.table || !pub.table.hand) return;
         T.status('Sending…');
         try {
-            const r = await api('act', Object.assign({ code: code, key: key, hand: pub.table.hand.no }, action));
+            const r = await api('act', Object.assign({ code: code, key: key, hand: pub.table.hand.no, table: tour ? viewTable + 1 : undefined }, action));
             onPublic(r.table);
         } catch (e) {
             T.status(e.message);
@@ -465,10 +529,217 @@
         if (p.version < version) return;
         const fresh = p.version > version;
         version = p.version;
-        pub = p;
         clockOffset = p.now - Date.now();
-        seatPlayers(p);
+        if (p.kind === 'tournament') { tour = p; pub = tourView(p); }
+        else { tour = null; pub = p; }
+        seatPlayers(pub);
         if (fresh) draw();
+    }
+
+    /* ---------------------------------------------------------
+       Tournaments
+       --------------------------------------------------------- */
+
+    /* the tournament, seen as one table: yours, or the one you watch */
+    function tourView(p) {
+        const me = myEntrant >= 0 ? p.entrants[myEntrant] : null;
+        let ti = -1;
+        if (me && !me.place && me.table >= 0) ti = me.table;
+        else if (pickedTable >= 0 && p.tables[pickedTable] && !p.tables[pickedTable].closed) ti = pickedTable;
+        else {
+            /* the busiest open table */
+            let best = -1;
+            p.tables.forEach(function (Tb, i) {
+                if (Tb.closed || !Tb.table) return;
+                const n = Tb.table.seats.filter(Boolean).length;
+                if (best < 0 || n > p.tables[best].table.seats.filter(Boolean).length) best = i;
+            });
+            ti = best;
+        }
+        if (ti !== viewTable) {
+            if (viewTable >= 0 && ti >= 0 && me && !me.place) {
+                notice = { text: p.tables[ti].final ? 'You’re at the final table!' : 'You’ve been moved to Table ' + (ti + 1) + '.', until: Date.now() + 9000 };
+                T.sound('turn', 0.5);
+            }
+            viewTable = ti;
+            rosterKey = '';
+            handShown = 0;
+            logShown = 0;
+            resultShown = 0;
+            myCards = null;
+            myHand = 0;
+            T.clearLog();
+            T.hush(1500);
+        }
+        mySeat = me && !me.place && !me.moving && me.table === ti ? me.seat : -1;
+        const Tb = ti >= 0 ? p.tables[ti] : null;
+        const players = [0, 1, 2, 3, 4, 5].map(function (s) {
+            const seat = Tb && Tb.table && Tb.table.seats[s];
+            if (!seat) return null;
+            const ei = Number(String(seat.id).slice(1));
+            const e = p.entrants[ei];
+            return e ? { name: e.name, avatar: e.avatar, image: e.image, whale: e.whale, sittingOut: e.sittingOut, pkey: 'e' + ei } : null;
+        });
+        return {
+            code: p.code, version: p.version, now: p.now, status: p.status,
+            settings: { chips: p.settings.chips, speed: p.settings.speed, seats: 6 },
+            host: -1, players: players,
+            startedAt: p.startedAt, deadline: Tb ? Tb.deadline : 0, resultAt: Tb ? Tb.resultAt : 0,
+            levelMs: p.levelMs, turnMs: p.turnMs, table: Tb ? withPlaces(p, Tb.table) : null, tour: true
+        };
+    }
+
+    /* a busted seat shows its place in the whole tournament, not just at this table */
+    function withPlaces(p, table) {
+        if (!table) return table;
+        const v = JSON.parse(JSON.stringify(table));
+        v.seats.forEach(function (seat) {
+            if (!seat) return;
+            const e = p.entrants[Number(String(seat.id).slice(1))];
+            if (e && e.place) seat.place = e.place;
+        });
+        return v;
+    }
+
+    function entrantPic(e) {
+        const w = avatarOf(e);
+        return w.img;
+    }
+
+    function rosterItem(e, i, extra, out) {
+        const li = document.createElement('li');
+        if (i === myEntrant) li.className = 'is-me';
+        if (out) li.classList.add('is-out');
+        const img = document.createElement('img');
+        img.src = entrantPic(e);
+        img.alt = '';
+        const name = document.createElement('span');
+        name.className = 'Tn-name';
+        name.textContent = e.name + (i === tour.host && tour.status === 'waiting' ? ' (host)' : '');
+        li.append(img, name);
+        if (extra) {
+            const c = document.createElement('span');
+            c.className = 'Tn-chips';
+            c.textContent = extra;
+            li.appendChild(c);
+        }
+        return li;
+    }
+
+    /* waiting for the start: who's signed up */
+    function drawTourLobby() {
+        const list = tour.entrants.map(function (e, i) { return e ? i : -1; }).filter(function (i) { return i >= 0; });
+        const amHost = myEntrant >= 0 && tour.host === myEntrant;
+        if (els.roomLabel) els.roomLabel.textContent = 'Tournament';
+        T.render({ seats: [null, null, null, null, null, null], button: -1, hand: null }, {});
+        T.hideControls();
+        els.roomStart.hidden = !amHost;
+        els.roomStart.disabled = list.length < 2;
+        els.roomStart.textContent = 'Start the tournament';
+        els.roomBack.hidden = true;
+        els.roomLeave.hidden = myEntrant < 0;
+        els.roomStatus.textContent = tour.status === 'closed' ? 'This tournament was closed.'
+            : list.length + ' of ' + tour.settings.max + ' signed up · ' +
+              (amHost ? (list.length < 2 ? 'waiting for at least one more player' : 'start whenever everyone’s in')
+                      : 'waiting for the host to start');
+        T.status(myEntrant < 0 ? 'Watching' : 'You’re in — waiting for the start');
+        els.tourney.hidden = false;
+        els.tourneyLine.textContent = 'Tournament · up to ' + tour.settings.max + ' players at tables of 6 · ' +
+            fmt(tour.settings.chips) + ' chips each · last whale standing wins';
+        els.tourneyTables.textContent = '';
+        els.tourneyList.textContent = '';
+        list.forEach(function (i) { els.tourneyList.appendChild(rosterItem(tour.entrants[i], i, '', false)); });
+    }
+
+    /* playing (or over): where you are, the standings, the other tables */
+    function drawTour(tick) {
+        els.tourney.hidden = false;
+        if (els.roomLabel) els.roomLabel.textContent = 'Tournament';
+        const all = tour.entrants.map(function (e, i) { return e ? i : -1; }).filter(function (i) { return i >= 0; });
+        const alive = all.filter(function (i) { return !tour.entrants[i].place || (tour.status === 'finished' && tour.entrants[i].place === 1); });
+        const me = myEntrant >= 0 ? tour.entrants[myEntrant] : null;
+        const Tb = viewTable >= 0 ? tour.tables[viewTable] : null;
+        const ranked = alive.slice().sort(function (a, b) { return tour.entrants[b].stack - tour.entrants[a].stack; });
+        let line = (Tb ? (Tb.final ? 'Final table' : 'Table ' + (viewTable + 1)) + ' · ' : '') +
+            (tour.status === 'finished' ? 'tournament over' : alive.length + ' of ' + all.length + ' left');
+        if (me && me.place && tour.status === 'playing') line += ' · you finished ' + ordinal(me.place) + ', now watching';
+        else if (me && me.moving) line += ' · you’ll sit in at Table ' + (me.table + 1) + ' when its hand ends';
+        else if (me && !me.place && tour.status === 'playing') {
+            /* your rank by chips; level stacks (like at the start) don't get a rank */
+            const mine = me.stack;
+            const above = alive.filter(function (i) { return tour.entrants[i].stack > mine; }).length;
+            const level = alive.every(function (i) { return tour.entrants[i].stack === mine; });
+            if (!level) line += ' · you’re ' + (alive.some(function (i) { return i !== myEntrant && tour.entrants[i].stack === mine; }) ? 'joint ' : '') + ordinal(above + 1) + ' in chips';
+        }
+        if (notice && Date.now() < notice.until) line = notice.text + ' ' + line;
+        els.tourneyLine.textContent = line;
+        if (tour.status === 'playing') els.roomStatus.textContent = alive.length + ' of ' + all.length + ' whales still in' + (me && me.sittingOut && !me.place ? ' · you’re sitting out' : '');
+        if (tick) return;
+
+        if (me && me.place && tour.status === 'playing' && !outNoted) {
+            outNoted = true;
+            T.sound('lose', 0.4);
+            T.status('You’re out in ' + ordinal(me.place) + ' place — watch the rest from any table');
+        }
+
+        /* felt colour: one per table, gold for the final */
+        if (Tb) els.tableBox.setAttribute('data-felt', Tb.final ? 'final' : String((viewTable % 4) + 1));
+
+        /* other tables: only to watch, once you're not playing */
+        els.tourneyTables.textContent = '';
+        const canPick = !me || !!me.place;
+        const open = tour.tables.filter(function (x) { return !x.closed; });
+        if (canPick && open.length > 1 && tour.status === 'playing') {
+            tour.tables.forEach(function (x, i) {
+                if (x.closed) return;
+                const b = document.createElement('button');
+                b.type = 'button';
+                b.className = 'Btn';
+                b.textContent = 'Table ' + (i + 1) + ' · ' + (x.table ? x.table.seats.filter(Boolean).length : 0);
+                b.setAttribute('aria-pressed', i === viewTable ? 'true' : 'false');
+                b.addEventListener('click', function () {
+                    pickedTable = i;
+                    pub = tourView(tour);
+                    seatPlayers(pub);
+                    draw();
+                });
+                els.tourneyTables.appendChild(b);
+            });
+        }
+
+        /* standings: chips for those still in, places for the rest */
+        els.tourneyList.textContent = '';
+        ranked.forEach(function (i) {
+            const e = tour.entrants[i];
+            els.tourneyList.appendChild(rosterItem(e, i, fmt(e.stack) + (tour.status === 'playing' && e.table >= 0 ? ' · T' + (e.table + 1) : ''), false));
+        });
+        all.filter(function (i) { return alive.indexOf(i) < 0; })
+            .sort(function (a, b) { return tour.entrants[a].place - tour.entrants[b].place; })
+            .forEach(function (i) { els.tourneyList.appendChild(rosterItem(tour.entrants[i], i, ordinal(tour.entrants[i].place), true)); });
+    }
+
+    function tourOver() {
+        if (!els.over.hidden) return;
+        const n = tour.entrants.filter(Boolean).length;
+        const w = tour.winner >= 0 ? tour.entrants[tour.winner] : null;
+        const me = myEntrant >= 0 ? tour.entrants[myEntrant] : null;
+        if (me) T.sound(tour.winner === myEntrant ? 'win' : 'lose', 0.4);
+        if (me && tour.winner === myEntrant) {
+            els.overTitle.textContent = 'You win the tournament!';
+            els.overText.textContent = 'Last whale standing out of ' + n + '.';
+        } else if (me) {
+            els.overTitle.textContent = 'You finished ' + ordinal(me.place) + ' of ' + n;
+            els.overText.textContent = (w ? w.name + ' won the tournament.' : 'The tournament is over.');
+        } else {
+            els.overTitle.textContent = 'Tournament over';
+            els.overText.textContent = (w ? w.name + ' won, ' : '') + 'out of ' + n + ' players.';
+        }
+        els.again.hidden = true;
+        els.change.hidden = true;
+        els.overLobby.hidden = false;
+        els.over.hidden = false;
+        T.status('Tournament over');
+        forget(code);
     }
 
     function lobbyView(p) {
@@ -497,6 +768,17 @@
 
     /* tick: true when called by the clock (only times and the status move) */
     function draw(tick) {
+        if (tour && (tour.status === 'waiting' || tour.status === 'closed')) {
+            blindsText(pub);
+            if (!tick) drawTourLobby();
+            return;
+        }
+        if (tour && !pub.table) { blindsText(pub); drawTour(tick); return; }
+        drawTable(tick);
+        if (tour) drawTour(tick);
+    }
+
+    function drawTable(tick) {
         const p = pub;
         if (!p) return;
         const seated = p.players.filter(Boolean).length;
@@ -529,7 +811,7 @@
             else if (!tick) fetchMyCards(h.no);
         }
 
-        const away = p.players.map(function (x, s) { return !!x && !!present && !present[String(s)] && s !== mySeat; });
+        const away = p.players.map(function (x, s) { return !!x && !!present && !present[x.pkey || String(s)] && s !== mySeat; });
         const sittingOut = p.players.map(function (x) { return !!(x && x.sittingOut); });
         const timer = h && !h.result && p.deadline ? { seat: h.toAct, endsAt: p.deadline - clockOffset, total: p.turnMs } : null;
 
@@ -588,6 +870,7 @@
     function ordinal(n) { return n + (n === 1 ? 'st' : n === 2 ? 'nd' : n === 3 ? 'rd' : 'th'); }
 
     function gameOver(v) {
+        if (tour) { tourOver(); return; }
         if (!els.over.hidden) return;
         const winner = v.winner !== undefined && pub.players[v.winner] ? pub.players[v.winner].name : '';
         const mine = mySeat >= 0 ? v.seats[mySeat] : null;
@@ -617,6 +900,9 @@
     els.tabPractice.addEventListener('click', showPractice);
     els.tabOnline.addEventListener('click', showOnline);
     els.hostGo.addEventListener('click', host);
+    els.hostSeats.addEventListener('change', function () {
+        els.hostGo.textContent = els.hostSeats.value === 'tournament' ? 'Open the tournament' : 'Open the table';
+    });
     els.joinGo.addEventListener('click', function () { join(); });
     els.joinCode.addEventListener('input', function () { els.joinCode.value = cleanCode(els.joinCode.value); });
     els.roomCopy.addEventListener('click', function () {
@@ -635,6 +921,7 @@
     });
     els.roomLeave.addEventListener('click', async function () {
         if (key && pub && pub.status === 'waiting') {
+            /* (a tournament waiting for its start counts too) */
             try { await api('leave', { code: code, key: key }); } catch (e) { /* leaving anyway */ }
             forget(code);
         }

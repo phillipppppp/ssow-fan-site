@@ -50,8 +50,8 @@
         { id: 'kraken',  name: 'Kraken',        rarity: 'epic',      price: 2200, stats: [3, 3, 4], blurb: 'A tentacle wraps the grip. Bends the cue ball.' },
         { id: 'golden',  name: 'Golden Whale',  rarity: 'legendary', price: 5000, stats: [5, 4, 4], blurb: 'Solid gold, for the rarest skin in the pod.' },
         { id: 'wealthy', name: 'Wealthy Whale', rarity: 'legendary', price: 5000, stats: [4, 4, 5], blurb: 'Black lacquer, diamond inlays, a top-hat cap.' },
-        { id: 'staff',   name: 'The Staff',     rarity: 'legendary', price: 0,    stats: [5, 4, 5], holder: 'staff',   blurb: 'Only for holders of a whale with the Staff.' },
-        { id: 'trident', name: 'The Trident',   rarity: 'legendary', price: 0,    stats: [5, 5, 4], holder: 'trident', blurb: 'Only for holders of a whale with the Trident.' }
+        { id: 'staff',   name: 'The Staff',     rarity: 'legendary', price: 0,    stats: [5, 4, 5], holder: 'staff',   blurb: 'The golden scepter: a kraken crown gripping an amethyst. Holders only.' },
+        { id: 'trident', name: 'The Trident',   rarity: 'legendary', price: 0,    stats: [5, 5, 4], holder: 'trident', blurb: 'The golden trident with the squid and its amethyst. Holders only.' }
     ];
     const BY_ID = {};
     CUES.forEach(function (c) { BY_ID[c.id] = c; });
@@ -187,13 +187,133 @@
        c: a 2D context already placed and rotated; w0/w1: half widths at
        tip and butt; px: one screen pixel in these units. */
 
-    function shape(c, len, w0, w1) {
+    function shape(c, len, w0, w1, x0) {
+        x0 = x0 || 0;
+        const wa = w0 + (w1 - w0) * (x0 / len);
         c.beginPath();
-        c.moveTo(0, -w0);
+        c.moveTo(x0, -wa);
         c.lineTo(len, -w1);
         c.lineTo(len, w1);
-        c.lineTo(0, w0);
+        c.lineTo(x0, wa);
         c.closePath();
+    }
+
+    /* The two Legendary heads, drawn after the OG traits: gold, with an
+       amethyst. They sit at the striking end (x 0 is the point that
+       meets the cue ball), in units of s, the butt's half width. */
+    const GOLD = '#f4b740', GOLD_DEEP = '#b9790f', GOLD_SHINE = '#ffe39a';
+
+    function amethyst(c, x, y, r, px) {
+        const g = c.createRadialGradient(x - r * 0.35, y - r * 0.35, r * 0.1, x, y, r);
+        g.addColorStop(0, '#e6c8ff');
+        g.addColorStop(0.45, '#8a4cc9');
+        g.addColorStop(1, '#3a1766');
+        c.fillStyle = g;
+        c.beginPath(); c.arc(x, y, r, 0, Math.PI * 2); c.fill();
+        c.strokeStyle = INK; c.lineWidth = Math.max(1 * px, r * 0.16); c.stroke();
+        c.fillStyle = 'rgba(255, 255, 255, 0.85)';
+        c.beginPath(); c.ellipse(x - r * 0.35, y - r * 0.4, r * 0.28, r * 0.18, -0.6, 0, Math.PI * 2); c.fill();
+    }
+
+    function goldPath(c, s, px) {
+        c.fillStyle = GOLD;
+        c.fill();
+        c.lineJoin = 'round';
+        c.strokeStyle = INK;
+        c.lineWidth = Math.max(1.2 * px, s * 0.16);
+        c.stroke();
+    }
+
+    /* a gold tentacle: ink under gold, ending in a little curl */
+    function tentacle(c, s, px, pts, curl, width) {
+        const draw = function () {
+            c.beginPath();
+            c.moveTo(pts[0][0] * s, pts[0][1] * s);
+            for (let i = 1; i + 2 < pts.length + 1; i += 3) {
+                if (!pts[i + 2]) break;
+                c.bezierCurveTo(pts[i][0] * s, pts[i][1] * s, pts[i + 1][0] * s, pts[i + 1][1] * s, pts[i + 2][0] * s, pts[i + 2][1] * s);
+            }
+            if (curl) c.arc(curl[0] * s, curl[1] * s, curl[2] * s, curl[3], curl[4], curl[5]);
+        };
+        c.lineCap = 'round';
+        c.lineJoin = 'round';
+        draw(); c.strokeStyle = INK; c.lineWidth = width * s + Math.max(2 * px, s * 0.22); c.stroke();
+        draw(); c.strokeStyle = GOLD; c.lineWidth = width * s; c.stroke();
+        draw(); c.strokeStyle = 'rgba(255, 236, 170, 0.7)'; c.lineWidth = width * s * 0.3; c.stroke();
+        c.lineCap = 'butt';
+    }
+
+    function tridentHead(c, s, px) {
+        /* the squid's tentacles, wrapping down the shaft */
+        [-1, 1].forEach(function (k) {
+            tentacle(c, s, px, [[6.6, k * 0.5], [7.4, k * 1.6], [8.4, k * 1.3], [8.9, k * 0.4]], [9.2, k * 0.4, 0.32, Math.PI, k > 0 ? Math.PI * 2.6 : -Math.PI * 0.6, k < 0], 0.34);
+        });
+        /* the two outer prongs: out from the body, forward, barbed tips flaring outward */
+        [-1, 1].forEach(function (k) {
+            c.beginPath();
+            c.moveTo(5.6 * s, k * 0.7 * s);
+            c.bezierCurveTo(5.0 * s, k * 2.6 * s, 3.6 * s, k * 2.75 * s, 2.6 * s, k * 2.7 * s);
+            c.lineTo(1.0 * s, k * 2.7 * s);
+            c.lineTo(0.15 * s, k * 3.35 * s);                 /* barb flaring out */
+            c.lineTo(0.55 * s, k * 2.15 * s);
+            c.lineTo(2.5 * s, k * 2.05 * s);
+            c.bezierCurveTo(3.4 * s, k * 2.05 * s, 4.3 * s, k * 1.7 * s, 4.6 * s, k * 0.55 * s);
+            c.closePath();
+            goldPath(c, s, px);
+            c.strokeStyle = GOLD_SHINE; c.lineWidth = s * 0.14;
+            c.beginPath(); c.moveTo(1.2 * s, k * 2.45 * s); c.lineTo(2.6 * s, k * 2.45 * s); c.stroke();
+        });
+        /* the middle spear: a long leaf, its point strikes the ball */
+        c.beginPath();
+        c.moveTo(0, 0);
+        c.bezierCurveTo(0.7 * s, -0.9 * s, 1.7 * s, -1.05 * s, 2.4 * s, -0.55 * s);
+        c.lineTo(4.4 * s, -0.35 * s);
+        c.lineTo(4.4 * s, 0.35 * s);
+        c.lineTo(2.4 * s, 0.55 * s);
+        c.bezierCurveTo(1.7 * s, 1.05 * s, 0.7 * s, 0.9 * s, 0, 0);
+        c.closePath();
+        goldPath(c, s, px);
+        c.strokeStyle = GOLD_DEEP; c.lineWidth = s * 0.12;
+        c.beginPath(); c.moveTo(0.5 * s, 0); c.lineTo(2.3 * s, 0); c.stroke();
+        c.strokeStyle = GOLD_SHINE; c.lineWidth = s * 0.14;
+        c.beginPath(); c.moveTo(0.7 * s, -0.3 * s); c.lineTo(2.2 * s, -0.42 * s); c.stroke();
+        /* the squid's body at the heart, with its amethyst */
+        c.beginPath(); c.ellipse(5.5 * s, 0, 1.45 * s, 1.15 * s, 0, 0, Math.PI * 2);
+        goldPath(c, s, px);
+        c.strokeStyle = GOLD_DEEP; c.lineWidth = s * 0.14;
+        c.beginPath(); c.ellipse(5.5 * s, 0, 1.05 * s, 0.85 * s, 0, 0, Math.PI * 2); c.stroke();
+        amethyst(c, 5.45 * s, 0, 0.62 * s, px);
+        /* the collar where it meets the shaft */
+        c.beginPath(); c.rect(7.0 * s, -0.75 * s, 0.55 * s, 1.5 * s);
+        c.fillStyle = GOLD_DEEP; c.fill(); c.strokeStyle = INK; c.lineWidth = Math.max(1 * px, s * 0.12); c.stroke();
+    }
+
+    function staffHead(c, s, px) {
+        /* tentacles wrapping down the shaft */
+        [-1, 1].forEach(function (k) {
+            tentacle(c, s, px, [[6.8, k * 0.6], [7.6, k * 1.7], [8.7, k * 1.4], [9.2, k * 0.45]], [9.5, k * 0.45, 0.32, Math.PI, k > 0 ? Math.PI * 2.6 : -Math.PI * 0.6, k < 0], 0.36);
+        });
+        /* the kraken's gold head behind the gem, with a ridge and a crest */
+        c.beginPath();
+        c.moveTo(3.6 * s, -1.2 * s);
+        c.bezierCurveTo(4.6 * s, -2.3 * s, 6.6 * s, -1.9 * s, 6.9 * s, -0.6 * s);
+        c.lineTo(7.2 * s, 0);
+        c.lineTo(6.9 * s, 0.6 * s);
+        c.bezierCurveTo(6.6 * s, 1.9 * s, 4.6 * s, 2.3 * s, 3.6 * s, 1.2 * s);
+        c.closePath();
+        goldPath(c, s, px);
+        c.strokeStyle = GOLD_DEEP; c.lineWidth = s * 0.16;
+        [-0.75, 0, 0.75].forEach(function (y) { c.beginPath(); c.moveTo(4.4 * s, y * s); c.quadraticCurveTo(5.6 * s, y * 1.25 * s, 6.6 * s, y * 0.8 * s); c.stroke(); });
+        /* the amethyst it holds out front: the part that strikes the ball */
+        amethyst(c, 1.9 * s, 0, 1.8 * s, px);
+        /* tentacles cradling the gem, curling at the front */
+        [-1, 1].forEach(function (k) {
+            tentacle(c, s, px, [[4.0, k * 1.3], [3.2, k * 2.9], [1.2, k * 2.9], [0.45, k * 1.6]], [0.75, k * 1.25, 0.32, k > 0 ? Math.PI * 0.75 : -Math.PI * 0.75, k > 0 ? Math.PI * 2.4 : -Math.PI * 2.4, k < 0], 0.42);
+            tentacle(c, s, px, [[4.6, k * 1.8], [4.4, k * 3.0], [5.6, k * 3.4], [6.0, k * 2.6]], [5.75, k * 2.55, 0.25, 0, k > 0 ? -Math.PI * 1.4 : Math.PI * 1.4, k > 0], 0.3);
+        });
+        /* the collar where it meets the shaft */
+        c.beginPath(); c.rect(7.2 * s, -0.75 * s, 0.55 * s, 1.5 * s);
+        c.fillStyle = GOLD_DEEP; c.fill(); c.strokeStyle = INK; c.lineWidth = Math.max(1 * px, s * 0.12); c.stroke();
     }
 
     function band(c, len, w1, x0, x1, fill) {
@@ -281,52 +401,27 @@
             for (let x = 0.68; x < 0.95; x += 0.035) { c.beginPath(); c.moveTo(x * len, -w1 * 0.35); c.lineTo(x * len + w1 * 0.3, 0); c.lineTo(x * len, w1 * 0.35); c.lineTo(x * len - w1 * 0.3, 0); c.closePath(); c.fill(); }
             band(c, len, w1, 0.2, 0.205, '#f4b740');
         } },
-        staff:   { tip: '#3f6fd1', shaft: '#9a6a36', joint: '#5a3a1c', butt: '#7a4f25', cap: '#5a3a1c', deco: function (c, len, w1) {
-            c.fillStyle = 'rgba(70, 40, 15, 0.55)';
-            [0.18, 0.37, 0.55, 0.71, 0.86].forEach(function (x, i) { c.beginPath(); c.ellipse(x * len, (i % 2 ? 1 : -1) * w1 * 0.3, w1 * 0.9, w1 * 0.45, 0, 0, Math.PI * 2); c.fill(); });
-            c.strokeStyle = 'rgba(60, 35, 12, 0.4)';
-            c.lineWidth = w1 * 0.12;
-            c.beginPath(); c.moveTo(0.03 * len, -w1 * 0.2); c.bezierCurveTo(0.3 * len, w1 * 0.4, 0.6 * len, -w1 * 0.5, 0.97 * len, w1 * 0.2); c.stroke();
-        }, after: function (c, len, w1, px) {
-            /* a glowing orb set in the butt */
-            c.shadowBlur = 10 * px;
-            c.shadowColor = '#7ef0ff';
-            c.fillStyle = '#9ff4ff';
-            c.beginPath(); c.arc(len + w1 * 1.1, 0, w1 * 1.5, 0, Math.PI * 2); c.fill();
-            c.shadowBlur = 0;
-            c.fillStyle = 'rgba(255, 255, 255, 0.9)';
-            c.beginPath(); c.arc(len + w1 * 0.7, -w1 * 0.5, w1 * 0.45, 0, Math.PI * 2); c.fill();
-            c.strokeStyle = INK; c.lineWidth = Math.max(1.2 * px, w1 * 0.18);
-            c.beginPath(); c.arc(len + w1 * 1.1, 0, w1 * 1.5, 0, Math.PI * 2); c.stroke();
-            c.fillStyle = '#5a3a1c';
-            c.fillRect(len - w1 * 0.4, -w1 * 1.25, w1 * 0.8, w1 * 2.5);
-            c.strokeRect(len - w1 * 0.4, -w1 * 1.25, w1 * 0.8, w1 * 2.5);
+        staff:   { shaft: '#e0a21c', joint: '#5b2d8a', butt: '#b9790f', cap: GOLD, headLen: 7.8, head: staffHead, deco: function (c, len, w1) {
+            /* a spiral groove and a few set amethysts */
+            c.strokeStyle = 'rgba(120, 70, 5, 0.5)';
+            c.lineWidth = w1 * 0.18;
+            for (let x = 0.08 * len; x < 0.96 * len; x += w1 * 3.2) { c.beginPath(); c.moveTo(x, -w1 * 1.2); c.lineTo(x + w1 * 2.4, w1 * 1.2); c.stroke(); }
+            c.strokeStyle = 'rgba(255, 235, 170, 0.55)';
+            c.lineWidth = w1 * 0.2;
+            c.beginPath(); c.moveTo(0.06 * len, -w1 * 0.5); c.lineTo(0.96 * len, -w1 * 0.55); c.stroke();
+            c.fillStyle = '#8a4cc9';
+            [0.72, 0.8, 0.88].forEach(function (x) { c.beginPath(); c.arc(x * len, 0, w1 * 0.38, 0, Math.PI * 2); c.fill(); });
         } },
-        trident: { tip: '#3f6fd1', shaft: '#6fb6ad', joint: '#f4b740', butt: '#2f7f74', cap: '#f4b740', deco: function (c, len, w1) {
-            c.strokeStyle = 'rgba(255, 255, 255, 0.35)';
-            c.lineWidth = w1 * 0.25;
-            c.beginPath(); c.moveTo(0.03 * len, -w1 * 0.45); c.lineTo(0.96 * len, -w1 * 0.55); c.stroke();
-            band(c, len, w1, 0.86, 0.88, '#f4b740');
-        }, after: function (c, len, w1, px) {
-            /* a gold trident head on the butt end */
-            const L = w1 * 7, base = len + w1 * 0.4;
-            c.fillStyle = '#f4b740';
-            c.strokeStyle = INK;
-            c.lineWidth = Math.max(1.2 * px, w1 * 0.18);
-            c.beginPath();
-            c.moveTo(base, -w1 * 2.2); c.lineTo(base + w1 * 0.9, -w1 * 2.2); c.lineTo(base + w1 * 0.9, w1 * 2.2); c.lineTo(base, w1 * 2.2); c.closePath();
-            c.fill(); c.stroke();
-            [-1, 0, 1].forEach(function (k) {
-                const y = k * w1 * 1.7;
-                c.beginPath();
-                c.moveTo(base + w1 * 0.9, y - w1 * 0.35);
-                c.lineTo(base + L * (k ? 0.75 : 0.95), y - w1 * 0.35);
-                c.lineTo(base + L * (k ? 0.75 : 0.95) + w1 * 1.1, y);
-                c.lineTo(base + L * (k ? 0.75 : 0.95), y + w1 * 0.35);
-                c.lineTo(base + w1 * 0.9, y + w1 * 0.35);
-                c.closePath();
-                c.fill(); c.stroke();
-            });
+        trident: { shaft: '#e8ad2c', joint: '#5b2d8a', butt: '#c48a1a', cap: GOLD, headLen: 7.6, head: tridentHead, deco: function (c, len, w1) {
+            c.strokeStyle = 'rgba(255, 235, 170, 0.6)';
+            c.lineWidth = w1 * 0.22;
+            c.beginPath(); c.moveTo(0.06 * len, -w1 * 0.5); c.lineTo(0.96 * len, -w1 * 0.55); c.stroke();
+            /* the blue fin grip of the whale that holds it */
+            band(c, len, w1, 0.7, 0.8, '#4aa3df');
+            c.strokeStyle = 'rgba(29, 27, 32, 0.35)';
+            c.lineWidth = w1 * 0.15;
+            for (let x = 0.705; x < 0.8; x += 0.012) { c.beginPath(); c.moveTo(x * len, -w1); c.lineTo((x + 0.006) * len, w1); c.stroke(); }
+            band(c, len, w1, 0.86, 0.875, GOLD_DEEP);
         } }
     };
 
@@ -342,15 +437,16 @@
             c.globalAlpha = 0.22;
             c.translate(x + opts.shadow[0], y + opts.shadow[1]);
             c.rotate(angle);
-            shape(c, len, w0, w1);
+            shape(c, len, w0, w1, d.head ? d.headLen * w1 : 0);
             c.fillStyle = '#0b2a22';
             c.fill();
             c.restore();
         }
+        const x0 = d.head ? d.headLen * w1 : 0;
         c.translate(x, y);
         c.rotate(angle);
         c.save();
-        shape(c, len, w0, w1);
+        shape(c, len, w0, w1, x0);
         c.clip();
         band(c, len, w1, 0, 0.62, d.shaft);
         band(c, len, w1, 0.62, 1, d.butt);
@@ -358,13 +454,16 @@
         (d.rings || []).forEach(function (r) { band(c, len, w1, r[0], r[1], r[2]); });
         if (d.deco) d.deco(c, len, w1, px);
         band(c, len, w1, 0.96, 1, d.cap);
-        band(c, len, w1, 0.011, 0.03, '#fbf6ea');                  /* ferrule */
-        band(c, len, w1, 0, 0.011, d.tip);                        /* tip */
+        if (!d.head) {
+            band(c, len, w1, 0.011, 0.03, '#fbf6ea');              /* ferrule */
+            band(c, len, w1, 0, 0.011, d.tip);                    /* tip */
+        }
         c.restore();
-        shape(c, len, w0, w1);
+        shape(c, len, w0, w1, x0);
         c.lineWidth = Math.max(1.2, 1.6 * px);
         c.strokeStyle = INK;
         c.stroke();
+        if (d.head) d.head(c, w1, px);
         if (d.after) d.after(c, len, w1, px);
         c.restore();
     }

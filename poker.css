@@ -894,3 +894,63 @@ html.lounge-full { overflow: hidden; }
     .Lounge.is-full .Act { width: 100%; min-width: 0; padding-block: 0.5rem; }
     .Lounge.is-full .Raise-presets button { padding: 0.2rem 0.55rem; }
 }
+
+/* ------------------------------------------------------------
+   Tournaments: the panel in the room bar, and a felt per table
+   ------------------------------------------------------------ */
+
+.Tourney { flex: 1 1 100%; display: grid; gap: 0.55rem; }
+.Tourney[hidden] { display: none; }
+.Tourney-line { font-weight: 800; }
+.Tourney-tables { display: flex; flex-wrap: wrap; gap: 0.4rem; }
+.Tourney-tables:empty { display: none; }
+.Tourney-tables .Btn { width: auto; padding: 0.35rem 0.8rem; font-size: 0.72rem; }
+.Tourney-tables .Btn[aria-pressed="true"] { background: var(--gold); }
+.Tourney-list {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(11.5rem, 1fr));
+    gap: 0.35rem;
+    max-height: 14rem;
+    overflow: auto;
+    padding: 0;
+    list-style: none;
+}
+.Tourney-list li {
+    display: flex;
+    align-items: center;
+    gap: 0.45rem;
+    min-width: 0;
+    padding: 0.25rem 0.55rem 0.25rem 0.25rem;
+    font-size: 0.8rem;
+    font-weight: 800;
+    background: var(--paper);
+    border: var(--line-thin) solid var(--ink);
+    border-radius: 999px;
+}
+.Tourney-list li.is-out { opacity: 0.55; }
+.Tourney-list li.is-me { background: var(--gold-bright); }
+.Tourney-list img { flex-shrink: 0; width: 1.6rem; height: 1.6rem; object-fit: cover; border: 1.5px solid var(--ink); border-radius: 50%; }
+.Tourney-list .Tn-name { flex: 1; min-width: 0; overflow: hidden; white-space: nowrap; text-overflow: ellipsis; }
+.Tourney-list .Tn-chips { font-family: var(--font-code); font-size: 0.72rem; color: var(--ink-2); white-space: nowrap; }
+
+.Table[data-felt="2"] .Felt {
+    background:
+        radial-gradient(rgba(29, 27, 32, 0.08) 1px, transparent 1.6px) 0 0 / 16px 16px,
+        radial-gradient(ellipse at 50% 42%, #c9e6ec 0%, var(--bg-lightblue) 55%, #8dbac4 100%);
+}
+.Table[data-felt="3"] .Felt {
+    background:
+        radial-gradient(rgba(29, 27, 32, 0.08) 1px, transparent 1.6px) 0 0 / 16px 16px,
+        radial-gradient(ellipse at 50% 42%, #c7bbd7 0%, var(--bg-purple) 55%, #8e7ca6 100%);
+}
+.Table[data-felt="4"] .Felt {
+    background:
+        radial-gradient(rgba(29, 27, 32, 0.08) 1px, transparent 1.6px) 0 0 / 16px 16px,
+        radial-gradient(ellipse at 50% 42%, #eeaa9f 0%, var(--bg-coral) 55%, #c56d5f 100%);
+}
+/* the final table: gold felt */
+.Table[data-felt="final"] .Felt {
+    background:
+        radial-gradient(rgba(29, 27, 32, 0.08) 1px, transparent 1.6px) 0 0 / 16px 16px,
+        radial-gradient(ellipse at 50% 42%, #fbe0a0 0%, var(--gold) 55%, #d39621 100%);
+}

@@ -276,6 +276,7 @@ main.Pool { max-width: 1240px; }
 .Over-title { font-family: var(--font-display); font-size: 2rem; font-weight: 400; line-height: 1.05; }
 .Over-text { font-weight: 700; color: var(--ink-2); }
 .Over-btns { display: grid; gap: 0.5rem; margin-top: 0.3rem; }
+.Over-btns .Btn[hidden] { display: none; }
 
 /* controls */
 .Controls {
@@ -666,6 +667,228 @@ html.pool-full, html.pool-full body { overflow: hidden; }
 .Rule p + p { margin-top: 0.5rem; }
 
 /* ------------------------------------------------------------
+   On this screen / online: the two tabs
+   ------------------------------------------------------------ */
+
+.Where { display: flex; flex-wrap: wrap; gap: 0.5rem; margin-bottom: 1rem; }
+.Where[hidden] { display: none; }
+.Where-tab {
+    padding: 0.55rem 1.1rem;
+    font: inherit;
+    font-weight: 900;
+    color: var(--ink);
+    background: var(--paper);
+    border: var(--line-thin) solid var(--ink);
+    border-radius: 999px;
+    box-shadow: var(--pop-sm);
+    cursor: pointer;
+}
+.Where-tab[aria-selected="true"] { background: var(--gold); box-shadow: var(--pop); transform: translate(-1px, -1px); }
+.Where-tab:focus-visible { outline: 3px solid var(--gold); outline-offset: 3px; }
+
+/* ------------------------------------------------------------
+   Online: host or join
+   ------------------------------------------------------------ */
+
+.Pool-online {
+    display: grid;
+    gap: 1.2rem;
+    max-width: 920px;
+    padding: clamp(1.1rem, 3vw, 1.8rem);
+    background: var(--paper);
+    border: var(--line) solid var(--ink);
+    border-radius: var(--radius);
+    box-shadow: var(--pop);
+}
+.Pool-online[hidden] { display: none; }
+.Pool-online .Pool-h2 { margin-bottom: -0.4rem; }
+
+.You-who { display: grid; gap: 0.35rem; flex: 1; min-width: 0; }
+.You-who .Field { margin-top: 0; }
+.You-more { margin-top: 0.8rem; }
+.You-more > summary {
+    display: inline-block;
+    font-weight: 900;
+    font-size: 0.85rem;
+    text-decoration: underline;
+    text-underline-offset: 3px;
+    cursor: pointer;
+}
+.You-more > summary::-webkit-details-marker { display: none; }
+
+.Online-pair { display: grid; gap: 1rem; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); }
+.Online-card {
+    display: grid;
+    align-content: start;
+    gap: 0.85rem;
+    min-width: 0;
+    padding: 1rem 1.1rem 1.1rem;
+    background: var(--bg);
+    border: var(--line-thin) solid var(--ink);
+    border-radius: var(--radius-sm);
+    box-shadow: var(--pop-sm);
+}
+.Online-card h3 { font-family: var(--font-display); font-size: 1.4rem; font-weight: 400; line-height: 1.1; }
+.Online-go { display: flex; flex-wrap: wrap; gap: 0.5rem; }
+.Online-go .Btn, .Online-card > .Btn { width: auto; }
+.Online-hint { font-size: 0.82rem; font-weight: 700; color: var(--ink-2); line-height: 1.4; }
+.Online-status { min-height: 1.3em; font-weight: 800; color: var(--ink-2); }
+.Online-status:empty { display: none; }
+.Online-status.is-ok { color: var(--accent); }
+.Online-status.is-warn { color: var(--warn); }
+.Online-status.is-error { color: var(--error); }
+.Online-note { font-size: 0.78rem; font-weight: 700; color: var(--ink-3); }
+.Code-input { font-family: var(--font-code); letter-spacing: 0.14em; text-transform: uppercase; }
+
+.Chips { display: flex; flex-wrap: wrap; gap: 0.5rem; }
+.Chip { position: relative; cursor: pointer; }
+.Chip input { position: absolute; opacity: 0; pointer-events: none; }
+.Chip span {
+    display: block;
+    padding: 0.45rem 0.9rem;
+    font-weight: 900;
+    font-size: 0.9rem;
+    background: var(--paper);
+    border: var(--line-thin) solid var(--ink);
+    border-radius: 999px;
+    box-shadow: var(--pop-sm);
+}
+.Chip input:checked + span { background: var(--bg-turquoise); }
+.Chip input:focus-visible + span { outline: 3px solid var(--gold); outline-offset: 3px; }
+
+/* ------------------------------------------------------------
+   The room: an online game's link and who's in
+   ------------------------------------------------------------ */
+
+.Room {
+    display: grid;
+    gap: 0.7rem;
+    margin-bottom: 1rem;
+    padding: 0.9rem 1.1rem 1rem;
+    background: var(--paper);
+    border: var(--line) solid var(--ink);
+    border-radius: var(--radius);
+    box-shadow: var(--pop-sm);
+}
+.Room[hidden] { display: none; }
+.Room-top { display: flex; flex-wrap: wrap; align-items: flex-end; gap: 0.8rem 1.2rem; }
+.Room-code { display: grid; }
+.Room-code .Field-label { margin-bottom: 0.15rem; }
+.Room-code strong { font-family: var(--font-code); font-size: 1.5rem; letter-spacing: 0.16em; line-height: 1.1; }
+.Room-share { display: flex; flex: 1 1 18rem; gap: 0.5rem; min-width: 0; }
+.Room-share input {
+    flex: 1;
+    min-width: 0;
+    padding: 0.55rem 0.75rem;
+    font-family: var(--font-code);
+    font-size: 0.8rem;
+    color: var(--ink);
+    background: var(--bg);
+    border: var(--line-thin) solid var(--ink);
+    border-radius: var(--radius-sm);
+}
+.Room-share .Btn { width: auto; flex-shrink: 0; }
+.Room-status { font-weight: 800; }
+.Room-status:empty { display: none; }
+.Room-list { display: flex; flex-wrap: wrap; gap: 0.4rem; list-style: none; }
+.Room-list[hidden] { display: none; }
+.Room-player {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.35rem;
+    max-width: 100%;
+    padding: 0.2rem 0.65rem 0.2rem 0.2rem;
+    font-weight: 800;
+    font-size: 0.85rem;
+    background: var(--bg);
+    border: var(--line-thin) solid var(--ink);
+    border-radius: 999px;
+}
+.Room-player span { overflow: hidden; white-space: nowrap; text-overflow: ellipsis; }
+.Room-player.is-me { background: #fff6dd; }
+.Room-player small { font-size: 0.62rem; font-weight: 900; letter-spacing: 0.06em; text-transform: uppercase; color: var(--ink-3); }
+.Room-pic { flex-shrink: 0; object-fit: cover; border: 1.5px solid var(--ink); border-radius: 50%; }
+.Room-actions { display: flex; flex-wrap: wrap; gap: 0.5rem; }
+.Room-actions .Btn { width: auto; }
+.Room-actions .Btn[hidden] { display: none; }
+
+/* the shot clock, next to the message */
+.Clock {
+    flex-shrink: 0;
+    display: grid;
+    place-items: center;
+    min-width: 2.6rem;
+    height: 2.6rem;
+    padding: 0 0.4rem;
+    font-family: var(--font-display);
+    font-size: 1.15rem;
+    line-height: 1;
+    background: var(--paper);
+    border: var(--line-thin) solid var(--ink);
+    border-radius: 999px;
+    box-shadow: var(--pop-sm);
+}
+.Clock[hidden] { display: none; }
+.Clock.is-low { color: var(--paper); background: var(--error, #d9503a); animation: clock-pulse 1s ease-in-out infinite; }
+@keyframes clock-pulse { 50% { transform: scale(1.08); } }
+@media (prefers-reduced-motion: reduce) { .Clock.is-low { animation: none; } }
+
+/* ------------------------------------------------------------
+   A tournament's bracket
+   ------------------------------------------------------------ */
+
+.Bracket-wrap {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr);
+    gap: 0.6rem;
+    margin-top: 1.2rem;
+    padding: clamp(1rem, 3vw, 1.5rem);
+    background: var(--paper);
+    border: var(--line) solid var(--ink);
+    border-radius: var(--radius);
+    box-shadow: var(--pop);
+}
+.Bracket-wrap[hidden] { display: none; }
+.Bracket-wrap .Pool-h2 { margin: 0; }
+.Bracket-hint { font-size: 0.82rem; font-weight: 700; color: var(--ink-3); }
+/* a wide bracket scrolls inside its own box, never the page */
+.Bracket { display: flex; gap: 0.8rem; overflow-x: auto; padding: 0.2rem 0.2rem 0.6rem; }
+.Bracket-round { display: flex; flex-direction: column; flex: 0 0 11.5rem; gap: 0.5rem; }
+.Bracket-round h3 {
+    font-size: 0.68rem;
+    font-weight: 900;
+    letter-spacing: 0.07em;
+    text-transform: uppercase;
+    color: var(--ink-3);
+}
+.Bracket-list { display: flex; flex-direction: column; justify-content: space-around; flex: 1; gap: 0.5rem; }
+.Bracket-match {
+    display: grid;
+    gap: 0.15rem;
+    width: 100%;
+    padding: 0.35rem 0.5rem;
+    font: inherit;
+    text-align: left;
+    color: var(--ink);
+    background: var(--bg);
+    border: var(--line-thin) solid var(--ink);
+    border-radius: var(--radius-sm);
+}
+button.Bracket-match { cursor: pointer; box-shadow: var(--pop-sm); }
+button.Bracket-match:hover { background: var(--bg-lightblue); }
+button.Bracket-match:focus-visible { outline: 3px solid var(--gold); outline-offset: 2px; }
+.Bracket-match.is-pending { border-style: dashed; opacity: 0.75; }
+.Bracket-match.is-playing, .Bracket-match.is-between { background: #eaf6f1; }
+.Bracket-match.is-mine { box-shadow: 0 0 0 3px var(--gold), var(--pop-sm); }
+.Bracket-match.is-viewing { background: #fff6dd; }
+.Bracket-row { display: flex; align-items: center; gap: 0.35rem; min-width: 0; font-size: 0.8rem; font-weight: 800; }
+.Bracket-row b { margin-left: auto; font-family: var(--font-display); font-weight: 400; }
+.Bracket-name { flex: 1; min-width: 0; overflow: hidden; white-space: nowrap; text-overflow: ellipsis; }
+.Bracket-row.is-win .Bracket-name { text-decoration: underline; text-decoration-thickness: 2px; text-underline-offset: 2px; }
+.Bracket-row.is-lose { opacity: 0.5; }
+.Bracket-live { font-size: 0.6rem; font-weight: 900; letter-spacing: 0.06em; text-transform: uppercase; color: var(--accent); }
+
+/* ------------------------------------------------------------
    Phones
    ------------------------------------------------------------ */
 
@@ -693,4 +916,8 @@ html.pool-full, html.pool-full body { overflow: hidden; }
     .Fine-label { font-size: 0.52rem; }
     .Keys { display: none; }
     .Mode-card { padding: 0.7rem 0.8rem; }
+    .Clock { min-width: 2.1rem; height: 2.1rem; font-size: 0.95rem; }
+    .Room { padding: 0.7rem 0.8rem 0.8rem; }
+    .Room-code strong { font-size: 1.2rem; }
+    .Bracket-round { flex-basis: 10rem; }
 }

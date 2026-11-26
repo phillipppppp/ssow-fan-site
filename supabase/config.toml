@@ -431,3 +431,7 @@ verify_jwt = false
 # Orca Race: only looks up orca pictures; nothing to sign in for.
 [functions.orca-race]
 verify_jwt = false
+
+# Whale Pool online: players are checked by their own browser key.
+[functions.pool]
+verify_jwt = false

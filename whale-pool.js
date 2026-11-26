@@ -12,6 +12,14 @@
    stripes really roll), the aim guide and the cue. On a tall
    phone screen the table turns sideways (long side vertical) so
    the balls stay big enough to see.
+
+   Online games (whale-pool-online.js) play on this same table
+   through window.WhalePoolGame: the server referees every shot
+   (supabase/functions/pool), your own shot plays here at once and
+   is sent to it, and the other player's shots arrive as the
+   position they shot from plus where they aimed, and play out
+   here exactly as they did for them. Online, cues are looks only:
+   everyone gets the host's aim lines and full power and spin.
    ============================================================ */
 
 (function () {
@@ -104,7 +112,7 @@
         controls: $('controls'), power: $('power'), powerFill: $('powerFill'), powerText: $('powerText'),
         fine: $('fine'), fineGrip: $('fineGrip'), spinBtn: $('spinBtn'), spinDot: $('spinDot'),
         spinPop: $('spinPop'), spinBig: $('spinBig'), spinBigDot: $('spinBigDot'), spinReset: $('spinReset'), spinDone: $('spinDone'),
-        mute: $('mute'), full: $('full'), quit: $('quit'), keys: $('keys'),
+        mute: $('mute'), full: $('full'), quit: $('quit'), keys: $('keys'), clock: $('clock'),
         cueZoom: $('cueZoom'), cueZoomCard: $('cueZoomCard'), cueZoomArt: $('cueZoomArt'), cueZoomClose: $('cueZoomClose'),
         cueZoomName: $('cueZoomName'), cueZoomRarity: $('cueZoomRarity'), cueZoomBlurb: $('cueZoomBlurb'), cueZoomStats: $('cueZoomStats'),
         spinReach: $('spinReach'), overPearls: $('overPearls'),
@@ -640,9 +648,9 @@
             c.setLineDash([]);
         }
 
-        /* aim guide and cue */
-        if (cp && !G.run && (G.phase === 'aim' || G.phase === 'bot')) {
-            drawGuide(c, cp, G.phase === 'bot');
+        /* aim guide and cue (faint while someone else is lining up) */
+        if (cp && !G.run && (G.phase === 'aim' || G.phase === 'bot' || G.phase === 'remote')) {
+            drawGuide(c, cp, G.phase !== 'aim');
             drawCue(cp, G.pull || 0);
         }
     }
@@ -678,11 +686,24 @@
         5: { cap: Infinity, obj: 230, cue: 130, rail: 130 }
     };
 
-    /* the cue in the hand of whoever is shooting */
-    function cueOf(p) { return p && p.bot ? Cues.get(Cues.BOT_CUE[p.bot]) : Cues.equipped(); }
+    /* the cue in the hand of whoever is shooting (online: the one each player brought) */
+    function cueOf(p) {
+        if (p && p.cueId) return Cues.get(p.cueId);
+        return p && p.bot ? Cues.get(Cues.BOT_CUE[p.bot]) : Cues.equipped();
+    }
     function cueNow() { return cueOf(current()); }
 
+    /* Online, cues are looks only: full power and spin for everyone,
+       and the aim lines the host picked */
+    const ONLINE_GUIDE = { full: 5, short: 1, off: 0 };
+    function powerCapNow() { return G && G.online ? 1 : Cues.powerCap(cueNow()); }
+    function spinReachNow() { return G && G.online ? 1 : Cues.spinReach(G ? cueNow() : Cues.equipped()); }
+
     function guideLevel(faint) {
+        if (G.online) {
+            const lv = ONLINE_GUIDE[G.guides] || 0;
+            return faint ? Math.min(1, lv) : lv;
+        }
         if (G.guides === 'off') return 0;
         if (faint || G.guides === 'short') return 1;
         return Cues.aimOf(cueNow());
@@ -821,8 +842,9 @@
         last = now;
         if (G && G.run) advance(dt);
         if (G && G.anim) G.anim(now);
+        if (G && G.online) onlineFrame(dt);
         /* a cue with live touches (the laser's pulse, a Legendary shimmer) keeps moving while it's aimed */
-        if (G && !G.run && (G.phase === 'aim' || G.phase === 'bot') && Cues.animated(cueNow().id)) dirty = true;
+        if (G && !G.run && (G.phase === 'aim' || G.phase === 'bot' || G.phase === 'remote') && Cues.animated(cueNow().id)) dirty = true;
         if (dirty || (G && (G.run || G.anim))) draw();
         window.requestAnimationFrame(frame);
     }
@@ -876,7 +898,7 @@
     }
 
     /* little grammar helpers, so "You" reads right */
-    function you(p) { return p.name === 'You'; }
+    function you(p) { return p.me === true || (!(G && G.online) && p.name === 'You'); }
     function has(p) { return you(p) ? 'You have' : p.name + ' has'; }
     function is(p) { return you(p) ? 'You’re' : p.name + ' is'; }
     function verb(p, v, vs) { return (you(p) ? 'You ' + v : p.name + ' ' + vs); }
@@ -927,6 +949,7 @@
         updateHud();
         if (st.over) return;
         aimAtTarget();
+        if (G.online && st.turn !== G.online.seat) { remoteTurn(); return; }
         if (isBotTurn()) { botTurn(); return; }
         G.phase = 'aim';
         autoCall(true);
@@ -945,7 +968,7 @@
 
     function turnText() {
         const st = G.state, p = current();
-        const two = !G.players[1].bot;
+        const two = !G.online && !G.players[1].bot;
         const lead = two ? p.name + ': ' : '';
         return cap(lead + turnBody(st, p));
     }
@@ -1001,12 +1024,11 @@
     function shoot(power) {
         if (!G || G.phase !== 'aim') return;
         const st = G.state;
-        const cue = cueNow();
-        const reach = Cues.spinReach(cue);
+        const reach = spinReachNow();
         let sp = G.spin.slice();
         const m = Math.hypot(sp[0], sp[1]);
         if (m > reach) sp = [sp[0] * reach / m, sp[1] * reach / m];
-        const input = { dir: aimDir(), power: power * Cues.powerCap(cue), spin: sp };
+        const input = { dir: aimDir(), power: power * powerCapNow(), spin: sp };
         if (st.inHand) {
             if (!G.place || !S.canPlace(st, G.place[0], G.place[1])) { say('The cue ball can’t go there. Drag it to a free spot' + (st.inHand === 'kitchen' ? ' behind the line.' : '.'), 'foul'); return; }
             input.cue = G.place;
@@ -1018,12 +1040,20 @@
             say('Call a pocket for the 8 first: tap one.', 'foul');
             return;
         }
-        launch(input);
+        launch(input, true);
     }
 
-    function launch(input) {
+    /* a shot starts rolling. `mine`: taken on this screen (online, it's
+       also sent to the referee, as the exact same numbers) */
+    function launch(input, mine) {
+        if (G.online && mine) input = JSON.parse(JSON.stringify(input));
         let run;
         try { run = S.begin(G.state, input); } catch (e) { say(e.message, 'foul'); return; }
+        if (G.online && mine) {
+            G.online.expect = null;
+            G.online.shotNo++;
+            G.online.hooks.send(input, G.online.shotNo - 1);
+        }
         G.input = input;
         G.shotsBy[G.state.turn]++;
         G.run = run;
@@ -1047,6 +1077,12 @@
         const shooter = G.players[prev.turn];
         G.run = null;
         G.state = res.state;
+        /* online, the referee's table is the one that counts (it's the same: the sim is exact) */
+        if (G.online && G.online.expect && G.online.expect.shotNo === G.online.shotNo) {
+            if (gameKey(G.state) !== gameKey(G.online.expect.game)) G.online.snaps++;
+            G.state = G.online.expect.game;
+            G.online.expect = null;
+        }
         const o = res.outcome;
         const next = G.players[res.state.turn];
         save();
@@ -1080,7 +1116,15 @@
         G.phase = 'wait';
         const pause = isBot(next) ? (o.foul ? 1900 : 1100) : 450;
         G.timer = setTimeout(function () {
-            if (!G || G.phase !== 'wait') return;
+            if (!G) return;
+            G.timer = null;
+            if (G.phase !== 'wait') return;
+            /* news from the referee that came in while the balls rolled */
+            if (G.online && G.online.next) {
+                const m = G.online.next;
+                G.online.next = null;
+                if (applyOnline(m)) return;
+            }
             startTurn();
         }, pause / FAST);
         updateHud();
@@ -1090,6 +1134,7 @@
     function gameOver(res) {
         G.phase = 'over';
         setControls(false);
+        if (G.online) { onlineOver(); return; }
         const w = G.players[res.state.winner];
         const l = G.players[1 - res.state.winner];
         const shooterLost = res.outcome.lose;
@@ -1398,7 +1443,7 @@
 
     function showSpin() {
         const s = G ? G.spin : [0, 0];
-        const reach = Cues.spinReach(G ? cueNow() : Cues.equipped());
+        const reach = spinReachNow();
         if (els.spinReach) { els.spinReach.style.width = (reach * 76) + '%'; els.spinReach.style.height = (reach * 76) + '%'; }
         const put = function (dot) { dot.style.left = (50 + s[0] * 38) + '%'; dot.style.top = (50 - s[1] * 38) + '%'; };
         put(els.spinDot);
@@ -1418,7 +1463,7 @@
         let a = ((e.clientX - r.left) / r.width - 0.5) / 0.38;
         let b = -((e.clientY - r.top) / r.height - 0.5) / 0.38;
         const m = Math.hypot(a, b);
-        const reach = Cues.spinReach(G ? cueNow() : Cues.equipped());
+        const reach = spinReachNow();
         if (m > reach) { a *= reach / m; b *= reach / m; }
         if (G) G.spin = [Math.round(a * 100) / 100, Math.round(b * 100) / 100];
         showSpin();
@@ -1477,6 +1522,7 @@
     });
 
     els.quit.addEventListener('click', function () {
+        if (G && G.online) { G.online.hooks.leave(true); return; }
         if (G && G.phase !== 'over' && G.state.shots > 0 && !window.confirm('Leave this game? It stays saved: Resume picks it up again.')) return;
         backToSetup();
     });
@@ -1569,21 +1615,39 @@
             guides: settings.guides || 'cue', shotsBy: [0, 0], awarded: false
         };
         if (!state) G.state.turn = breaker;
-        els.setup.hidden = true;
-        els.shop.hidden = true;
-        els.game.hidden = false;
-        els.over.hidden = true;
-        els.modeName.textContent = S.MODES[mode].name;
-        [0, 1].forEach(function (i) {
-            (i ? els.who1 : els.who0).textContent = players[i].name;
-            (i ? els.pic1 : els.pic0).src = players[i].pic;
-        });
+        showTable(mode, players);
+        overButtons({ again: 'Rematch', change: 'Change game' });
         showSpin();
         showPower(preset, true);
         layout();
         save();
         try { els.game.scrollIntoView({ block: 'start', behavior: 'smooth' }); } catch (e) { /* fine */ }
         startTurn();
+    }
+
+    /* the table on screen instead of the setup: names and pictures in the scoreboard */
+    function showTable(mode, players) {
+        els.setup.hidden = true;
+        els.shop.hidden = true;
+        els.game.hidden = false;
+        els.over.hidden = true;
+        document.dispatchEvent(new CustomEvent('pool:table', { detail: true }));
+        els.modeName.textContent = S.MODES[mode].name;
+        [0, 1].forEach(function (i) {
+            (i ? els.who1 : els.who0).textContent = players[i].name;
+            const pic = i ? els.pic1 : els.pic0;
+            pic.src = players[i].pic;
+            pic.style.background = players[i].bg || '';
+        });
+    }
+
+    /* the two buttons on the game-over card */
+    function overButtons(b) {
+        els.again.hidden = !b.again;
+        els.again.disabled = !!b.againOff;
+        if (b.again) els.again.textContent = b.again;
+        els.change.hidden = !b.change;
+        if (b.change) els.change.textContent = b.change;
     }
 
     function backToSetup() {
@@ -1594,12 +1658,13 @@
         els.game.hidden = true;
         els.setup.hidden = false;
         els.shop.hidden = false;
+        document.dispatchEvent(new CustomEvent('pool:table', { detail: false }));
         renderShop();
         offerResume();
     }
 
     function save() {
-        if (!G || G.phase === 'over' || G.state.over) return;
+        if (!G || G.online || G.phase === 'over' || G.state.over) return;
         try {
             localStorage.setItem(SAVE, JSON.stringify({ v: S.VERSION, mode: G.mode, opp: G.opp, players: G.players, breaker: G.breaker, state: G.state, guides: G.guides, shotsBy: G.shotsBy }));
         } catch (e) { /* fine */ }
@@ -1631,10 +1696,312 @@
     });
     els.again.addEventListener('click', function () {
         if (!G) return;
+        if (G.online) { if (G.online.hooks.again) G.online.hooks.again(); return; }
         begin(G.mode, G.opp, G.players, 1 - G.breaker, null);
     });
-    els.change.addEventListener('click', backToSetup);
+    els.change.addEventListener('click', function () {
+        if (G && G.online) { if (G.online.hooks.change) G.online.hooks.change(); return; }
+        backToSetup();
+    });
     els.opps.addEventListener('change', syncSetup);
+
+    /* ======================================================
+       Online play (driven by whale-pool-online.js)
+
+       The referee (the server) keeps the match: { game, shotNo,
+       last, deadline, status, ... }. shotNo counts every change
+       to the table. When a newer one arrives:
+         - a shot: play it from the position it was taken in,
+           exactly as the shooter's screen did, then take the
+           referee's table (the same, since the sim is exact);
+         - a shot-clock foul or a forfeit: just take the table;
+         - a new rack: rack up.
+       Your own shot plays at once and goes to the referee; its
+       answer only confirms what you already saw. Anything that
+       arrives while balls are rolling waits until they stop.
+       ====================================================== */
+
+    function gameKey(s) { return s ? JSON.stringify([s.balls, s.cue, s.turn, s.groups, s.broke, s.inHand, s.over, s.winner]) : ''; }
+
+    function remoteLine(p) {
+        const st = G.state;
+        if (!st.broke) return p.name + ' is breaking…';
+        if (st.inHand) return p.name + ' has ball in hand…';
+        return p.name + ' is lining up a shot…';
+    }
+
+    /* someone else's turn: their cue follows their aim, if their screen sends it */
+    function remoteTurn() {
+        const o = G.online;
+        G.phase = 'remote';
+        o.aimTo = null;
+        o.pullTo = 0;
+        G.pull = 0;
+        setControls(false);
+        clearTimeout(G.sayTimer);
+        const line = remoteLine(current());
+        if (G.report) {
+            say(G.report.text, G.report.tone);
+            G.report = null;
+            G.sayTimer = setTimeout(function () { if (G && G.phase === 'remote') say(line); }, 2600);
+        } else {
+            say(line);
+        }
+        dirty = true;
+    }
+
+    function onlineFrame(dt) {
+        const o = G.online;
+        showClock();
+        if (G.phase === 'remote') {
+            /* ease toward where they aim, so a few updates a second still look smooth */
+            if (o.aimTo !== null) {
+                let d = o.aimTo - G.angle;
+                while (d > Math.PI) d -= Math.PI * 2;
+                while (d < -Math.PI) d += Math.PI * 2;
+                if (Math.abs(d) > 1e-4) { G.angle += d * Math.min(1, dt * 9); dirty = true; }
+            }
+            const pull = G.pull || 0;
+            if (Math.abs(o.pullTo - pull) > 0.003) { G.pull = pull + (o.pullTo - pull) * Math.min(1, dt * 12); dirty = true; }
+        } else if (G.phase === 'aim' && o.hooks.aim) {
+            const p = G.place;
+            const sig = G.angle.toFixed(3) + '|' + (p ? Math.round(p[0]) + ',' + Math.round(p[1]) : '') + '|' + (G.pull || 0).toFixed(2) + '|' + (G.call ? G.call.ball + '@' + G.call.pocket : '');
+            if (sig !== o.aimSig) {
+                o.aimSig = sig;
+                o.hooks.aim({
+                    no: o.shotNo,
+                    a: Math.round(G.angle * 1e4) / 1e4,
+                    p: p ? [Math.round(p[0] * 10) / 10, Math.round(p[1] * 10) / 10] : null,
+                    u: Math.round((G.pull || 0) * 100) / 100,
+                    c: G.call ? { ball: G.call.ball, pocket: G.call.pocket } : null
+                });
+            }
+        }
+    }
+
+    /* the shot clock: seconds left for whoever is up */
+    function showClock() {
+        const o = G.online, m = o.match;
+        let left = -1;
+        if (m && m.status === 'playing' && m.deadline && (G.phase === 'aim' || G.phase === 'remote')) left = Math.max(0, Math.ceil((m.deadline - o.now()) / 1000));
+        const on = left >= 0;
+        if (els.clock.hidden === on) els.clock.hidden = !on;
+        if (!on) return;
+        const t = left > 99 ? '99+' : String(left);
+        if (els.clock.textContent === t) return;
+        els.clock.textContent = t;
+        els.clock.classList.toggle('is-low', left <= 10);
+        els.clock.setAttribute('aria-label', left + ' seconds left for this shot');
+        if (left === 10 && G.phase === 'aim' && o.warned !== o.shotNo) { o.warned = o.shotNo; Sound.play('turn'); }
+    }
+
+    /* opts: { mode, guides, seat (0, 1, or -1 to watch), players: [{ name, pic, bg, cueId, me }],
+       match, now(), intro, scroll, hooks: { send(input, no), aim(d), over(), again(), change(), leave(ask) } } */
+    function playOnline(opts) {
+        if (G) { clearTimeout(G.timer); clearTimeout(G.sayTimer); }
+        orient.clear();
+        orientVer.clear();
+        sprites.clear();
+        const m = opts.match;
+        G = {
+            mode: opts.mode, opp: 'online', players: opts.players, breaker: m.breaker, state: m.game,
+            phase: 'wait', angle: 0, spin: [0, 0], call: null, manual: { ball: false, pocket: false },
+            place: null, run: null, sinking: [], pull: 0, anim: null, timer: null, sayTimer: null, report: null,
+            guides: opts.guides, shotsBy: [0, 0], awarded: true,
+            online: {
+                seat: opts.seat, hooks: opts.hooks, now: opts.now, match: m, shotNo: m.shotNo, gameNo: m.gameNo,
+                next: null, expect: null, aimTo: null, pullTo: 0, aimSig: '', warned: -1, saidOver: -1,
+                snaps: 0               // times this screen's table had to be corrected to the referee's
+            }
+        };
+        showTable(opts.mode, opts.players);
+        overButtons({});
+        showSpin();
+        showPower(preset, true);
+        layout();
+        if (opts.scroll !== false) { try { els.game.scrollIntoView({ block: 'start', behavior: 'smooth' }); } catch (e) { /* fine */ } }
+        if (m.status !== 'playing' || m.game.over) { onlineOver(true); return; }
+        if (opts.intro) G.report = { text: opts.intro, tone: null };
+        startTurn();
+    }
+
+    function onlineSync(m) {
+        if (!G || !G.online || !m) return;
+        const o = G.online;
+        if (m.gameNo < o.match.gameNo || (m.gameNo === o.match.gameNo && m.shotNo < o.match.shotNo)) return;   // older news
+        o.match = m;
+        if (G.run || G.anim || G.timer) { o.next = m; return; }                                                 // after the balls stop
+        applyOnline(m);
+    }
+
+    /* true if it took over the turn (a new rack, a shot to play, the end) */
+    function applyOnline(m) {
+        const o = G.online;
+        clearTimeout(G.timer);
+        G.timer = null;
+        if (m.gameNo !== o.gameNo) {
+            o.gameNo = m.gameNo;
+            o.shotNo = m.shotNo;
+            o.expect = null;
+            o.next = null;
+            orient.clear();
+            orientVer.clear();
+            sprites.clear();
+            G.state = m.game;
+            G.breaker = m.breaker;
+            G.sinking = [];
+            G.call = null;
+            G.run = null;
+            G.anim = null;
+            els.over.hidden = true;
+            if (m.status !== 'playing' || m.game.over) { onlineOver(); return true; }
+            const b = G.players[m.game.turn];
+            G.report = { text: 'Rack ' + m.gameNo + (you(b) ? ': your break.' : ': ' + b.name + ' breaks.'), tone: null };
+            startTurn();
+            return true;
+        }
+        if (m.shotNo === o.shotNo) {
+            /* the same position: just make sure we agree with the referee */
+            let turned = false;
+            if (gameKey(G.state) !== gameKey(m.game)) {
+                o.snaps++;                             // (never expected: the tests count these)
+                G.state = m.game;
+                if (!m.game.over && m.status === 'playing') { startTurn(); turned = true; }
+                dirty = true;
+            }
+            if (m.status !== 'playing' || m.game.over) {
+                if (G.phase !== 'over') { onlineOver(); return true; }
+                o.hooks.over();                        // refresh the card: rematch votes, the next rack
+            }
+            updateHud();
+            return turned;
+        }
+        if (m.shotNo < o.shotNo) return false;
+        /* news */
+        const L = m.last;
+        o.shotNo = m.shotNo;
+        G.anim = null;
+        clearTimeout(G.sayTimer);
+        els.over.hidden = true;
+        if (L && L.kind === 'shot' && L.no === m.shotNo && L.before && L.input) {
+            o.expect = m;
+            G.state = L.before;
+            G.place = L.input.cue && L.before.inHand ? L.input.cue.slice() : null;
+            G.angle = Math.atan2(L.input.dir[1], L.input.dir[0]);
+            G.call = L.input.call ? { ball: L.input.call.ball, pocket: L.input.call.pocket } : null;
+            G.pull = 0;
+            launch(L.input, false);
+            if (G.run) return true;
+            o.expect = null;                          // it wouldn't play here: just take the result
+        }
+        G.state = m.game;
+        G.run = null;
+        if (L && L.kind === 'timeout') {
+            const p = G.players[L.seat], nx = G.players[m.game.turn];
+            G.report = {
+                text: verb(p, 'ran out of time.', 'ran out of time.') + ' ' + (m.game.broke ? has(nx) + ' ball in hand.' : (you(nx) ? 'Your break.' : nx.name + ' breaks.')),
+                tone: 'foul'
+            };
+            Sound.play('foul');
+        }
+        if (m.status !== 'playing' || m.game.over) { onlineOver(); return true; }
+        startTurn();
+        return true;
+    }
+
+    /* a rack is over: the online page fills the card (score, rematch, what's next) */
+    function onlineOver(quiet) {
+        const o = G.online, st = G.state;
+        G.phase = 'over';
+        setControls(false);
+        clearTimeout(G.sayTimer);
+        if (!quiet && st.over && st.winner !== null && o.saidOver !== o.gameNo) {
+            o.saidOver = o.gameNo;
+            Sound.play(o.seat < 0 || st.winner === o.seat ? 'win' : 'foul');
+        }
+        o.saidOver = o.gameNo;
+        updateHud();
+        dirty = true;
+        o.hooks.over();
+    }
+
+    /* the referee said no (too late, or the table moved on): take its table */
+    function onlineResync(m, msg) {
+        if (!G || !G.online || !m) return;
+        const o = G.online;
+        G.run = null;
+        G.anim = null;
+        G.sinking = [];
+        clearTimeout(G.timer);
+        G.timer = null;
+        clearTimeout(G.sayTimer);
+        o.next = null;
+        o.expect = null;
+        o.match = m;
+        o.shotNo = m.shotNo;
+        o.gameNo = m.gameNo;
+        G.state = m.game;
+        G.breaker = m.breaker;
+        if (msg) G.report = { text: msg, tone: 'foul' };
+        if (m.status !== 'playing' || m.game.over) { onlineOver(); return; }
+        startTurn();
+    }
+
+    /* where the other player is aiming, from their screen */
+    function onlineAim(d) {
+        if (!G || !G.online || G.phase !== 'remote' || !d || d.no !== G.online.shotNo) return;
+        const o = G.online;
+        if (typeof d.a === 'number' && isFinite(d.a)) o.aimTo = d.a;
+        if (typeof d.u === 'number' && isFinite(d.u)) o.pullTo = Math.max(0, Math.min(1, d.u));
+        if (G.state.inHand && Array.isArray(d.p) && isFinite(d.p[0]) && isFinite(d.p[1])) {
+            G.place = [Math.max(S.R, Math.min(S.W - S.R, d.p[0])), Math.max(S.R, Math.min(S.H - S.R, d.p[1]))];
+        }
+        if (S.needsCall(G.state)) {
+            const c = d.c;
+            G.call = c && Number.isInteger(c.pocket) && c.pocket >= 0 && c.pocket < 6 ? { ball: Number.isInteger(c.ball) ? c.ball : null, pocket: c.pocket } : null;
+        }
+        dirty = true;
+    }
+
+    /* the game-over card, filled by the online page: { title, text, note, again, againOff, change } (null hides it) */
+    function showOverCard(c) {
+        if (!G) return;
+        if (!c) { els.over.hidden = true; return; }
+        els.overTitle.textContent = c.title || '';
+        els.overText.textContent = c.text || '';
+        els.overPearls.hidden = !c.note;
+        els.overPearls.textContent = c.note || '';
+        overButtons(c);
+        els.over.hidden = false;
+    }
+
+    function stopOnline() {
+        if (!G || !G.online) return;
+        clearTimeout(G.timer);
+        clearTimeout(G.sayTimer);
+        G.anim = null;
+        if (els.game.classList.contains('is-full')) setFull(false);
+        G = null;
+        els.game.hidden = true;
+        els.over.hidden = true;
+        els.clock.hidden = true;
+        openSpin(false);
+        dirty = true;
+        document.dispatchEvent(new CustomEvent('pool:table', { detail: false }));
+    }
+
+    window.WhalePoolGame = {
+        playOnline: playOnline,
+        sync: onlineSync,
+        resync: onlineResync,
+        aim: onlineAim,
+        card: showOverCard,
+        stop: stopOnline,
+        say: function (text, tone) { if (G) say(text, tone); },
+        active: function () { return !!(G && G.online); },
+        sound: function (name) { Sound.play(name); },
+        showSetup: function () { if (!G) { els.setup.hidden = false; els.shop.hidden = false; renderShop(); offerResume(); } }
+    };
 
     /* ======================================================
        The Cue Shop
@@ -1860,7 +2227,17 @@
             begin: begin,
             players: playersFor,
             toScreen: toScreen,
-            redraw: function () { dirty = true; }
+            redraw: function () { dirty = true; },
+            /* take a shot the way a player would: aim, place, spin, call, then the power bar */
+            take: function (input) {
+                if (!G || G.phase !== 'aim') return false;
+                G.angle = Math.atan2(input.dir[1], input.dir[0]);
+                if (input.cue && G.state.inHand) G.place = input.cue.slice();
+                G.spin = (input.spin || [0, 0]).slice();
+                if (input.call) { G.call = { ball: input.call.ball, pocket: input.call.pocket }; G.manual = { ball: true, pocket: true }; }
+                shoot(input.power);
+                return G.phase === 'rolling';
+            }
         };
     }
 })();

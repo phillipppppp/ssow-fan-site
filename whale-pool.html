@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Whale Pool | Secret Society of Whales</title>
-    <meta name="description" content="8-ball, 9-ball and 10-ball on a comic pool table, against the bot whales or a friend. A Secret Society of Whales minigame.">
+    <meta name="description" content="8-ball, 9-ball and 10-ball on a comic pool table: against the bot whales, a friend on the same screen, or online with a link — 1v1 or a tournament for up to 32. A Secret Society of Whales minigame.">
     <link rel="icon" type="image/png" sizes="32x32" href="images/favicon-32.png">
     <link rel="apple-touch-icon" sizes="180x180" href="images/favicon-180.png">
     <link rel="stylesheet" href="base.css">
@@ -55,9 +55,14 @@
         <h1 data-stroke-text>Whale Pool</h1>
         <p class="Tagline">
             Rack &rsquo;em up in the lounge: 8-ball, 9-ball or 10-ball against the bot whales,
-            or pass the cue to a friend on the same screen.
+            pass the cue to a friend on the same screen, or send a link and play online.
         </p>
     </section>
+
+    <div class="Where" role="tablist" aria-label="Where to play" id="where">
+        <button type="button" role="tab" class="Where-tab" id="tabHere" aria-selected="true" aria-controls="setup">On this screen</button>
+        <button type="button" role="tab" class="Where-tab" id="tabOnline" aria-selected="false" aria-controls="online">Online with friends</button>
+    </div>
 
     <!-- ============ Setup ============ -->
     <section class="Pool-setup" id="setup" aria-labelledby="setupTitle">
@@ -126,6 +131,84 @@
         </div>
     </section>
 
+    <!-- ============ Online: host or join ============ -->
+    <section class="Pool-online" id="online" aria-labelledby="onlineTitle" hidden>
+        <h2 class="Pool-h2" id="onlineTitle">Play online</h2>
+
+        <div class="You" id="you">
+            <div class="You-head">
+                <div class="You-preview"><img id="avatarPreview" src="images/pfp/whale-0.svg" alt="" width="120" height="120"></div>
+                <div class="You-who">
+                    <label class="Field" for="playerName">
+                        <span class="Field-label">Your name <span class="Hint">2&ndash;16 letters, numbers, spaces, _ . -</span></span>
+                        <input class="Pool-input" type="text" id="playerName" maxlength="16" autocomplete="nickname" spellcheck="false" placeholder="deez">
+                    </label>
+                    <p class="You-label">Playing as <strong id="avatarLabel">Blue whale</strong>, with the <strong id="youCue">House Cue</strong></p>
+                </div>
+            </div>
+            <details class="You-more">
+                <summary>Change your whale</summary>
+                <div class="Field">
+                    <span class="Field-label">Use my whale</span>
+                    <div class="Wallet-row">
+                        <input type="text" id="walletInput" placeholder="0x&hellip; your wallet" spellcheck="false" autocomplete="off" aria-label="Wallet address">
+                        <button type="button" class="Btn" id="walletLoad">Load</button>
+                    </div>
+                    <p class="Wallet-status" id="walletStatus" role="status" aria-live="polite"></p>
+                    <div class="Avatar-grid" id="walletGrid" hidden></div>
+                    <p class="Wallet-note">Your wallet stays in this browser. Other players only see your whale and your name &mdash; no signing needed.</p>
+                </div>
+                <div class="Field">
+                    <span class="Field-label">No whale? Pick a pfp</span>
+                    <div class="Avatar-row" id="pfpRow"></div>
+                </div>
+            </details>
+        </div>
+
+        <div class="Online-pair">
+            <div class="Online-card">
+                <h3>Host a game</h3>
+                <fieldset class="Field">
+                    <legend class="Field-label">Game</legend>
+                    <div class="Chips" role="radiogroup" aria-label="Game">
+                        <label class="Chip"><input type="radio" name="omode" value="8" checked><span>8-Ball</span></label>
+                        <label class="Chip"><input type="radio" name="omode" value="9"><span>9-Ball</span></label>
+                        <label class="Chip"><input type="radio" name="omode" value="10"><span>10-Ball</span></label>
+                    </div>
+                </fieldset>
+                <fieldset class="Field">
+                    <legend class="Field-label">Aim lines for everyone</legend>
+                    <div class="Guides" role="radiogroup" aria-label="Aim lines for everyone">
+                        <label class="Guide"><input type="radio" name="oguides" value="full" checked><span>Full<small>where both balls go</small></span></label>
+                        <label class="Guide"><input type="radio" name="oguides" value="short"><span>Short<small>a short line</small></span></label>
+                        <label class="Guide"><input type="radio" name="oguides" value="off"><span>None<small>for sharks</small></span></label>
+                    </div>
+                </fieldset>
+                <div class="Online-go">
+                    <button type="button" class="Btn Btn--primary" id="hostMatch">Get a 1v1 link</button>
+                    <button type="button" class="Btn" id="hostTour">Get a tournament link</button>
+                </div>
+                <p class="Online-hint"><b>1v1:</b> the first friend to open the link plays you; anyone after that can watch.
+                    <b>Tournament:</b> up to 32 players sign up on one link and you press Start. It&rsquo;s a knockout with every
+                    match at once, one rack each, and the final is best of 3.</p>
+            </div>
+
+            <div class="Online-card">
+                <h3>Join a game</h3>
+                <p class="Online-hint">Got a link? Just open it. Got a code? Type it here.</p>
+                <label class="Field" for="joinCode">
+                    <span class="Field-label">Game code</span>
+                    <input class="Pool-input Code-input" type="text" id="joinCode" maxlength="7" autocomplete="off" spellcheck="false" placeholder="K7Q2XM">
+                </label>
+                <button type="button" class="Btn Btn--primary" id="joinGo">Join</button>
+            </div>
+        </div>
+
+        <p class="Online-status" id="onlineStatus" role="status" aria-live="polite"></p>
+        <p class="Online-note">Online, cues are looks only: everyone gets the same aim lines and full power and spin,
+            whatever cue they hold. Pearls are only won against the bot whales.</p>
+    </section>
+
     <!-- ============ The Cue Shop ============ -->
     <section class="Shop" id="shop" aria-labelledby="shopTitle">
         <div class="Shop-head">
@@ -161,6 +244,26 @@
         </div>
     </div>
 
+    <!-- ============ An online game: the link, who's in ============ -->
+    <section class="Room" id="room" aria-label="Your online game" hidden>
+        <div class="Room-top">
+            <div class="Room-code">
+                <span class="Field-label" id="roomKind">1v1</span>
+                <strong id="roomCode"></strong>
+            </div>
+            <div class="Room-share">
+                <input type="text" id="roomLink" readonly aria-label="Link to this game">
+                <button type="button" class="Btn" id="roomCopy">Copy link</button>
+            </div>
+        </div>
+        <p class="Room-status" id="roomStatus" aria-live="polite"></p>
+        <ol class="Room-list" id="roomList" aria-label="Players signed up" hidden></ol>
+        <div class="Room-actions">
+            <button type="button" class="Btn Btn--primary" id="roomStart" hidden>Start the tournament</button>
+            <button type="button" class="Btn" id="roomLeave">Leave</button>
+        </div>
+    </section>
+
     <!-- ============ The table ============ -->
     <section class="Pool-game" id="game" aria-label="Pool table" hidden>
         <!-- the cue is drawn here, so it can reach past the edge of the table -->
@@ -188,6 +291,7 @@
 
         <div class="Bar">
             <p class="Say" id="say" role="status" aria-live="polite">Your break.</p>
+            <span class="Clock" id="clock" role="timer" title="Shot clock" hidden></span>
             <div class="Tools">
                 <button type="button" class="Tool" id="mute" aria-pressed="false" aria-label="Sound on — mute" title="Sound">&#x1F50A;</button>
                 <button type="button" class="Tool" id="full" aria-pressed="false" aria-label="Full screen" title="Full screen">&#x26F6;</button>
@@ -241,6 +345,13 @@
         <p class="Keys" id="keys">Drag on the table to aim &middot; pull the power bar and let go to shoot.</p>
     </section>
 
+    <!-- ============ A tournament's bracket ============ -->
+    <section class="Bracket-wrap" id="bracketWrap" aria-labelledby="bracketTitle" hidden>
+        <h2 class="Pool-h2" id="bracketTitle">Bracket</h2>
+        <p class="Bracket-hint">Tap a live match to watch it.</p>
+        <div class="Bracket" id="bracket"></div>
+    </section>
+
     <!-- ============ Rules ============ -->
     <section class="Pool-rules" aria-labelledby="rulesTitle">
         <h2 class="Label" id="rulesTitle">How to play</h2>
@@ -271,6 +382,12 @@
                     wins whenever it drops on a good shot. In 10-ball you call each shot &mdash; the aim line
                     picks the ball and pocket, or tap them yourself &mdash; and only a called 10 wins.</p>
             </div>
+            <div class="Rule">
+                <h3>Online</h3>
+                <p>Each shot has a <b>45-second clock</b>. Run out and it&rsquo;s a foul: ball in hand to the other player.
+                    Run out three times in a row and you lose the rack. Close the page and the link brings you back to your seat.</p>
+                <p>Every shot is refereed by the server, so what you see is what happened &mdash; for both of you.</p>
+            </div>
         </div>
     </section>
 </main>
@@ -286,6 +403,8 @@
 <script defer src="whale-pool-cue-art.js"></script>
 <script defer src="whale-pool-cues.js"></script>
 <script defer src="whale-pool.js"></script>
+<script defer src="poker-avatar.js"></script>
+<script defer src="whale-pool-online.js"></script>
 <script defer src="footer.js"></script>
 <script defer src="data/gold.js"></script>
 <script defer src="easteregg.js"></script>

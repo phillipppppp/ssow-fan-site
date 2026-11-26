@@ -132,8 +132,23 @@ main.Pool { max-width: 1240px; }
    The game: scoreboard, message, table, controls
    ------------------------------------------------------------ */
 
-.Pool-game { display: grid; gap: 0.7rem; min-width: 0; }
+.Pool-game { position: relative; display: grid; gap: 0.7rem; min-width: 0; }
 .Pool-game[hidden] { display: none; }
+
+/* the cue's own see-through layer: over the table, under the scoreboard and
+   controls, widened by the page to the edges of the window so the butt can
+   hang past the table. It never takes a tap or a drag. */
+.Cue-over {
+    position: absolute;
+    top: 0;
+    bottom: 0;
+    left: 0;
+    z-index: 1;
+    width: 100%;
+    height: 100%;
+    pointer-events: none;
+}
+.Pool-game > .Hud, .Pool-game > .Bar, .Pool-game > .Controls, .Pool-game > .Keys { position: relative; z-index: 2; }
 
 .Hud {
     display: grid;
@@ -478,6 +493,8 @@ html.pool-full, html.pool-full body { overflow: hidden; }
 
 .Shop {
     display: grid;
+    /* one column that never grows past the page (a card's picture could push it 8px wide on phones) */
+    grid-template-columns: minmax(0, 1fr);
     gap: 1rem;
     margin-top: 1.5rem;
     padding: clamp(1.1rem, 3vw, 1.8rem);
@@ -534,7 +551,61 @@ html.pool-full, html.pool-full body { overflow: hidden; }
     border: 2px solid var(--ink);
     border-radius: 999px;
 }
-.Cue-art { display: block; width: 100%; height: 44px; }
+.Cue-art-btn {
+    display: block;
+    width: 100%;
+    padding: 0;
+    overflow: hidden;
+    cursor: zoom-in;
+    background:
+        radial-gradient(64% 85% at 50% 50%, var(--glow, rgba(255, 255, 255, 0.4)) 0%, transparent 74%),
+        var(--paper);
+    border: var(--line-thin) solid var(--ink);
+    border-radius: var(--radius-sm);
+    transition: box-shadow 0.15s, transform 0.15s;
+}
+.Cue-art-btn:hover { transform: translateY(-1px); box-shadow: 0 0 0 3px var(--glow, rgba(255, 255, 255, 0.4)); }
+.Cue-art-btn:focus-visible { outline: 3px solid var(--gold); outline-offset: 2px; }
+.Cue-art { display: block; width: 100%; height: 96px; }
+
+/* a closer look at one cue */
+.Cue-zoom {
+    position: fixed;
+    inset: 0;
+    z-index: 70;
+    display: grid;
+    place-items: center;
+    padding: 1rem;
+    background: rgba(29, 27, 32, 0.55);
+}
+.Cue-zoom[hidden] { display: none; }
+.Cue-zoom-card {
+    position: relative;
+    display: grid;
+    gap: 0.7rem;
+    width: min(56rem, 100%);
+    padding: 1.1rem 1.2rem 1.3rem;
+    background: var(--paper);
+    border: var(--line) solid var(--ink);
+    border-top: 0.55rem solid var(--rarity);
+    border-radius: var(--radius);
+    box-shadow: var(--pop-lg);
+}
+.Cue-zoom-close { position: absolute; top: 0.7rem; right: 0.7rem; z-index: 1; }
+.Cue-zoom-stage {
+    background:
+        radial-gradient(64% 85% at 50% 50%, var(--glow, rgba(255, 255, 255, 0.4)) 0%, transparent 74%),
+        var(--bg);
+    border: var(--line-thin) solid var(--ink);
+    border-radius: var(--radius-sm);
+}
+.Cue-zoom-art { display: block; width: 100%; height: clamp(150px, 26vw, 250px); }
+.Cue-zoom-card .Cue-head { padding-right: 3rem; }
+.Cue-zoom-card .Cue-name { font-size: 1.6rem; }
+@media (prefers-reduced-motion: reduce) {
+    .Cue-art-btn { transition: none; }
+    .Cue-art-btn:hover { transform: none; }
+}
 .Cue-blurb { font-size: 0.78rem; font-weight: 700; color: var(--ink-2); line-height: 1.35; min-height: 2.1em; }
 .Cue-stats { display: grid; gap: 0.2rem; }
 .Stat { display: flex; align-items: center; gap: 0.5rem; font-size: 0.68rem; font-weight: 900; letter-spacing: 0.04em; text-transform: uppercase; }

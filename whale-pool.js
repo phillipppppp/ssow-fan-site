@@ -97,7 +97,7 @@
     const els = {
         setup: $('setup'), opps: $('opps'), name1: $('name1'), name2: $('name2'), name2Wrap: $('name2Wrap'),
         name1Label: $('name1Label'), start: $('start'), resume: $('resume'),
-        game: $('game'), stage: $('stage'), canvas: $('table'), say: $('say'),
+        game: $('game'), stage: $('stage'), canvas: $('table'), cueOver: $('cueOver'), say: $('say'),
         seat0: $('seat0'), seat1: $('seat1'), pic0: $('pic0'), pic1: $('pic1'), who0: $('who0'), who1: $('who1'),
         balls0: $('balls0'), balls1: $('balls1'), modeName: $('modeName'), rack: $('rack'),
         over: $('over'), overTitle: $('overTitle'), overText: $('overText'), again: $('again'), change: $('change'),
@@ -105,6 +105,8 @@
         fine: $('fine'), fineGrip: $('fineGrip'), spinBtn: $('spinBtn'), spinDot: $('spinDot'),
         spinPop: $('spinPop'), spinBig: $('spinBig'), spinBigDot: $('spinBigDot'), spinReset: $('spinReset'), spinDone: $('spinDone'),
         mute: $('mute'), full: $('full'), quit: $('quit'), keys: $('keys'),
+        cueZoom: $('cueZoom'), cueZoomCard: $('cueZoomCard'), cueZoomArt: $('cueZoomArt'), cueZoomClose: $('cueZoomClose'),
+        cueZoomName: $('cueZoomName'), cueZoomRarity: $('cueZoomRarity'), cueZoomBlurb: $('cueZoomBlurb'), cueZoomStats: $('cueZoomStats'),
         spinReach: $('spinReach'), overPearls: $('overPearls'),
         shop: $('shop'), pearls: $('pearls'), cues: $('cues'),
         legendWallet: $('legendWallet'), legendGo: $('legendGo'), legendStatus: $('legendStatus')
@@ -123,6 +125,7 @@
     const view = { k: 1, portrait: false, dpr: 1, cw: 0, ch: 0, layer: null };
     const orient = new Map();               // ball number -> 3x3 rotation (columns: local X, Y, Z in table space)
     const sprites = new Map();               // ball number -> { canvas, ctx, img, size }
+    const orientVer = new Map();             // ball number -> how often it has turned (its picture repaints only then)
     let crest = null;
     let dirty = true;
 
@@ -182,6 +185,7 @@
         els.canvas.height = Math.round(view.ch * view.dpr);
         sprites.clear();
         buildLayer();
+        sizeOver();
         dirty = true;
     }
 
@@ -420,6 +424,7 @@
             let M = rotate(orientOf(b.n), [wx / w, wy / w, wz / w], w * dt);
             if (Math.random() < 0.05) M = tidy(M);
             orient.set(b.n, M);
+            orientVer.set(b.n, (orientVer.get(b.n) || 0) + 1);
         });
     }
 
@@ -440,6 +445,8 @@
         const rpx = S.R * view.k * view.dpr;
         const size = Math.ceil(rpx * 2) + 2;
         const sp = sprite(n, size);
+        const ver = orientVer.get(n) || 0;
+        if (sp.painted && sp.ver === ver && sp.portrait === view.portrait) return sp;
         const M = orientOf(n);
         const d = sp.img.data;
         const cc = size / 2;
@@ -473,6 +480,9 @@
             }
         }
         sp.ctx.putImageData(sp.img, 0, 0);
+        sp.painted = true;
+        sp.ver = ver;
+        sp.portrait = view.portrait;
         return sp;
     }
 
@@ -538,6 +548,7 @@
 
     function draw() {
         dirty = false;
+        clearOver();
         const c = ctx;
         c.setTransform(1, 0, 0, 1, 0, 0);
         c.clearRect(0, 0, els.canvas.width, els.canvas.height);
@@ -632,7 +643,7 @@
         /* aim guide and cue */
         if (cp && !G.run && (G.phase === 'aim' || G.phase === 'bot')) {
             drawGuide(c, cp, G.phase === 'bot');
-            drawCue(c, cp, G.pull || 0);
+            drawCue(cp, G.pull || 0);
         }
     }
 
@@ -736,66 +747,67 @@
         }
     }
 
-    /* The whole cue, never sliced off by the edge of the table picture.
-       When the full cue would run off the canvas it gets shorter instead
-       (its design scales with it, so the butt cap still shows). Only when
-       even a short cue can't fit (the cue ball against a rail, aiming
-       away from it) does its far end fade out softly. */
-    let cueLayer = null;
+    /* The cue on the table: the very same shape as on its Cue Shop card,
+       just bigger. It is always CUE_LEN long (60% of the table) and its
+       thickness follows from that, so the tip is about half a ball across.
+       It never changes shape: more power slides the whole cue back from
+       the ball. It's painted on its own see-through layer (#cueOver) that
+       reaches past the table to the sides of the screen, so the butt can
+       hang over the rail and off the table like a real cue, and the table
+       picture never shortens or cuts it. */
+    const CUE_LEN = 600;       // table units (the playing area is 1000 long)
+    const CUE_GAP = 4;         // from the ball's edge to the tip, at no power
+    const CUE_PULL = 120;      // how far back full power draws it
+    const overCtx = els.cueOver.getContext('2d');
+    let overDrawn = false;
 
-    function roomAlong(x, y, ux, uy, m) {
-        const W = els.canvas.width, H = els.canvas.height;
-        let room = Infinity;
-        if (ux > 1e-6) room = Math.min(room, (W - m - x) / ux);
-        if (ux < -1e-6) room = Math.min(room, (m - x) / ux);
-        if (uy > 1e-6) room = Math.min(room, (H - m - y) / uy);
-        if (uy < -1e-6) room = Math.min(room, (m - y) / uy);
-        return room;
+    /* the layer covers the whole game section, widened to the edges of the
+       window (in full screen, to the edges of the game's own box) */
+    function overSpan() {
+        if (els.game.classList.contains('is-full')) {
+            const g = els.game.getBoundingClientRect();
+            return [g.left, g.left + els.game.clientWidth];
+        }
+        return [0, document.documentElement.clientWidth || window.innerWidth];
+    }
+    function sizeOver() {
+        const o = els.cueOver;
+        const g = els.game.getBoundingClientRect();
+        const span = overSpan(), vw = span[1] - span[0];
+        o.style.left = (span[0] - g.left) + 'px';
+        o.style.width = vw + 'px';
+        const h = o.getBoundingClientRect().height;
+        const W = Math.round(vw * view.dpr), H = Math.round(h * view.dpr);
+        if (o.width !== W || o.height !== H) { o.width = W; o.height = H; overDrawn = true; }
+        dirty = true;
     }
 
-    function drawCue(c, cp, pull) {
-        const dpr = view.dpr, k = view.k;
+    function clearOver() {
+        if (!overDrawn) return;
+        overCtx.setTransform(1, 0, 0, 1, 0, 0);
+        overCtx.clearRect(0, 0, els.cueOver.width, els.cueOver.height);
+        overDrawn = false;
+    }
+
+    function drawCue(cp, pull) {
+        const dpr = view.dpr, u = view.k * dpr;            // one table unit in canvas pixels
+        let o = els.cueOver.getBoundingClientRect();
+        /* the page moved sideways under it (a scrollbar came or went): line it up with the window again */
+        const span = overSpan();
+        if (Math.abs(o.left - span[0]) > 0.5 || Math.abs(o.right - span[1]) > 0.5) {
+            sizeOver();
+            o = els.cueOver.getBoundingClientRect();
+        }
+        const t = els.canvas.getBoundingClientRect();
         const d = aimDir();
         const sv = vecToScreen(d[0], d[1]);
         const s = toScreen(cp[0], cp[1]);
-        const u = k * dpr;                                 // one table unit in canvas pixels
         const ux = -sv[0], uy = -sv[1];                    // from the tip toward the butt
-        const bx = s[0] * dpr, by = s[1] * dpr;
-        const m = 10.5 * u + 3 * dpr;                      // the butt's half width, its shadow, a hair more
-        const full = 560 * u, least = 190 * u;
-        /* pulling back never pushes the tip itself off the picture */
-        const fromBall = roomAlong(bx, by, ux, uy, m);
-        const gap = Math.min((S.R + 5 + pull * 120) * u, Math.max((S.R + 5) * u, fromBall - 60 * u));
-        const tx = bx + ux * gap, ty = by + uy * gap;
-        const room = fromBall - gap;
-        const len = Math.max(least, Math.min(full, room));
-        const id = cueNow().id, ang = Math.atan2(uy, ux);
-        const opts = { px: dpr, shadow: [5 * u, 7 * u] };
-        if (len <= room) {
-            Cues.drawCue(c, id, tx, ty, ang, len, 4.6 * u, 9.5 * u, opts);
-            return;
-        }
-        /* not even a short cue fits: draw it on its own layer, fade its end into the edge */
-        const W = els.canvas.width, H = els.canvas.height;
-        if (!cueLayer || cueLayer.width !== W || cueLayer.height !== H) {
-            cueLayer = document.createElement('canvas');
-            cueLayer.width = W;
-            cueLayer.height = H;
-        }
-        const g = cueLayer.getContext('2d');
-        g.setTransform(1, 0, 0, 1, 0, 0);
-        g.globalCompositeOperation = 'source-over';
-        g.clearRect(0, 0, W, H);
-        Cues.drawCue(g, id, tx, ty, ang, len, 4.6 * u, 9.5 * u, opts);
-        const to = Math.max(0, room) + m, from = Math.max(0, Math.max(0, room) - 70 * u);
-        const fade = g.createLinearGradient(tx + ux * from, ty + uy * from, tx + ux * to, ty + uy * to);
-        fade.addColorStop(0, 'rgba(0, 0, 0, 1)');
-        fade.addColorStop(1, 'rgba(0, 0, 0, 0)');
-        g.globalCompositeOperation = 'destination-in';
-        g.fillStyle = fade;
-        g.fillRect(0, 0, W, H);
-        g.globalCompositeOperation = 'source-over';
-        c.drawImage(cueLayer, 0, 0);
+        const bx = (t.left - o.left + s[0]) * dpr, by = (t.top - o.top + s[1]) * dpr;
+        const gap = (S.R + CUE_GAP + Math.max(0, Math.min(1, pull)) * CUE_PULL) * u;
+        Cues.drawCue(overCtx, cueNow().id, bx + ux * gap, by + uy * gap, Math.atan2(uy, ux), CUE_LEN * u,
+            { px: dpr, shadow: [5 * u, 7 * u], time: performance.now() });
+        overDrawn = true;
     }
 
     /* ======================================================
@@ -809,6 +821,8 @@
         last = now;
         if (G && G.run) advance(dt);
         if (G && G.anim) G.anim(now);
+        /* a cue with live touches (the laser's pulse, a Legendary shimmer) keeps moving while it's aimed */
+        if (G && !G.run && (G.phase === 'aim' || G.phase === 'bot') && Cues.animated(cueNow().id)) dirty = true;
         if (dirty || (G && (G.run || G.anim))) draw();
         window.requestAnimationFrame(frame);
     }
@@ -1545,6 +1559,8 @@
     function begin(mode, opp, players, breaker, state) {
         if (G) { clearTimeout(G.timer); clearTimeout(G.sayTimer); }
         orient.clear();
+        orientVer.clear();
+        sprites.clear();
         G = {
             mode: mode, opp: opp, players: players, breaker: breaker,
             state: state || Object.assign(S.newGame(mode, (Math.random() * 4294967296) >>> 0), {}),
@@ -1642,23 +1658,92 @@
         return row;
     }
 
-    function paintPreview(canvas, id) {
+    /* the soft glow behind a cue, in its rarity's colour */
+    const GLOW = { common: 'rgba(190, 196, 195, 0.45)', rare: 'rgba(130, 176, 214, 0.6)', epic: 'rgba(160, 130, 205, 0.6)', legendary: 'rgba(244, 183, 64, 0.62)' };
+
+    /* the tallest cue (a Legendary head) sets one size for every card, so all cues show at the same length */
+    const CARD_HALF = Math.max.apply(null, Cues.CUES.map(function (c) { return Cues.halfHeight(c.id); }));
+
+    /* a cue across a shop picture, tilted a little: tip up on the right, butt down on the left.
+       Only its length is picked here; the art keeps it in the same proportions as on the table. */
+    function paintPreview(canvas, id, time) {
         const dpr = Math.min(2, window.devicePixelRatio || 1);
-        const w = canvas.clientWidth || 260, h = canvas.clientHeight || 44;
-        canvas.width = Math.round(w * dpr);
-        canvas.height = Math.round(h * dpr);
+        const w = canvas.clientWidth || 260, h = canvas.clientHeight || 96;
+        const W = Math.round(w * dpr), H = Math.round(h * dpr);
+        if (canvas.width !== W || canvas.height !== H) { canvas.width = W; canvas.height = H; }
         const c = canvas.getContext('2d');
-        c.clearRect(0, 0, canvas.width, canvas.height);
-        const len = canvas.width * 0.8;
-        /* tip on the right, butt on the left */
-        Cues.drawCue(c, id, canvas.width * 0.9, canvas.height / 2, Math.PI, len, 2.6 * dpr, 6 * dpr, { px: dpr });
+        c.setTransform(1, 0, 0, 1, 0, 0);
+        c.clearRect(0, 0, W, H);
+        const big = canvas === els.cueZoomArt;
+        const tilt = big ? 0.15 : 0.12;
+        const room = H / 2 - 7 * dpr;                      // its shadow and a little air
+        const len = Math.min(W * 0.92 / Math.cos(tilt), room / (Math.sin(tilt) / 2 + CARD_HALF * Math.cos(tilt)));
+        const ang = Math.PI - tilt;
+        const tx = W / 2 - Math.cos(ang) * len / 2, ty = H / 2 - Math.sin(ang) * len / 2;
+        Cues.drawCue(c, id, tx, ty, ang, len, { px: dpr, shadow: [3 * dpr, 5 * dpr], time: time });
     }
+
+    /* the shop's live cues (pulses and shimmers) and the close-up keep moving while they're on screen */
+    let shopLive = [];
+    let shopRaf = 0;
+    let zoomCue = null;
+    let zoomFrom = null;
+    function shopTick(now) {
+        shopRaf = 0;
+        const zoomOn = !els.cueZoom.hidden && zoomCue && Cues.animated(zoomCue.id);
+        const shopOn = !els.shop.hidden && shopLive.length > 0;
+        if (!zoomOn && !shopOn) return;
+        if (shopOn) shopLive.forEach(function (x) { if (x.canvas.isConnected) paintPreview(x.canvas, x.id, now); });
+        if (zoomOn) paintPreview(els.cueZoomArt, zoomCue.id, now);
+        shopRaf = window.requestAnimationFrame(shopTick);
+    }
+    function wakeShop() { if (!shopRaf) shopRaf = window.requestAnimationFrame(shopTick); }
+
+    /* when the cards change size (fonts arriving, a phone turning), repaint their pictures at the new size so they stay sharp */
+    if (window.ResizeObserver && els.cues) {
+        let sizeTimer = 0;
+        new ResizeObserver(function () {
+            clearTimeout(sizeTimer);
+            sizeTimer = setTimeout(function () {
+                els.cues.querySelectorAll('canvas.Cue-art').forEach(function (cv) { paintPreview(cv, cv.dataset.cue, performance.now()); });
+            }, 60);
+        }).observe(els.cues);
+    }
+
+    function openZoom(cue, from) {
+        zoomCue = cue;
+        zoomFrom = from || null;
+        const r = Cues.RARITY[cue.rarity];
+        els.cueZoomCard.style.setProperty('--rarity', r.color);
+        els.cueZoomCard.style.setProperty('--pip', r.pip);
+        els.cueZoomCard.style.setProperty('--glow', GLOW[cue.rarity]);
+        els.cueZoomName.textContent = cue.name;
+        els.cueZoomRarity.textContent = r.name;
+        els.cueZoomBlurb.textContent = cue.blurb;
+        els.cueZoomStats.textContent = '';
+        els.cueZoomStats.append(statBar('Aim', cue.stats[0]), statBar('Power', cue.stats[1]), statBar('Spin', cue.stats[2]));
+        els.cueZoom.hidden = false;
+        paintPreview(els.cueZoomArt, cue.id, performance.now());
+        els.cueZoomClose.focus();
+        wakeShop();
+    }
+    function closeZoom() {
+        if (els.cueZoom.hidden) return;
+        els.cueZoom.hidden = true;
+        zoomCue = null;
+        if (zoomFrom && zoomFrom.isConnected) zoomFrom.focus();
+    }
+    els.cueZoomClose.addEventListener('click', closeZoom);
+    els.cueZoom.addEventListener('click', function (e) { if (e.target === els.cueZoom) closeZoom(); });
+    document.addEventListener('keydown', function (e) { if (e.key === 'Escape') closeZoom(); });
+    window.addEventListener('resize', function () { if (!els.cueZoom.hidden && zoomCue) paintPreview(els.cueZoomArt, zoomCue.id, performance.now()); });
 
     function renderShop() {
         if (!els.cues) return;
         const L = Cues.load();
         els.pearls.textContent = L.pearls.toLocaleString();
         els.cues.textContent = '';
+        shopLive = [];
         Cues.CUES.forEach(function (cue) {
             const owned = Cues.owns(cue.id);
             const on = L.equipped === cue.id;
@@ -1675,9 +1760,17 @@
             tag.className = 'Cue-rarity';
             tag.textContent = Cues.RARITY[cue.rarity].name;
             head.append(name, tag);
+            const artBtn = document.createElement('button');
+            artBtn.type = 'button';
+            artBtn.className = 'Cue-art-btn';
+            artBtn.setAttribute('aria-label', 'Look closer at the ' + cue.name);
+            artBtn.style.setProperty('--glow', GLOW[cue.rarity]);
             const art = document.createElement('canvas');
             art.className = 'Cue-art';
             art.setAttribute('aria-hidden', 'true');
+            art.dataset.cue = cue.id;
+            artBtn.appendChild(art);
+            artBtn.addEventListener('click', function () { openZoom(cue, artBtn); });
             const blurb = document.createElement('p');
             blurb.className = 'Cue-blurb';
             blurb.textContent = cue.blurb;
@@ -1698,10 +1791,12 @@
                     renderShop();
                 });
             }
-            card.append(head, art, blurb, stats, btn);
+            card.append(head, artBtn, blurb, stats, btn);
             els.cues.appendChild(card);
-            paintPreview(art, cue.id);
+            paintPreview(art, cue.id, performance.now());
+            if (Cues.animated(cue.id)) shopLive.push({ canvas: art, id: cue.id });
         });
+        wakeShop();
         if (els.legendWallet && !els.legendWallet.value && L.wallet) els.legendWallet.value = L.wallet;
     }
 
@@ -1750,8 +1845,10 @@
     let resizeTimer = 0;
     window.addEventListener('resize', function () {
         clearTimeout(resizeTimer);
-        resizeTimer = setTimeout(layout, 120);
+        resizeTimer = setTimeout(function () { layout(); if (!els.shop.hidden) renderShop(); }, 120);
     });
+    /* the game section changes height (a longer message, full screen): the cue's layer follows */
+    if (window.ResizeObserver) new ResizeObserver(function () { if (!els.game.hidden) sizeOver(); }).observe(els.game);
     window.requestAnimationFrame(frame);
 
     /* for tests: ?sandbox exposes the game */

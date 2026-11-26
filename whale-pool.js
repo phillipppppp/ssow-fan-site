@@ -105,6 +105,8 @@
         fine: $('fine'), fineGrip: $('fineGrip'), spinBtn: $('spinBtn'), spinDot: $('spinDot'),
         spinPop: $('spinPop'), spinBig: $('spinBig'), spinBigDot: $('spinBigDot'), spinReset: $('spinReset'), spinDone: $('spinDone'),
         mute: $('mute'), full: $('full'), quit: $('quit'), keys: $('keys'),
+        cueZoom: $('cueZoom'), cueZoomCard: $('cueZoomCard'), cueZoomArt: $('cueZoomArt'), cueZoomClose: $('cueZoomClose'),
+        cueZoomName: $('cueZoomName'), cueZoomRarity: $('cueZoomRarity'), cueZoomBlurb: $('cueZoomBlurb'), cueZoomStats: $('cueZoomStats'),
         spinReach: $('spinReach'), overPearls: $('overPearls'),
         shop: $('shop'), pearls: $('pearls'), cues: $('cues'),
         legendWallet: $('legendWallet'), legendGo: $('legendGo'), legendStatus: $('legendStatus')
@@ -123,6 +125,7 @@
     const view = { k: 1, portrait: false, dpr: 1, cw: 0, ch: 0, layer: null };
     const orient = new Map();               // ball number -> 3x3 rotation (columns: local X, Y, Z in table space)
     const sprites = new Map();               // ball number -> { canvas, ctx, img, size }
+    const orientVer = new Map();             // ball number -> how often it has turned (its picture repaints only then)
     let crest = null;
     let dirty = true;
 
@@ -420,6 +423,7 @@
             let M = rotate(orientOf(b.n), [wx / w, wy / w, wz / w], w * dt);
             if (Math.random() < 0.05) M = tidy(M);
             orient.set(b.n, M);
+            orientVer.set(b.n, (orientVer.get(b.n) || 0) + 1);
         });
     }
 
@@ -440,6 +444,8 @@
         const rpx = S.R * view.k * view.dpr;
         const size = Math.ceil(rpx * 2) + 2;
         const sp = sprite(n, size);
+        const ver = orientVer.get(n) || 0;
+        if (sp.painted && sp.ver === ver && sp.portrait === view.portrait) return sp;
         const M = orientOf(n);
         const d = sp.img.data;
         const cc = size / 2;
@@ -473,6 +479,9 @@
             }
         }
         sp.ctx.putImageData(sp.img, 0, 0);
+        sp.painted = true;
+        sp.ver = ver;
+        sp.portrait = view.portrait;
         return sp;
     }
 
@@ -770,7 +779,7 @@
         const room = fromBall - gap;
         const len = Math.max(least, Math.min(full, room));
         const id = cueNow().id, ang = Math.atan2(uy, ux);
-        const opts = { px: dpr, shadow: [5 * u, 7 * u] };
+        const opts = { px: dpr, shadow: [5 * u, 7 * u], time: performance.now() };
         if (len <= room) {
             Cues.drawCue(c, id, tx, ty, ang, len, 4.6 * u, 9.5 * u, opts);
             return;
@@ -809,6 +818,8 @@
         last = now;
         if (G && G.run) advance(dt);
         if (G && G.anim) G.anim(now);
+        /* a cue with live touches (the laser's pulse, a Legendary shimmer) keeps moving while it's aimed */
+        if (G && !G.run && (G.phase === 'aim' || G.phase === 'bot') && Cues.animated(cueNow().id)) dirty = true;
         if (dirty || (G && (G.run || G.anim))) draw();
         window.requestAnimationFrame(frame);
     }
@@ -1540,6 +1551,8 @@
     function begin(mode, opp, players, breaker, state) {
         if (G) { clearTimeout(G.timer); clearTimeout(G.sayTimer); }
         orient.clear();
+        orientVer.clear();
+        sprites.clear();
         G = {
             mode: mode, opp: opp, players: players, breaker: breaker,
             state: state || Object.assign(S.newGame(mode, (Math.random() * 4294967296) >>> 0), {}),
@@ -1637,23 +1650,88 @@
         return row;
     }
 
-    function paintPreview(canvas, id) {
+    /* the soft glow behind a cue, in its rarity's colour */
+    const GLOW = { common: 'rgba(190, 196, 195, 0.45)', rare: 'rgba(130, 176, 214, 0.6)', epic: 'rgba(160, 130, 205, 0.6)', legendary: 'rgba(244, 183, 64, 0.62)' };
+
+    /* a cue across a shop picture, tilted a little: tip up on the right, butt down on the left */
+    function paintPreview(canvas, id, time) {
         const dpr = Math.min(2, window.devicePixelRatio || 1);
-        const w = canvas.clientWidth || 260, h = canvas.clientHeight || 44;
-        canvas.width = Math.round(w * dpr);
-        canvas.height = Math.round(h * dpr);
+        const w = canvas.clientWidth || 260, h = canvas.clientHeight || 96;
+        const W = Math.round(w * dpr), H = Math.round(h * dpr);
+        if (canvas.width !== W || canvas.height !== H) { canvas.width = W; canvas.height = H; }
         const c = canvas.getContext('2d');
-        c.clearRect(0, 0, canvas.width, canvas.height);
-        const len = canvas.width * 0.8;
-        /* tip on the right, butt on the left */
-        Cues.drawCue(c, id, canvas.width * 0.9, canvas.height / 2, Math.PI, len, 2.6 * dpr, 6 * dpr, { px: dpr });
+        c.setTransform(1, 0, 0, 1, 0, 0);
+        c.clearRect(0, 0, W, H);
+        const big = canvas === els.cueZoomArt;
+        const tilt = big ? 0.15 : 0.12;
+        const w1 = (big ? Math.min(13, w / 70) : 6.4) * dpr;
+        const len = Math.min(W * 0.9 / Math.cos(tilt), (H - w1 * 8) / Math.sin(tilt));
+        const ang = Math.PI - tilt;
+        const tx = W / 2 - Math.cos(ang) * len / 2, ty = H / 2 - Math.sin(ang) * len / 2;
+        Cues.drawCue(c, id, tx, ty, ang, len, w1 * 0.46, w1, { px: dpr, shadow: [3 * dpr, 5 * dpr], time: time });
     }
+
+    /* the shop's live cues (pulses and shimmers) and the close-up keep moving while they're on screen */
+    let shopLive = [];
+    let shopRaf = 0;
+    let zoomCue = null;
+    let zoomFrom = null;
+    function shopTick(now) {
+        shopRaf = 0;
+        const zoomOn = !els.cueZoom.hidden && zoomCue && Cues.animated(zoomCue.id);
+        const shopOn = !els.shop.hidden && shopLive.length > 0;
+        if (!zoomOn && !shopOn) return;
+        if (shopOn) shopLive.forEach(function (x) { if (x.canvas.isConnected) paintPreview(x.canvas, x.id, now); });
+        if (zoomOn) paintPreview(els.cueZoomArt, zoomCue.id, now);
+        shopRaf = window.requestAnimationFrame(shopTick);
+    }
+    function wakeShop() { if (!shopRaf) shopRaf = window.requestAnimationFrame(shopTick); }
+
+    /* when the cards change size (fonts arriving, a phone turning), repaint their pictures at the new size so they stay sharp */
+    if (window.ResizeObserver && els.cues) {
+        let sizeTimer = 0;
+        new ResizeObserver(function () {
+            clearTimeout(sizeTimer);
+            sizeTimer = setTimeout(function () {
+                els.cues.querySelectorAll('canvas.Cue-art').forEach(function (cv) { paintPreview(cv, cv.dataset.cue, performance.now()); });
+            }, 60);
+        }).observe(els.cues);
+    }
+
+    function openZoom(cue, from) {
+        zoomCue = cue;
+        zoomFrom = from || null;
+        const r = Cues.RARITY[cue.rarity];
+        els.cueZoomCard.style.setProperty('--rarity', r.color);
+        els.cueZoomCard.style.setProperty('--pip', r.pip);
+        els.cueZoomCard.style.setProperty('--glow', GLOW[cue.rarity]);
+        els.cueZoomName.textContent = cue.name;
+        els.cueZoomRarity.textContent = r.name;
+        els.cueZoomBlurb.textContent = cue.blurb;
+        els.cueZoomStats.textContent = '';
+        els.cueZoomStats.append(statBar('Aim', cue.stats[0]), statBar('Power', cue.stats[1]), statBar('Spin', cue.stats[2]));
+        els.cueZoom.hidden = false;
+        paintPreview(els.cueZoomArt, cue.id, performance.now());
+        els.cueZoomClose.focus();
+        wakeShop();
+    }
+    function closeZoom() {
+        if (els.cueZoom.hidden) return;
+        els.cueZoom.hidden = true;
+        zoomCue = null;
+        if (zoomFrom && zoomFrom.isConnected) zoomFrom.focus();
+    }
+    els.cueZoomClose.addEventListener('click', closeZoom);
+    els.cueZoom.addEventListener('click', function (e) { if (e.target === els.cueZoom) closeZoom(); });
+    document.addEventListener('keydown', function (e) { if (e.key === 'Escape') closeZoom(); });
+    window.addEventListener('resize', function () { if (!els.cueZoom.hidden && zoomCue) paintPreview(els.cueZoomArt, zoomCue.id, performance.now()); });
 
     function renderShop() {
         if (!els.cues) return;
         const L = Cues.load();
         els.pearls.textContent = L.pearls.toLocaleString();
         els.cues.textContent = '';
+        shopLive = [];
         Cues.CUES.forEach(function (cue) {
             const owned = Cues.owns(cue.id);
             const on = L.equipped === cue.id;
@@ -1670,9 +1748,17 @@
             tag.className = 'Cue-rarity';
             tag.textContent = Cues.RARITY[cue.rarity].name;
             head.append(name, tag);
+            const artBtn = document.createElement('button');
+            artBtn.type = 'button';
+            artBtn.className = 'Cue-art-btn';
+            artBtn.setAttribute('aria-label', 'Look closer at the ' + cue.name);
+            artBtn.style.setProperty('--glow', GLOW[cue.rarity]);
             const art = document.createElement('canvas');
             art.className = 'Cue-art';
             art.setAttribute('aria-hidden', 'true');
+            art.dataset.cue = cue.id;
+            artBtn.appendChild(art);
+            artBtn.addEventListener('click', function () { openZoom(cue, artBtn); });
             const blurb = document.createElement('p');
             blurb.className = 'Cue-blurb';
             blurb.textContent = cue.blurb;
@@ -1693,10 +1779,12 @@
                     renderShop();
                 });
             }
-            card.append(head, art, blurb, stats, btn);
+            card.append(head, artBtn, blurb, stats, btn);
             els.cues.appendChild(card);
-            paintPreview(art, cue.id);
+            paintPreview(art, cue.id, performance.now());
+            if (Cues.animated(cue.id)) shopLive.push({ canvas: art, id: cue.id });
         });
+        wakeShop();
         if (els.legendWallet && !els.legendWallet.value && L.wallet) els.legendWallet.value = L.wallet;
     }
 
@@ -1745,7 +1833,7 @@
     let resizeTimer = 0;
     window.addEventListener('resize', function () {
         clearTimeout(resizeTimer);
-        resizeTimer = setTimeout(layout, 120);
+        resizeTimer = setTimeout(function () { layout(); if (!els.shop.hidden) renderShop(); }, 120);
     });
     window.requestAnimationFrame(frame);
 

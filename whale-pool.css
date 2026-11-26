@@ -132,8 +132,23 @@ main.Pool { max-width: 1240px; }
    The game: scoreboard, message, table, controls
    ------------------------------------------------------------ */
 
-.Pool-game { display: grid; gap: 0.7rem; min-width: 0; }
+.Pool-game { position: relative; display: grid; gap: 0.7rem; min-width: 0; }
 .Pool-game[hidden] { display: none; }
+
+/* the cue's own see-through layer: over the table, under the scoreboard and
+   controls, widened by the page to the edges of the window so the butt can
+   hang past the table. It never takes a tap or a drag. */
+.Cue-over {
+    position: absolute;
+    top: 0;
+    bottom: 0;
+    left: 0;
+    z-index: 1;
+    width: 100%;
+    height: 100%;
+    pointer-events: none;
+}
+.Pool-game > .Hud, .Pool-game > .Bar, .Pool-game > .Controls, .Pool-game > .Keys { position: relative; z-index: 2; }
 
 .Hud {
     display: grid;
@@ -478,6 +493,8 @@ html.pool-full, html.pool-full body { overflow: hidden; }
 
 .Shop {
     display: grid;
+    /* one column that never grows past the page (a card's picture could push it 8px wide on phones) */
+    grid-template-columns: minmax(0, 1fr);
     gap: 1rem;
     margin-top: 1.5rem;
     padding: clamp(1.1rem, 3vw, 1.8rem);

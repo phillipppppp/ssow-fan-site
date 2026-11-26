@@ -14,6 +14,13 @@
    shine line and a glint) and a thin ink outline like the rest of
    the site.
 
+   One shape everywhere: a cue's widths are a fixed share of its length
+   (TIP_W, BUTT_W), so the Cue Shop card and the table show the very
+   same cue, only bigger or smaller, and it is only ever scaled evenly.
+   The front is always a plain playing end (tip, white ferrule, thin
+   shaft); every decoration (the Legendary heads, the top hat, the
+   ember, badges, tentacles) sits on the back half, toward the butt.
+
    Speed: each cue is painted once per size into an off-screen canvas
    (with its soft shadow) and cached. A frame just pastes that image,
    then adds the little live effects: the Laser Eyes pulse and the
@@ -40,6 +47,19 @@
     };
     const RINGS = [['joint', 1.1], ['trim1', 1.05], ['trim2', 1.05]];
 
+    /* half widths as a share of the whole length: on the table (600 units
+       long) the tip is about half a ball across and the butt about twice
+       as thick. Never set per drawing, so a cue can't be squashed. */
+    const TIP_W = 0.0117, BUTT_W = 0.0225;
+    /* where the Laser Eyes' red line runs: down the forearm, behind the joint */
+    const LASER = [PART.joint[1], PART.forearm[1]];
+
+    /* how far a cue reaches either side of its centre line, as a share of its length */
+    function halfHeight(id) {
+        const d = DESIGNS[id] || DESIGNS.house;
+        return (d.head ? 3.6 : (d.hat ? 1.6 : 1.25)) * BUTT_W;
+    }
+
     const METAL = {
         brass:  ['#5e4310', '#f6dc8c', '#c9993a', '#5a400f'],
         silver: ['#585f66', '#ffffff', '#b9c0c6', '#454b51'],
@@ -55,9 +75,12 @@
 
     function radiusAt(L, r0, r1) { return function (x) { return r0 + (r1 - r0) * (x / L); }; }
 
-    /* the outline: a gentle taper, the joint and trim rings standing proud, a rounded butt */
-    function profile(g, L, r0, r1, x0) {
+    /* the outline: a slightly domed tip, a gentle taper, the joint and trim
+       rings standing proud, and a rounded butt (or a flat end, when a
+       Legendary head's collar covers it). `from` starts it further back. */
+    function profile(g, L, r0, r1, flat, from) {
         const R = radiusAt(L, r0, r1);
+        const x0 = from || 0.3 * r0;
         const top = [[x0, -R(x0)]];
         RINGS.forEach(function (ring) {
             const a = PART[ring[0]][0] * L, b = PART[ring[0]][1] * L, k = ring[1];
@@ -65,14 +88,24 @@
             const aa = Math.max(a, x0);
             top.push([aa, -R(aa)], [aa, -R(aa) * k], [b, -R(b) * k], [b, -R(b)]);
         });
-        const ce = L - 0.45 * r1;
-        top.push([ce, -R(ce)]);
         g.beginPath();
         g.moveTo(top[0][0], top[0][1]);
         for (let i = 1; i < top.length; i++) g.lineTo(top[i][0], top[i][1]);
-        g.quadraticCurveTo(L + 0.02 * r1, -R(ce), L + 0.02 * r1, 0);
-        g.quadraticCurveTo(L + 0.02 * r1, R(ce), ce, R(ce));
+        if (flat) {
+            g.lineTo(L, -R(L));
+            g.lineTo(L, R(L));
+        } else {
+            const ce = L - 0.45 * r1;
+            g.lineTo(ce, -R(ce));
+            g.quadraticCurveTo(L + 0.02 * r1, -R(ce), L + 0.02 * r1, 0);
+            g.quadraticCurveTo(L + 0.02 * r1, R(ce), ce, R(ce));
+        }
         for (let i = top.length - 1; i >= 0; i--) g.lineTo(top[i][0], -top[i][1]);
+        if (!from) {
+            /* the tip's little dome */
+            g.quadraticCurveTo(-0.08 * r0, R(x0) * 0.9, -0.08 * r0, 0);
+            g.quadraticCurveTo(-0.08 * r0, -R(x0) * 0.9, x0, -R(x0));
+        }
         g.closePath();
     }
 
@@ -157,9 +190,9 @@
         const flip = variant === 1 ? -1 : 1;
         const cuts = [];
         const n = 48;
-        for (let i = 0; i <= n; i++) cuts.push(k.x0 + (k.L - k.x0) * i / n);
+        for (let i = 0; i <= n; i++) cuts.push(k.L * i / n);
         Object.keys(PART).forEach(function (p) { cuts.push(PART[p][0] * k.L, PART[p][1] * k.L); });
-        const xs = cuts.filter(function (x) { return x >= k.x0 && x <= k.L; }).sort(function (a, b) { return a - b; });
+        const xs = cuts.filter(function (x) { return x >= 0 && x <= k.L; }).sort(function (a, b) { return a - b; });
         const metal = RINGS.map(function (r) { return PART[r[0]]; });
         for (let i = 0; i + 1 < xs.length; i++) {
             const xa = xs[i], xb = xs[i + 1];
@@ -188,7 +221,7 @@
             }
         }
         /* the shine line and a glint near the joint */
-        const a = Math.max(k.x0 + k.r1 * 0.5, 0.05 * k.L), b = 0.97 * k.L;
+        const a = 0.05 * k.L, b = 0.97 * k.L;
         const line = g.createLinearGradient(a, 0, b, 0);
         line.addColorStop(0, 'rgba(255, 255, 255, 0)');
         line.addColorStop(0.08, 'rgba(255, 255, 255, 0.75)');
@@ -203,13 +236,14 @@
         }
         g.stroke();
         const gx = PART.joint[1] * k.L + k.r1 * 1.4;
-        if (gx > k.x0) {
-            g.fillStyle = 'rgba(255, 255, 255, 0.9)';
-            g.beginPath(); g.ellipse(gx, -flip * k.R(gx) * 0.55, k.r1 * 0.7, k.r1 * 0.16, 0, 0, Math.PI * 2); g.fill();
-        }
+        g.fillStyle = 'rgba(255, 255, 255, 0.9)';
+        g.beginPath(); g.ellipse(gx, -flip * k.R(gx) * 0.55, k.r1 * 0.7, k.r1 * 0.16, 0, 0, Math.PI * 2); g.fill();
     }
 
-    /* ---------- the Legendary heads (the Staff and the Trident, from the OG traits) ---------- */
+    /* ---------- the Legendary heads (the Staff and the Trident, from the OG traits) ----------
+       Drawn in their own space: x = 0 is the head's outer end and x grows
+       toward the cue's body. paintCue mirrors them onto the BUTT, so the
+       head points away from the ball and the playing end stays a plain tip. */
 
     const GOLD = '#f4b740', GOLD_DEEP = '#b9790f', GOLD_SHINE = '#ffe39a';
 
@@ -291,7 +325,7 @@
             c.strokeStyle = GOLD_SHINE; c.lineWidth = s * 0.14;
             c.beginPath(); c.moveTo(1.2 * s, k * 2.45 * s); c.lineTo(2.6 * s, k * 2.45 * s); c.stroke();
         });
-        /* the middle spear: a long leaf, its point strikes the ball */
+        /* the middle spear: a long leaf, its point at the very end of the butt */
         c.beginPath();
         c.moveTo(0, 0);
         c.bezierCurveTo(0.7 * s, -0.9 * s, 1.7 * s, -1.05 * s, 2.4 * s, -0.55 * s);
@@ -332,7 +366,7 @@
         goldPath(c, s, px);
         c.strokeStyle = GOLD_DEEP; c.lineWidth = s * 0.16;
         [-0.75, 0, 0.75].forEach(function (y) { c.beginPath(); c.moveTo(4.4 * s, y * s); c.quadraticCurveTo(5.6 * s, y * 1.25 * s, 6.6 * s, y * 0.8 * s); c.stroke(); });
-        /* the amethyst it holds out front: the part that strikes the ball */
+        /* the amethyst it holds at the very end of the butt */
         amethyst(c, 1.9 * s, 0, 1.8 * s, px);
         /* tentacles cradling the gem, curling at the front */
         [-1, 1].forEach(function (k) {
@@ -420,8 +454,8 @@
             }
         },
         cigar: {
-            tip: '#2f62c4', shaft: '#efd6a6', joint: 'ember', trim: 'brass',
-            forearm: '#6b3f1f', wrap: '#3b2414', sleeve: '#6b3f1f', cap: '#2a1a10',
+            tip: '#2f62c4', shaft: '#efd6a6', joint: 'brass', trim: 'brass',
+            forearm: '#6b3f1f', wrap: '#3b2414', sleeve: '#6b3f1f', cap: '#8d8680', ember: true,
             paint: function (k) {
                 const g = k.g;
                 /* the leaf: mottled browns with veins */
@@ -444,9 +478,9 @@
                 g.lineWidth = Math.max(0.6 * k.px, k.r1 * 0.06);
                 [-0.55, 0.55].forEach(function (f) { g.beginPath(); g.moveTo(wa, f * k.R(wa)); g.lineTo(wb, f * k.R(wb)); g.stroke(); });
                 g.setLineDash([]);
-                /* the paper band that says SSoW */
+                /* the paper band that says SSoW (the lit end comes after it, at the butt) */
                 const [sa, sb] = range(k, 'sleeve');
-                const b0 = sa + (sb - sa) * 0.22, b1 = sa + (sb - sa) * 0.78;
+                const b0 = sa + (sb - sa) * 0.1, b1 = sa + (sb - sa) * 0.64;
                 stripe(k, b0, b1, '#f6efe0');
                 stripe(k, b0, b0 + k.r1 * 0.22, '#c9302c');
                 stripe(k, b1 - k.r1 * 0.22, b1, '#c9302c');
@@ -505,7 +539,6 @@
                 tube(fa + k.r1, fb - k.r1 * 0.5, 0.42, '#3ee8ff', true);
                 const [sa, sb] = range(k, 'sleeve');
                 tube(sa + k.r1 * 0.5, sb - k.r1 * 0.5, 0, '#ff4fd8', true);
-                tube(PART.shaft[0] * k.L + k.r1 * 2, PART.shaft[1] * k.L - k.r1, 0.3, '#3ee8ff', false);
                 const [wa, wb] = range(k, 'wrap');
                 g.fillStyle = 'rgba(255, 79, 216, 0.55)';
                 for (let x = wa + k.r1 * 0.4; x < wb; x += k.r1 * 0.9) {
@@ -518,13 +551,13 @@
             forearm: '#16161a', wrap: '#0e0e10', sleeve: '#2c2c33', cap: '#111014',
             paint: function (k) {
                 const g = k.g;
-                /* the laser's resting line (the pulse is drawn live on top) */
+                /* the laser's resting line down the forearm (the pulse is drawn live on top) */
                 g.save();
                 g.shadowColor = '#ff2a2a';
                 g.shadowBlur = k.r1 * 0.6;
                 g.strokeStyle = '#d3151c';
                 g.lineWidth = Math.max(1 * k.px, k.r0 * 0.4);
-                g.beginPath(); g.moveTo(PART.ferrule[1] * k.L, 0); g.lineTo(PART.forearm[1] * k.L, 0); g.stroke();
+                g.beginPath(); g.moveTo(LASER[0] * k.L, 0); g.lineTo(LASER[1] * k.L, 0); g.stroke();
                 g.restore();
                 /* circuit traces on the forearm */
                 const [fa, fb] = range(k, 'forearm');
@@ -584,8 +617,8 @@
             paint: function (k) {
                 const g = k.g;
                 weave(k, '#cfd4d6', 'rgba(80, 90, 100, 0.35)', 0.34);
-                /* the tusk's twist, all the way down */
-                for (let x = PART.ferrule[1] * k.L + k.r1 * 0.2; x < k.L; x += k.R(x) * 2.3) {
+                /* the tusk's twist, from the joint down to the butt */
+                for (let x = PART.joint[1] * k.L + k.r1 * 0.2; x < k.L; x += k.R(x) * 2.3) {
                     const r = k.R(x);
                     g.strokeStyle = 'rgba(140, 115, 70, 0.55)';
                     g.lineWidth = Math.max(0.8 * k.px, r * 0.2);
@@ -685,13 +718,13 @@
             }
         },
         staff: {
-            shaft: '#e0a21c', joint: 'purple', trim: 'gold', forearm: '#d39a2a', wrap: '#b9790f', sleeve: '#d39a2a', cap: GOLD,
+            tip: '#6b3fb0', shaft: '#e0a21c', joint: 'purple', trim: 'gold', forearm: '#d39a2a', wrap: '#b9790f', sleeve: '#d39a2a', cap: GOLD,
             headLen: 7.8, head: staffHead,
             paint: function (k) {
                 const g = k.g;
                 g.strokeStyle = 'rgba(120, 70, 5, 0.5)';
                 g.lineWidth = k.r1 * 0.16;
-                for (let x = k.x0 + k.r1; x < 0.97 * k.L; x += k.r1 * 3.2) { g.beginPath(); g.moveTo(x, -k.r1 * 1.2); g.lineTo(x + k.r1 * 2.4, k.r1 * 1.2); g.stroke(); }
+                for (let x = PART.joint[1] * k.L + k.r1; x < 0.97 * k.L; x += k.r1 * 3.2) { g.beginPath(); g.moveTo(x, -k.r1 * 1.2); g.lineTo(x + k.r1 * 2.4, k.r1 * 1.2); g.stroke(); }
                 weave(k, '#b9790f', 'rgba(90, 50, 0, 0.5)', 0.4);
                 [range(k, 'forearm'), range(k, 'sleeve')].forEach(function (r) {
                     for (let x = r[0] + k.r1 * 1.2; x < r[1] - k.r1 * 0.5; x += k.r1 * 2.2) {
@@ -703,7 +736,7 @@
             }
         },
         trident: {
-            shaft: '#e8ad2c', joint: 'purple', trim: 'gold', forearm: '#e0a21c', wrap: '#4aa3df', sleeve: '#c48a1a', cap: GOLD,
+            tip: '#2f62c4', shaft: '#e8ad2c', joint: 'purple', trim: 'gold', forearm: '#e0a21c', wrap: '#4aa3df', sleeve: '#c48a1a', cap: GOLD,
             headLen: 7.6, head: tridentHead,
             paint: function (k) {
                 const g = k.g;
@@ -730,14 +763,20 @@
 
     /* ---------- painting one cue into a cached image ---------- */
 
-    function paintCue(id, L, r0, r1, px, variant) {
+    /* the Cigar's lit end: a glowing ring just before the ash-grey butt cap */
+    const EMBER = [0.955, PART.cap[0]];
+
+    function paintCue(id, L, px, variant) {
         const d = DESIGNS[id] || DESIGNS.house;
         const rarity = rarityOf(id);
         const glow = rarity === 'epic';
-        const s = r1;
-        const reachY = (d.head ? 3.6 : (d.hat ? 1.6 : 1.25)) * s;
+        const r0 = L * TIP_W, r1 = L * BUTT_W, s = r1;
+        /* a Legendary head is part of the length: the body stops under its collar */
+        const Lb = d.head ? L - (d.headLen - 0.3) * s : L;
+        const flat = !!d.head;
+        const reachY = halfHeight(id) / BUTT_W * s;
         const pad = Math.ceil((glow ? 1.6 * s : 0.6 * s) + 3 * px);
-        const padR = Math.ceil(pad + (d.hat ? 2.2 * s : 0.3 * s));
+        const padR = Math.ceil(pad + (d.hat ? 2.2 : (d.head ? 2.5 : (d.ember ? 1.4 : 0.3))) * s);
         const W = Math.ceil(L + pad + padR), H = Math.ceil(2 * (reachY + pad));
         const canvas = document.createElement('canvas');
         canvas.width = W;
@@ -745,69 +784,73 @@
         const g = canvas.getContext('2d');
         const ox = pad, oy = H / 2;
         g.translate(ox, oy);
-        const x0 = d.headLen ? d.headLen * s : 0;
-        const k = { g: g, L: L, r0: r0, r1: r1, R: radiusAt(L, r0, r1), px: px, x0: x0 };
+        const k = { g: g, L: Lb, r0: r0, r1: r1, R: radiusAt(Lb, r0, r1), px: px };
         /* text and emblems stay the right way up on screen, whichever way the cue points */
         k.upright = function (cx, cy, fn) {
             if (variant !== 1) { fn(); return; }
             g.save(); g.translate(cx, cy); g.rotate(Math.PI); g.translate(-cx, -cy); fn(); g.restore();
         };
 
-        /* an Epic cue's glow sits behind it */
+        /* an Epic cue's glow sits behind its back two thirds (the playing end stays clean) */
         if (glow) {
             g.save();
             g.shadowColor = EPIC_GLOW[id] || 'rgba(171, 154, 191, 0.9)';
             g.shadowBlur = 1.4 * s;
-            profile(g, L, r0, r1, x0);
+            profile(g, Lb, r0, r1, flat, 0.3 * Lb);
             g.fillStyle = EPIC_GLOW[id] || '#ab9abf';
             g.fill();
             g.restore();
         }
 
         g.save();
-        profile(g, L, r0, r1, x0);
+        profile(g, Lb, r0, r1, flat);
         g.clip();
-        if (!d.head) {
-            fillPart(k, 'tip', d.tip);
-            fillPart(k, 'ferrule', '#f6efdf');
-        }
+        /* every cue plays with the same kind of front: a coloured tip and a white ferrule */
+        fillPart(k, 'tip', d.tip || '#2f62c4');
+        fillPart(k, 'ferrule', '#f6efdf');
         fillPart(k, 'shaft', d.shaft);
         fillPart(k, 'forearm', d.forearm);
         fillPart(k, 'wrap', d.wrap);
         fillPart(k, 'sleeve', d.sleeve);
         fillPart(k, 'cap', d.cap);
         if (d.paint) d.paint(k);
+        if (d.ember) {
+            /* the lit end: the leaf turns to glowing orange, then grey ash */
+            const a = EMBER[0] * Lb, b = EMBER[1] * Lb;
+            const gr = g.createLinearGradient(a, 0, b, 0);
+            gr.addColorStop(0, 'rgba(255, 106, 26, 0)');
+            gr.addColorStop(0.35, '#ff6a1a');
+            gr.addColorStop(0.75, '#ffd27a');
+            gr.addColorStop(1, '#ff8a2a');
+            g.fillStyle = gr;
+            g.fillRect(a, -r1 * 1.4, b - a + 0.5, r1 * 2.8);
+            const rnd = seq(5);
+            g.fillStyle = 'rgba(60, 55, 50, 0.45)';
+            for (let i = 0; i < 9; i++) {
+                g.beginPath();
+                g.ellipse(b + rnd() * (Lb - b), (rnd() - 0.5) * 1.6 * r1, r1 * 0.18, r1 * 0.1, rnd() * 3, 0, Math.PI * 2);
+                g.fill();
+            }
+        }
         metalPart(k, 'joint', d.joint);
         metalPart(k, 'trim1', d.trim);
         metalPart(k, 'trim2', d.trim);
-        if (d.joint === 'ember') {
-            /* the ember glows out from its ring */
-            const p = PART.joint;
-            g.save();
-            g.globalCompositeOperation = 'lighter';
-            const gr = g.createRadialGradient((p[0] + p[1]) / 2 * L, 0, 0, (p[0] + p[1]) / 2 * L, 0, s * 2.2);
-            gr.addColorStop(0, 'rgba(255, 140, 40, 0.65)');
-            gr.addColorStop(1, 'rgba(255, 80, 0, 0)');
-            g.fillStyle = gr;
-            g.fillRect((p[0] - 0.05) * L, -s * 1.4, 0.12 * L, s * 2.8);
-            g.restore();
-        }
         shade(k, variant, rarity);
         g.restore();
 
-        if (d.joint === 'ember') {
-            /* a little ember glow spills past the outline */
-            const p = PART.joint;
+        if (d.ember) {
+            /* its glow spills a little past the outline, at the butt */
+            const a = EMBER[0] * Lb, b = EMBER[1] * Lb;
             g.save();
             g.shadowColor = 'rgba(255, 110, 20, 0.95)';
             g.shadowBlur = s * 1.2;
             g.fillStyle = 'rgba(255, 120, 30, 0.35)';
-            g.fillRect(p[0] * L, -k.R(p[1] * L) * 1.1, (p[1] - p[0]) * L, k.R(p[1] * L) * 2.2);
+            g.fillRect(a + (b - a) * 0.3, -k.R(b) * 1.1, (b - a) * 0.7, k.R(b) * 2.2);
             g.restore();
         }
 
         /* the ink outline */
-        profile(g, L, r0, r1, x0);
+        profile(g, Lb, r0, r1, flat);
         g.lineJoin = 'round';
         g.lineWidth = Math.max(1.2 * px, s * 0.13);
         g.strokeStyle = INK;
@@ -816,13 +859,20 @@
         g.strokeStyle = 'rgba(29, 27, 32, 0.45)';
         g.lineWidth = Math.max(0.6 * px, s * 0.06);
         ['ferrule', 'shaft', 'forearm', 'wrap', 'sleeve', 'cap'].forEach(function (p) {
-            const x = PART[p][0] * L;
-            if (x <= x0 + 1) return;
+            const x = PART[p][0] * Lb;
             const r = k.R(x);
             g.beginPath(); g.moveTo(x, -r); g.lineTo(x, r); g.stroke();
         });
 
-        if (d.head) d.head(g, s, px);
+        /* a Legendary head on the butt, pointing away from the ball; turned
+           over with the cue so its shine still faces up on screen */
+        if (d.head) {
+            g.save();
+            g.translate(L, 0);
+            g.scale(-1, variant === 1 ? -1 : 1);
+            d.head(g, s, px);
+            g.restore();
+        }
         if (d.hat) topHat(g, L, s, px);
 
         /* its soft shadow, painted once alongside */
@@ -835,22 +885,22 @@
         sg.shadowOffsetX = W * 2;
         sg.drawImage(canvas, -W * 2, 0);
 
-        return { canvas: canvas, shadow: shadow, ox: ox, oy: oy, L: L, W: W, H: H, x0: x0 };
+        return { canvas: canvas, shadow: shadow, ox: ox, oy: oy, L: L, Lb: Lb, flat: flat, W: W, H: H };
     }
 
     const cache = new Map();
     const CACHE_MAX = 60;
 
-    function cached(id, len, r0, r1, px, variant) {
+    function cached(id, len, px, variant) {
         const L = Math.max(24, Math.round(len / 6) * 6);
-        const key = id + '|' + L + '|' + r0.toFixed(1) + '|' + r1.toFixed(1) + '|' + px + '|' + variant;
+        const key = id + '|' + L + '|' + px + '|' + variant;
         let item = cache.get(key);
         if (item) {
             cache.delete(key);
             cache.set(key, item);
             return item;
         }
-        item = paintCue(id, L, r0, r1, px, variant);
+        item = paintCue(id, L, px, variant);
         cache.set(key, item);
         if (cache.size > CACHE_MAX) cache.delete(cache.keys().next().value);
         return item;
@@ -877,11 +927,13 @@
         g.restore();
     }
 
-    function liveTouches(g, id, item, r0, r1, px, variant, time) {
+    /* drawn in the cue's own space at its cached size (the caller has scaled to fit) */
+    function liveTouches(g, id, item, px, variant, time) {
         const rarity = rarityOf(id);
         const still = reducedMotion() || time === undefined;
-        const L = item.L;
-        const R = radiusAt(L, r0, r1);
+        const Lb = item.Lb;
+        const r0 = item.L * TIP_W, r1 = item.L * BUTT_W;
+        const R = radiusAt(Lb, r0, r1);
         if (id === 'laser') {
             const pulse = still ? 0.45 : 0.5 + 0.5 * Math.sin(time / 520);
             g.save();
@@ -890,18 +942,20 @@
             g.shadowBlur = r1 * (0.6 + 1.4 * pulse);
             g.strokeStyle = 'rgba(255, ' + Math.round(70 + 120 * pulse) + ', ' + Math.round(60 + 100 * pulse) + ', ' + (0.35 + 0.6 * pulse) + ')';
             g.lineWidth = Math.max(1 * px, r0 * (0.28 + 0.25 * pulse));
-            g.beginPath(); g.moveTo(PART.ferrule[1] * L, 0); g.lineTo(PART.forearm[1] * L, 0); g.stroke();
+            g.beginPath(); g.moveTo(LASER[0] * Lb, 0); g.lineTo(LASER[1] * Lb, 0); g.stroke();
             g.restore();
         }
         if (rarity === 'legendary') {
             const flip = variant === 1 ? -1 : 1;
+            const from = PART.joint[0] * Lb;
             if (!still) {
-                /* a slow shimmer sweeping down the cue */
+                /* a slow shimmer sweeping down the back half, from the joint to the head */
                 const phase = (time % 3600) / 3600;
-                const xc = -0.25 * L + 1.5 * L * phase;
+                const xc = from - r1 * 3 + (Lb - from + r1 * 6) * phase;
                 g.save();
-                profile(g, L, r0, r1, item.x0);
+                profile(g, Lb, r0, r1, item.flat);
                 g.clip();
+                g.beginPath(); g.rect(from, -r1 * 2, Lb - from + r1, r1 * 4); g.clip();
                 const gr = g.createLinearGradient(xc - r1 * 3, -r1 * flip, xc + r1 * 3, r1 * flip);
                 gr.addColorStop(0, 'rgba(255, 255, 255, 0)');
                 gr.addColorStop(0.5, 'rgba(255, 252, 230, 0.6)');
@@ -910,10 +964,10 @@
                 g.fillRect(xc - r1 * 4, -r1 * 1.5, r1 * 8, r1 * 3);
                 g.restore();
             }
-            /* a few sparkles */
-            const spots = [[0.2, -0.55], [0.58, -0.45], [0.78, 0.35], [0.93, -0.4]];
+            /* a few sparkles, on the back half only */
+            const spots = [[0.56, -0.5], [0.68, 0.4], [0.8, -0.45], [0.92, 0.35]];
             spots.forEach(function (p, i) {
-                const x = Math.max(item.x0 + r1, p[0] * L);
+                const x = p[0] * Lb;
                 const a = still ? 0.55 : Math.pow(Math.max(0, Math.sin(time / 480 + i * 1.9)), 4);
                 if (a > 0.02) sparkle(g, x, p[1] * flip * R(x), r1 * 0.75, a);
             });
@@ -922,33 +976,42 @@
 
     /* ---------- the one entry point ----------
        Draws cue `id` with its tip at (x, y), lying along `angle` (the
-       direction from the tip to the butt), `len` long, half widths w0 at
-       the tip and w1 at the butt (canvas pixels). opts: px (pixels per
-       CSS pixel), shadow: [dx, dy] in canvas pixels, time: ms for the
-       live touches (leave it out for a still picture). */
-    function draw(c, id, x, y, angle, len, w0, w1, opts) {
+       direction from the tip to the butt), `len` long in canvas pixels.
+       Its thickness always follows from its length (TIP_W, BUTT_W), and
+       the cached picture is scaled the same amount both ways, so it is
+       never stretched. opts: px (pixels per CSS pixel), shadow: [dx, dy]
+       in canvas pixels, time: ms for the live touches (leave it out for a
+       still picture). */
+    function draw(c, id, x, y, angle, len, opts) {
         opts = opts || {};
         const px = opts.px || 1;
         /* keep the shine on the side facing up on screen */
         const variant = Math.cos(angle) >= 0 ? 0 : 1;
-        const item = cached(id, len, w0, w1, px, variant);
-        const sx = len / item.L;
+        const item = cached(id, len, px, variant);
+        const sc = len / item.L;
         if (opts.shadow) {
             c.save();
             c.translate(x + opts.shadow[0], y + opts.shadow[1]);
             c.rotate(angle);
-            c.scale(sx, 1);
+            c.scale(sc, sc);
             c.drawImage(item.shadow, -item.ox, -item.oy);
             c.restore();
         }
         c.save();
         c.translate(x, y);
         c.rotate(angle);
-        c.scale(sx, 1);
+        c.scale(sc, sc);
         c.drawImage(item.canvas, -item.ox, -item.oy);
-        if (DESIGNS[id] && (LIVE[id] || rarityOf(id) === 'legendary')) liveTouches(c, id, item, w0, w1, px, variant, opts.time);
+        if (DESIGNS[id] && (LIVE[id] || rarityOf(id) === 'legendary')) liveTouches(c, id, item, px, variant, opts.time);
         c.restore();
     }
 
-    window.WhalePoolCueArt = { draw: draw, animated: animated, reducedMotion: reducedMotion, ids: Object.keys(DESIGNS) };
+    /* the shape every caller shares: half widths at the tip and the butt for a cue `len` long */
+    function size(len) { return { tip: len * TIP_W, butt: len * BUTT_W }; }
+
+    window.WhalePoolCueArt = {
+        draw: draw, animated: animated, reducedMotion: reducedMotion,
+        size: size, halfHeight: halfHeight,
+        ids: Object.keys(DESIGNS)
+    };
 })();

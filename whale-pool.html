@@ -163,6 +163,8 @@
 
     <!-- ============ The table ============ -->
     <section class="Pool-game" id="game" aria-label="Pool table" hidden>
+        <!-- the cue is drawn here, so it can reach past the edge of the table -->
+        <canvas class="Cue-over" id="cueOver" aria-hidden="true"></canvas>
         <div class="Hud">
             <div class="Seat" id="seat0">
                 <img class="Seat-pic" id="pic0" src="images/pfp/whale-0.svg" alt="" width="48" height="48">

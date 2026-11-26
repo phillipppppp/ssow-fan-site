@@ -41,12 +41,12 @@
     const CUES = [
         { id: 'house',   name: 'House Cue',     rarity: 'common',    price: 0,    stats: [1, 1, 1], blurb: 'The lounge’s own. Short aim line — the rest is up to you.' },
         { id: 'pixel',   name: 'Pixel Whale',   rarity: 'rare',      price: 600,  stats: [3, 2, 2], blurb: 'Chunky 8-bit blocks, for the Pixel Whales.' },
-        { id: 'cigar',   name: 'Cigar Lounge',  rarity: 'rare',      price: 600,  stats: [2, 2, 3], blurb: 'A cigar-wrapped butt with a paper band and an ember ring.' },
+        { id: 'cigar',   name: 'Cigar Lounge',  rarity: 'rare',      price: 600,  stats: [2, 2, 3], blurb: 'A cigar-wrapped butt with a paper band and a glowing lit end.' },
         { id: 'rainbow', name: 'Rainbow Grill', rarity: 'rare',      price: 600,  stats: [2, 3, 2], blurb: 'Every colour of the grill, end to end.' },
         { id: 'neon',    name: 'Neon Arcade',   rarity: 'rare',      price: 900,  stats: [3, 2, 3], blurb: 'Glows like an arcade sign at 2 a.m.' },
-        { id: 'laser',   name: 'Laser Eyes',    rarity: 'epic',      price: 2000, stats: [4, 3, 3], blurb: 'A red laser runs down the shaft. Sees the angles.' },
+        { id: 'laser',   name: 'Laser Eyes',    rarity: 'epic',      price: 2000, stats: [4, 3, 3], blurb: 'A red laser runs down the butt. Sees the angles.' },
         { id: 'orca',    name: 'Security Orca', rarity: 'epic',      price: 2000, stats: [3, 4, 3], blurb: 'Black and white, with a badge. Hits like security.' },
-        { id: 'narwhal', name: 'Narwhal',       rarity: 'epic',      price: 2200, stats: [4, 2, 4], blurb: 'A spiral shaft like the tusk of the sea’s unicorn.' },
+        { id: 'narwhal', name: 'Narwhal',       rarity: 'epic',      price: 2200, stats: [4, 2, 4], blurb: 'A spiral butt like the tusk of the sea’s unicorn.' },
         { id: 'kraken',  name: 'Kraken',        rarity: 'epic',      price: 2200, stats: [3, 3, 4], blurb: 'A tentacle wraps the grip. Bends the cue ball.' },
         { id: 'golden',  name: 'Golden Whale',  rarity: 'legendary', price: 5000, stats: [5, 4, 4], blurb: 'Solid gold, for the rarest skin in the pod.' },
         { id: 'wealthy', name: 'Wealthy Whale', rarity: 'legendary', price: 5000, stats: [4, 4, 5], blurb: 'Black lacquer, diamond inlays, a top-hat cap.' },
@@ -185,9 +185,10 @@
     /* ---------- drawing a cue ----------
        All cue artwork lives in whale-pool-cue-art.js (WhalePoolCueArt),
        one renderer shared by the Cue Shop cards and the cue on the
-       table, so they always match. */
-    function drawCue(c, id, x, y, angle, len, w0, w1, opts) {
-        if (window.WhalePoolCueArt) window.WhalePoolCueArt.draw(c, id, x, y, angle, len, w0, w1, opts);
+       table, so they always match. Only the length is chosen by the
+       caller: the thickness follows from it, so a cue keeps its shape. */
+    function drawCue(c, id, x, y, angle, len, opts) {
+        if (window.WhalePoolCueArt) window.WhalePoolCueArt.draw(c, id, x, y, angle, len, opts);
     }
 
     window.WhalePoolCues = {
@@ -199,6 +200,8 @@
         drawCue: drawCue,
         /* does this cue have live touches (pulse, shimmer) right now */
         animated: function (id) { return !!window.WhalePoolCueArt && window.WhalePoolCueArt.animated(id); },
+        /* how far a cue reaches either side of its centre line, as a share of its length */
+        halfHeight: function (id) { return window.WhalePoolCueArt ? window.WhalePoolCueArt.halfHeight(id) : 0.03; },
         /* what a stat does */
         aimOf: function (cue) { return cue.stats[0]; },
         powerCap: function (cue) { return 0.85 + 0.0375 * (cue.stats[1] - 1); },

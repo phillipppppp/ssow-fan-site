@@ -1028,6 +1028,11 @@
         G.phase = 'rolling';
         G.pull = 0;
         carry = 0;
+        /* a shot was really taken (by anyone): spin goes back to centre, value
+           and on-screen dot together, so the next shot never inherits it.
+           A cancelled pull never gets here, so it keeps its spin. */
+        G.spin = [0, 0];
+        showSpin();
         setControls(false);
         Sound.play('cue', 0, Math.min(1, input.power * 1.2));
         dirty = true;

@@ -84,6 +84,8 @@
     let aimPending = null, aimTimer = null, aimLast = 0;
     let client = null;
     const resent = [];       /* shots sent again after an unclear answer (tests read this) */
+    let tableSince = 0;      /* when this page joined the table's channel */
+    const PRESENCE_GRACE_MS = 10000;   /* only call someone missing once presence has had time to arrive */
 
     /* ---------------------------------------------------------
        Small helpers
@@ -472,8 +474,11 @@
                     })
                     .subscribe(function (status) {
                         if (status === 'SUBSCRIBED') {
+                            tableSince = Date.now();
                             if (me.charAt(0) !== 'w') ch.track({ at: Date.now() });
                             refresh();
+                            /* presence can take a few seconds to arrive: look again once it has had time */
+                            setTimeout(renderRoom, PRESENCE_GRACE_MS + 500);
                         }
                     });
             } catch (e) { /* the poll still works */ }
@@ -858,7 +863,7 @@
             else if (m) {
                 line = (mySeat < 0 ? 'Watching ' + nameOf(m, 0) + ' vs ' + nameOf(m, 1) + '. ' : '') + score(m) + '.';
                 const other = 1 - mySeat;
-                if (mySeat >= 0 && REALTIME && tableChannel && Object.keys(present).length && !present['p' + other]) line += ' ' + nameOf(m, other) + ' isn’t on the page right now.';
+                if (mySeat >= 0 && REALTIME && tableChannel && Date.now() - tableSince > PRESENCE_GRACE_MS && !present['p' + other]) line += ' ' + nameOf(m, other) + ' isn’t on the page right now.';
             }
         } else if (main.status === 'waiting') {
             const n = main.entrants.filter(Boolean).length;

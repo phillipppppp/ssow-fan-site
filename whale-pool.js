@@ -1052,6 +1052,8 @@
         if (G.online && mine) {
             G.online.expect = null;
             G.online.shotNo++;
+            G.online.sent = { no: G.online.shotNo - 1, input: JSON.stringify(input), before: gameKey(G.state) };
+            G.online.pending = true;        // until the referee confirms it, your next shot waits
             G.online.hooks.send(input, G.online.shotNo - 1);
         }
         G.input = input;
@@ -1079,7 +1081,7 @@
         G.state = res.state;
         /* online, the referee's table is the one that counts (it's the same: the sim is exact) */
         if (G.online && G.online.expect && G.online.expect.shotNo === G.online.shotNo) {
-            if (gameKey(G.state) !== gameKey(G.online.expect.game)) G.online.snaps++;
+            if (gameKey(G.state) !== gameKey(G.online.expect.game)) noteSnap('replay', G.state, G.online.expect.game);
             G.state = G.online.expect.game;
             G.online.expect = null;
         }
@@ -1125,6 +1127,9 @@
                 G.online.next = null;
                 if (applyOnline(m)) return;
             }
+            /* your shot isn't confirmed yet (a slow connection): shooting again now could
+               race it, so the next turn waits for the referee's answer */
+            if (G.online && G.online.pending) { G.online.held = true; return; }
             startTurn();
         }, pause / FAST);
         updateHud();
@@ -1723,6 +1728,22 @@
 
     function gameKey(s) { return s ? JSON.stringify([s.balls, s.cue, s.turn, s.groups, s.broke, s.inHand, s.over, s.winner]) : ''; }
 
+    /* this screen's table had to be corrected to the referee's: count it, keep a little note */
+    const snapNotes = [];
+    function noteSnap(where, mine, theirs) {
+        const o = G.online;
+        o.snaps++;
+        if (snapNotes.length < 6) {
+            const L = o.match && o.match.last;
+            const s = o.sent;
+            snapNotes.push({
+                where: where, shotNo: o.shotNo, gameNo: o.gameNo, phase: G.phase, last: L ? L.kind + ' by ' + L.seat + ' #' + L.no : '', seat: o.seat,
+                sent: s ? { no: s.no, sameInput: L && L.input ? s.input === JSON.stringify(L.input) : null, sameBefore: L && L.before ? s.before === gameKey(L.before) : null, input: s.input, serverInput: L && L.input ? JSON.stringify(L.input) : '' } : null,
+                mine: gameKey(mine).slice(0, 200), theirs: gameKey(theirs).slice(0, 200)
+            });
+        }
+    }
+
     function remoteLine(p) {
         const st = G.state;
         if (!st.broke) return p.name + ' is breaking…';
@@ -1839,6 +1860,9 @@
         const o = G.online;
         clearTimeout(G.timer);
         G.timer = null;
+        if (m.shotNo >= o.shotNo || m.gameNo !== o.gameNo) o.pending = false;   // the referee has caught up with us
+        const held = o.held;
+        o.held = false;
         if (m.gameNo !== o.gameNo) {
             o.gameNo = m.gameNo;
             o.shotNo = m.shotNo;
@@ -1864,7 +1888,7 @@
             /* the same position: just make sure we agree with the referee */
             let turned = false;
             if (gameKey(G.state) !== gameKey(m.game)) {
-                o.snaps++;                             // (never expected: the tests count these)
+                noteSnap('confirm', G.state, m.game);   // (never expected: the tests count these)
                 G.state = m.game;
                 if (!m.game.over && m.status === 'playing') { startTurn(); turned = true; }
                 dirty = true;
@@ -1874,9 +1898,12 @@
                 o.hooks.over();                        // refresh the card: rematch votes, the next rack
             }
             updateHud();
+            /* the turn that was waiting for this confirmation goes ahead */
+            if (held && !turned && !o.pending && G.phase === 'wait') { startTurn(); return true; }
+            if (o.pending) o.held = held;
             return turned;
         }
-        if (m.shotNo < o.shotNo) return false;
+        if (m.shotNo < o.shotNo) { o.held = held; return false; }    // older news: still waiting for ours
         /* news */
         const L = m.last;
         o.shotNo = m.shotNo;
@@ -1937,6 +1964,8 @@
         clearTimeout(G.sayTimer);
         o.next = null;
         o.expect = null;
+        o.pending = false;
+        o.held = false;
         o.match = m;
         o.shotNo = m.shotNo;
         o.gameNo = m.gameNo;
@@ -2228,6 +2257,7 @@
             players: playersFor,
             toScreen: toScreen,
             redraw: function () { dirty = true; },
+            snaps: function () { return snapNotes; },
             /* take a shot the way a player would: aim, place, spin, call, then the power bar */
             take: function (input) {
                 if (!G || G.phase !== 'aim') return false;

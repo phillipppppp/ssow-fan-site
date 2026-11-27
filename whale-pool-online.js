@@ -83,6 +83,7 @@
     let ticking = false, quietDue = 0, quietUntil = 0, nextSweep = 0;
     let aimPending = null, aimTimer = null, aimLast = 0;
     let client = null;
+    const resent = [];       /* shots sent again after an unclear answer (tests read this) */
 
     /* ---------------------------------------------------------
        Small helpers
@@ -703,7 +704,20 @@
 
     async function sendShot(input, no) {
         try {
-            const r = await api('shot', { code: code, key: key, no: no, input: input });
+            let r = null;
+            for (let attempt = 0; ; attempt++) {
+                try {
+                    r = await api('shot', { code: code, key: key, no: no, input: input });
+                    break;
+                } catch (e) {
+                    /* no answer, a server hiccup or "busy": the shot may well be in already. Send
+                       the very same shot again: the referee recognises a repeat and just says yes. */
+                    const unsure = e.status === 0 || e.status >= 500 || (e.status === 409 && /busy/.test(e.message));
+                    if (!unsure || attempt >= 3) throw e;
+                    resent.push(e.status + ' ' + e.message);
+                    await new Promise(function (res) { setTimeout(res, 700 * (attempt + 1)); });
+                }
+            }
             onMain(r.main);
             if (r.match) onMatch(r.match);
         } catch (e) {
@@ -1004,7 +1018,7 @@
     /* for tests: ?sandbox exposes the online state */
     if (/[?&]sandbox(&|$)/.test(window.location.search)) {
         window.WhalePoolOnlineTest = {
-            state: function () { return { active: active, code: code, mySeat: mySeat, myEntrant: myEntrant, main: main, match: match, viewing: viewing, present: present }; },
+            state: function () { return { active: active, code: code, mySeat: mySeat, myEntrant: myEntrant, main: main, match: match, viewing: viewing, present: present, resent: resent }; },
             refresh: refresh
         };
     }

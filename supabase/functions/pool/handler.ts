@@ -181,6 +181,15 @@ export function createHandler(db: Any, deps: { now?: () => number; random32?: ()
         return out;
     }
 
+    /* is this the shot already on record? (field by field: stored shots come back from the database with their keys reordered) */
+    function sameShot(a: Any, raw: Any): boolean {
+        let b: Any;
+        try { b = cleanShot(raw); } catch { return false; }
+        const pair = (x: Any, y: Any) => (!x && !y) || (!!x && !!y && x[0] === y[0] && x[1] === y[1]);
+        const call = (x: Any, y: Any) => (!x && !y) || (!!x && !!y && x.ball === y.ball && x.pocket === y.pocket);
+        return !!a && pair(a.dir, b.dir) && a.power === b.power && pair(a.spin, b.spin) && pair(a.cue, b.cue) && call(a.call, b.call);
+    }
+
     /* ---------- pictures for OG whales, through the Lounge's cache ---------- */
 
     async function cacheGet(k: string, ttl: number) {
@@ -632,6 +641,8 @@ export function createHandler(db: Any, deps: { now?: () => number; random32?: ()
                 m = st.match;
                 seat = i;
             }
+            /* the same shot again (the browser didn't hear back the first time): it's already in */
+            if (Number(b.no) === m.shotNo - 1 && m.last && m.last.kind === 'shot' && m.last.seat === seat && sameShot(m.last.input, b.input)) return moved;
             if (moved && (m.status !== 'playing' || m.game.turn !== seat || Number(b.no) !== m.shotNo)) return { late: true };
             shotIn(m, seat, b.input, b.no);
             if (isT(st) && m.status === 'done') advance(st, m);
